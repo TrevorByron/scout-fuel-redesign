@@ -50,25 +50,15 @@ No extra npm packages needed — uses Node's built-in `https` module.
 export NOTION_API_KEY="secret_xxxxxxxxxxxx"
 ```
 
-## Screenshots and Notion
-
-**Where to save screenshots:** Always use `--output "./public/client-summary-screenshots"`. That way:
-
-- The Next.js app serves them at `/client-summary-screenshots/` when running locally and when deployed.
-- After deploy, each image has a public URL: `https://YOUR_DEPLOY_URL/client-summary-screenshots/filename.png`.
-- Notion can display images only from public URLs. When updating a Notion page (e.g. via Notion MCP), use those URLs in image blocks so the screenshots show inline. If the app isn’t deployed yet, the links will work after the next deploy.
-
-**Script note:** The screenshot script uses `sleep(ms)` for delays (Puppeteer’s `waitForTimeout` is deprecated). Don’t change it back to `waitForTimeout`.
-
 ## Quick test
 
 ```bash
 # Start your dev server, then:
 node .agents/skills/client-summary/scripts/screenshot.js \
   --urls "http://localhost:3000" \
-  --output "./public/client-summary-screenshots"
+  --output "./test-screenshots"
 
-# Check public/client-summary-screenshots/ for the result
+# Check ./test-screenshots/ for the result
 ```
 
 ## Notion page ID
@@ -81,10 +71,10 @@ To find your Notion page ID:
 
 ## Scout Fuel — Work Completed Summary
 
-For this project, the **Work Completed Summary** Notion page can be updated directly (e.g. via Notion MCP). Page ID:
+For this project, client summaries can be published as **child pages** under the Work Completed Summary page. Set:
 
 ```bash
-NOTION_PARENT_PAGE_ID="31eda057146d8050922dfa356210cb09"
+export NOTION_PARENT_PAGE_ID="31eda057146d8050922dfa356210cb09"
 ```
 
-When appending a summary and screenshots to that page, use the **deployed app URL** for images (e.g. `https://scout-fuel-redesign.vercel.app/client-summary-screenshots/...`) so the screenshots display in Notion.
+Then each summary created with the skill will appear under that page in Notion.

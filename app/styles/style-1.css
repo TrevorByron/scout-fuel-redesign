@@ -30,11 +30,11 @@ html[data-style="1"] {
   --chart-3: oklch(0.8820 0.0590 254.1280);
   --chart-4: oklch(0.2820 0.0910 267.9350);
   --chart-5: oklch(0.9320 0.0320 255.5850);
-  --sidebar: oklch(0.2080 0.0420 265.7550);
+  --sidebar: oklch(0.446 0.043 257.281);
   --sidebar-foreground: oklch(1.0000 0 0);
   --sidebar-primary: oklch(0.5460 0.2450 262.8810);
   --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.3720 0.0440 257.2870);
+  --sidebar-accent: oklch(0.554 0.046 257.417);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.8690 0.0220 252.8940);
   --sidebar-ring: oklch(0.4915 0.2776 263.8724);
@@ -60,42 +60,6 @@ html[data-style="1"] {
   --shadow-2xl: 0.5px 1px 8px -1.5px hsl(215.0943 38.6861% 26.8627% / 0.35);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-}
-
-/* Style 1: chunkier form controls (buttons, inputs, selects, input groups, textareas) */
-html:not([data-style]) [data-slot="button"],
-html[data-style="1"] [data-slot="button"] {
-  min-height: 2.5rem;
-}
-
-html:not([data-style]) [data-slot="input"],
-html[data-style="1"] [data-slot="input"] {
-  min-height: 2.5rem;
-}
-
-html:not([data-style]) [data-slot="select-trigger"],
-html[data-style="1"] [data-slot="select-trigger"] {
-  min-height: 2.5rem;
-}
-
-html:not([data-style]) [data-slot="input-group"],
-html[data-style="1"] [data-slot="input-group"] {
-  min-height: 2.5rem;
-}
-
-html:not([data-style]) [data-slot="textarea"],
-html[data-style="1"] [data-slot="textarea"] {
-  min-height: 2.5rem;
-}
-
-/* Style 1: subtle gradient on dashboard KPI cards (size=sm) */
-html:not([data-style]) [data-slot="card"][data-size="sm"],
-html[data-style="1"] [data-slot="card"][data-size="sm"] {
-  background: linear-gradient(
-    135deg,
-    var(--card) 0%,
-    color-mix(in oklch, var(--card) 92%, var(--muted)) 100%
-  );
 }
 
 html.dark:not([data-style]),
