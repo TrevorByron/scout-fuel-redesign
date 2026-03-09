@@ -24,13 +24,12 @@ Produces a professional, visually clear "what we built and why it matters" docum
 
 The finished document includes:
 
-1. **Document order** — **Most recent summary at the top.** When appending to an existing Notion page (e.g. Work Completed Summary), add the new summary at the **top** of the page content so the latest work is seen first; push older summaries down below.
-2. **Executive Summary** — plain-language description of what was built/changed
-3. **What's New** — bullet breakdown of specific changes or features, with **a small screenshot next to (or inline with) each major feature** when possible (see “Component screenshots” below)
-4. **Value & Impact** — why this matters to the end user or business
-5. **Best Practices Analysis** — how the work follows industry standards (UX, performance, accessibility, etc.)
-6. **Screenshots** — full-page screens plus **component-level screenshots** (zoomed-in on specific UI: org switcher, login form, a card, etc.) so it’s clear what each feature looks like
-7. **Next Steps** (optional) — what could come next
+1. **Executive Summary** — plain-language description of what was built/changed
+2. **What's New** — bullet breakdown of specific changes or features
+3. **Value & Impact** — why this matters to the end user or business
+4. **Best Practices Analysis** — how the work follows industry standards (UX, performance, accessibility, etc.)
+5. **Screenshots** — visual proof of the finished work, with captions
+6. **Next Steps** (optional) — what could come next
 
 ---
 
@@ -54,44 +53,21 @@ Summaries are **not** triggered by commits or pushes — the user runs the summa
 
 Use the screenshot script bundled with this skill. **Always write screenshots to `public/client-summary-screenshots/`** so that when the app is deployed, they are served at `https://DEPLOY_URL/client-summary-screenshots/filename.png` and can be embedded in Notion.
 
-**Full-page screenshots** (key routes):
-
 ```bash
 # Dev server must be running first (e.g. npm run dev)
 node .agents/skills/client-summary/scripts/screenshot.js \
-  --urls "http://localhost:3000,http://localhost:3000/login,http://localhost:3000/fleet,..." \
+  --urls "http://localhost:3000,http://localhost:3000/login,http://localhost:3000/fleet,http://localhost:3000/transactions,http://localhost:3000/drivers,http://localhost:3000/route-optimizer,http://localhost:3000/budget,http://localhost:3000/alerts" \
   --output "./public/client-summary-screenshots" \
   --width 1440 \
   --height 900 \
   --delay 2000
 ```
 
-**Component / feature screenshots** (zoomed-in on a specific UI element) — so each feature in the summary has a small screenshot next to it. Use `--selector` to capture only that element, and `--prefix` so filenames are clear (e.g. `org-switcher_localhost_3000.png`):
-
-```bash
-# Example: org switcher (sidebar header) on dashboard
-node .agents/skills/client-summary/scripts/screenshot.js \
-  --urls "http://localhost:3000" \
-  --output "./public/client-summary-screenshots" \
-  --selector "[data-sidebar=\"header\"]" \
-  --prefix "org-switcher_" \
-  --delay 1500
-
-# Example: login form only
-node .agents/skills/client-summary/scripts/screenshot.js \
-  --urls "http://localhost:3000/login" \
-  --output "./public/client-summary-screenshots" \
-  --selector "form" \
-  --prefix "login-form_" \
-  --delay 1500
-```
-
 - **Output directory:** Use `--output "./public/client-summary-screenshots"` so the deployed app serves the images. Notion can then display them via URLs (see Step 5).
 - **Script note:** The script uses a `sleep(ms)` helper for delays (Puppeteer’s `waitForTimeout` was removed in newer versions). Do not reintroduce `waitForTimeout`.
 - **Before/after:** Use `--prefix before_` or `--prefix after_` and run twice if needed.
-- **Ordering:** When updating Notion, place the **newest summary at the top** of the page and push older summaries down.
 
-See `scripts/screenshot.js` for full options (auth, mobile viewport, selector, full-page, clip, etc.).
+See `scripts/screenshot.js` for full options (auth, mobile viewport, selector, full-page, etc.).
 
 ---
 
@@ -116,8 +92,6 @@ Use the template structure below. Adapt tone based on audience:
 
 #### Document template
 
-**Ordering:** Put the **most recent summary at the top** of the page. When appending to an existing Notion “Work Completed Summary” page, insert the new summary **above** the previous content so the latest work is first.
-
 ```
 # [Project Name] — Work Summary
 **Date:** [today's date]
@@ -132,39 +106,50 @@ Use the template structure below. Adapt tone based on audience:
 ---
 
 ## What's New
-[For each change, pair the description with a small screenshot of that feature when possible.]
-
-- **[Feature 1]** — [Description].  
-  ![Feature 1](https://DEPLOY_URL/client-summary-screenshots/feature1_localhost_3000.png)
-- **[Feature 2]** — [Description].  
-  ![Feature 2](https://DEPLOY_URL/client-summary-screenshots/feature2_localhost_3000_login.png)
+- [Change 1 with brief description]
+- [Change 2 with brief description]
 - [Change 3 with brief description]
 
 ---
 
 ## Why It Matters
-...
+[2–3 paragraphs explaining value to the end user and/or business.
+Focus on outcomes, not implementation. E.g. "Users can now complete
+login in under 10 seconds with fewer errors, reducing support tickets
+and improving conversion."]
 
 ---
 
 ## How It Follows Best Practices
+[One paragraph per major practice area that applies. See references/best-practices.md]
+
+### Accessibility
+...
+
+### Performance
+...
+
+### UX / Usability
+...
+
+### Security (if relevant)
 ...
 
 ---
 
 ## Screenshots
-[Full-page and key routes; use image URLs from the deployed app.]
+[Use image URLs from the deployed app so they display in Notion. See Step 5.]
 
 ![Login](https://DEPLOY_URL/client-summary-screenshots/localhost_3000_login.png)
 ![Dashboard](https://DEPLOY_URL/client-summary-screenshots/localhost_3000.png)
+*Replace DEPLOY_URL with the app’s public URL (e.g. https://scout-fuel-redesign.vercel.app).*
 
 ---
 
 ## Next Steps (optional)
-...
+- [Suggested follow-on work]
+- [Known limitations or future improvements]
 ```
-
-**Component screenshots:** When summarizing a specific component (e.g. organization switcher, login form, splash screen), capture a screenshot of **just that element** using the script’s `--selector` (and optional `--prefix`). Embed that image next to the bullet or paragraph that describes the feature so the reader sees exactly what was built.
 
 ---
 
@@ -177,7 +162,7 @@ Use the template structure below. Adapt tone based on audience:
 3. If the app is **not deployed yet**, either (a) add the image URLs anyway so they appear after the next deploy, or (b) tell the user to drag-drop the PNGs from `public/client-summary-screenshots/` into the Notion page.
 
 **Option A — Update an existing page (e.g. Work Completed Summary) via Notion MCP:**  
-Fetch the page, then use `notion-update-page` with `update_content` or `replace_content`. **Put the newest summary at the top** of the page content (so the latest work appears first and older summaries move down). Include full-page screenshots and **component-level screenshots** next to each major feature where possible. Use the deployed-app image URLs for all images.
+Fetch the page, then use `notion-update-page` with `update_content` or `replace_content` to append the summary and image blocks using the deployed-app image URLs above.
 
 **Option B — Create a new child page via script:**  
 Requires `NOTION_API_KEY` and `NOTION_PARENT_PAGE_ID`.
@@ -198,8 +183,6 @@ The script creates a new child page and converts markdown to Notion blocks. It d
 
 Before delivering the summary, verify:
 
-- [ ] **Newest summary at top** — When appending to an existing page, the latest summary is inserted at the top; older content remains below.
-- [ ] **Component screenshots** — Where applicable, a small screenshot of the specific feature (org switcher, login form, etc.) is included next to that feature in the summary.
 - [ ] Context taken from git log / recent commits and pushes (not assumed from memory)
 - [ ] Summary written in audience-appropriate tone
 - [ ] "Why it matters" section focuses on benefits, not implementation

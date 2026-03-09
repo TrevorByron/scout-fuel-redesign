@@ -88,7 +88,3 @@ NOTION_PARENT_PAGE_ID="31eda057146d8050922dfa356210cb09"
 ```
 
 When appending a summary and screenshots to that page, use the **deployed app URL** for images (e.g. `https://scout-fuel-redesign.vercel.app/client-summary-screenshots/...`) so the screenshots display in Notion.
-
-**Document order:** Put the **most recent summary at the top** of the page so the latest work is seen first; older summaries stay below.
-
-**Component screenshots:** For each major feature (e.g. org switcher, login form), capture a small screenshot of just that component using the script’s `--selector` and `--prefix` (see SKILL.md Step 2). Embed those images next to the corresponding feature in the summary so the document shows exactly what was built.
