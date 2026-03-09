@@ -1,0 +1,53 @@
+{
+  "capturedAt": "2026-03-09T21:17:07.580Z",
+  "results": [
+    {
+      "url": "http://localhost:3000",
+      "filename": "localhost_3000.png",
+      "filepath": "client-summary-screenshots/localhost_3000.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/login",
+      "filename": "localhost_3000_login.png",
+      "filepath": "client-summary-screenshots/localhost_3000_login.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/fleet",
+      "filename": "localhost_3000_fleet.png",
+      "filepath": "client-summary-screenshots/localhost_3000_fleet.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/transactions",
+      "filename": "localhost_3000_transactions.png",
+      "filepath": "client-summary-screenshots/localhost_3000_transactions.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/drivers",
+      "filename": "localhost_3000_drivers.png",
+      "filepath": "client-summary-screenshots/localhost_3000_drivers.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/route-optimizer",
+      "filename": "localhost_3000_route_optimizer.png",
+      "filepath": "client-summary-screenshots/localhost_3000_route_optimizer.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/budget",
+      "filename": "localhost_3000_budget.png",
+      "filepath": "client-summary-screenshots/localhost_3000_budget.png",
+      "status": "ok"
+    },
+    {
+      "url": "http://localhost:3000/alerts",
+      "filename": "localhost_3000_alerts.png",
+      "filepath": "client-summary-screenshots/localhost_3000_alerts.png",
+      "status": "ok"
+    }
+  ]
+}
