@@ -7,7 +7,6 @@ import {
   dashboardKpis,
   fuelTransactions,
   costOpportunities,
-  driverLeaderboard,
   fuelPriceHistory,
   type FuelPricePoint,
 } from "@/lib/mock-data"
@@ -17,14 +16,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   ChartContainer,
   ChartTooltip,
@@ -226,12 +217,6 @@ function buildChainData() {
 }
 
 const chainChartData = buildChainData()
-
-function efficiencyBadgeVariant(score: number): "success" | "warning" | "destructiveOutline" {
-  if (score >= 90) return "success"
-  if (score >= 70) return "warning"
-  return "destructiveOutline"
-}
 
 const PRESETS = [
   { label: "Last 7 days", days: 7 },
@@ -601,46 +586,6 @@ export default function DashboardPage() {
 
         {/* Fuel price trends */}
         <FuelPriceTrendsCard />
-
-        {/* Driver leaderboard */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Driver Efficiency Leaderboard</CardTitle>
-            <CardDescription>Top 5 by efficiency score</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rank</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Truck</TableHead>
-                  <TableHead className="text-right">Avg MPG</TableHead>
-                  <TableHead className="text-right">Cost/Mile</TableHead>
-                  <TableHead className="text-right">Idle (hrs)</TableHead>
-                  <TableHead className="text-right">Score</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {driverLeaderboard.map((d) => (
-                  <TableRow key={d.truckId}>
-                    <TableCell>{d.rank}</TableCell>
-                    <TableCell>{d.driverName}</TableCell>
-                    <TableCell>{d.truckId}</TableCell>
-                    <TableCell className="text-right">{d.avgMpg.toFixed(1)}</TableCell>
-                    <TableCell className="text-right">${d.fuelCostPerMile.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{d.idleTimeHours.toFixed(1)}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={efficiencyBadgeVariant(d.efficiencyScore)} className="text-xs font-medium">
-                        {d.efficiencyScore}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

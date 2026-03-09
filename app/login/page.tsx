@@ -1,32 +1,55 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { LoginForm } from "@/components/login-form"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { LayoutBottomIcon } from "@hugeicons/core-free-icons"
+import { LoginSplashScreen } from "@/components/login-splash-screen"
+import { ScoutIcon } from "@/components/scout-icon"
+import { useStyle } from "@/components/style-provider"
 
 export default function LoginPage() {
+  const { style } = useStyle()
+  const [showSplash, setShowSplash] = useState(false)
+  const router = useRouter()
+
+  if (showSplash) {
+    return <LoginSplashScreen onComplete={() => router.push("/")} />
+  }
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
+      <div className="flex flex-col gap-6 p-4 sm:p-6 md:p-8">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="#" className="flex items-center gap-2 font-medium">
-            <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <HugeiconsIcon icon={LayoutBottomIcon} strokeWidth={2} className="size-4" />
-            </div>
-            Scout Fuel
+            {style === "2" ? (
+              <Image
+                src="/full-logo.svg"
+                alt="Scout Fuel"
+                width={139}
+                height={79}
+                className="h-auto w-[100px]"
+              />
+            ) : (
+              <>
+                <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <ScoutIcon className="size-4" />
+                </div>
+                Scout Fuel
+              </>
+            )}
           </a>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            <LoginForm />
+        <div className="flex flex-1 items-center justify-center py-6">
+          <div className="w-full max-w-[360px]">
+            <LoginForm onSubmit={() => setShowSplash(true)} />
           </div>
         </div>
       </div>
       <div
-        className="relative hidden bg-muted lg:block"
+        className="relative hidden bg-muted bg-cover bg-center bg-no-repeat lg:block"
         style={{
-          background:
-            "linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.1) 100%)",
+          backgroundImage: "url(/login-bg.png)",
         }}
       />
     </div>

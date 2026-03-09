@@ -1,7 +1,7 @@
 // For adding custom fonts with other frameworks, see:
 // https://tailwindcss.com/docs/font-family
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -12,6 +12,11 @@ import "./globals.css";
 const fontSans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const fontGeistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fontSans.variable} font-sans antialiased`}>
+      <body className={`${fontSans.variable} ${fontGeistMono.variable} font-sans antialiased`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var s=localStorage.getItem("style-template");if(s==="1"||s==="2"||s==="3")document.documentElement.setAttribute("data-style",s);})();`,
