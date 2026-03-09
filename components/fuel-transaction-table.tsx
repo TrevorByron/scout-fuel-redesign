@@ -238,7 +238,7 @@ export function FuelTransactionTable({
                   </Badge>
                 ) : hasBetterOption ? (
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger className="cursor-pointer border-0 bg-transparent p-0 outline-none [&>span]:cursor-pointer">
                       <Badge
                         variant="destructive"
                         className="cursor-pointer gap-1 text-[0.625rem]"
@@ -264,7 +264,7 @@ export function FuelTransactionTable({
               <TableCell className="text-right">
                 {hasBetterOption ? (
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger className="cursor-pointer border-0 bg-transparent p-0 outline-none [&>span]:cursor-pointer">
                       <Badge
                         variant="secondary"
                         className="cursor-pointer font-mono tabular-nums text-[0.625rem] border-destructive/30 bg-destructive/10 text-destructive"
