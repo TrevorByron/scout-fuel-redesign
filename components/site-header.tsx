@@ -12,8 +12,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/drivers": "Driver Insights",
   "/route-optimizer": "Optimizer",
   "/trips": "Trips",
-  "/budget": "Budget & Forecasting",
-  "/alerts": "Alerts & Recommendations",
 }
 
 function usePageTitle(): string {

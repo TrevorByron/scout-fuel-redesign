@@ -324,7 +324,7 @@ function RouteOptimizerPageContent() {
                 <ChevronLeft className="size-4" />
                 Back
               </Button>
-              <h2 className="text-xs font-medium text-muted-foreground">
+              <h2 className="text-lg font-semibold">
                 Trip plan
               </h2>
               <div className="flex gap-3">
@@ -342,14 +342,14 @@ function RouteOptimizerPageContent() {
                 <div className="flex flex-1 flex-col gap-3 min-w-0">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Pickup</p>
-                    <p className="text-sm font-medium truncate">{origin || "Starting location"}</p>
+                    <p className="text-xs font-medium truncate">{origin || "Starting location"}</p>
                   </div>
                   {displayStops.map((stop, i) => {
                     const costAtStop = stop.pricePerGallon * stop.refuelGallons
                     return (
                       <div key={i}>
                         <p className="text-xs font-medium text-muted-foreground">Stop {i + 1}: {stop.station}</p>
-                        <p className="text-sm font-medium truncate">{stop.location}</p>
+                        <p className="text-xs font-medium truncate">{stop.location}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           Estimated fuel at stop: {stop.fuelPct}% · ${costAtStop.toFixed(2)}
                         </p>
@@ -361,7 +361,7 @@ function RouteOptimizerPageContent() {
                   })}
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Destination</p>
-                    <p className="text-sm font-medium truncate">{destination || "Ending location"}</p>
+                    <p className="text-xs font-medium truncate">{destination || "Ending location"}</p>
                   </div>
                 </div>
               </div>
@@ -380,13 +380,6 @@ function RouteOptimizerPageContent() {
                   onClick={handleSaveTrip}
                 >
                   Save trip
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setCalculated(false)}
-                >
-                  Plan another trip
                 </Button>
               </div>
             </div>
