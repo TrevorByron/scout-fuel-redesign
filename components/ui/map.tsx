@@ -85,6 +85,8 @@ function useResolvedTheme(themeProp?: "light" | "dark"): Theme {
 type MapContextValue = {
   map: MapLibreGL.Map | null;
   isLoaded: boolean;
+  /** When true, marker popups render in a portal to document.body to avoid clipping by map container */
+  popupPortalToBody?: boolean;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
@@ -140,6 +142,8 @@ type MapProps = {
    * to enable controlled mode where the map viewport is driven by your state.
    */
   onViewportChange?: (viewport: MapViewport) => void;
+  /** When true, marker popups render in a portal to document.body so they are not clipped by the map container */
+  popupPortalToBody?: boolean;
 } & Omit<MapLibreGL.MapOptions, "container" | "style">;
 
 function DefaultLoader() {
@@ -173,6 +177,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     projection,
     viewport,
     onViewportChange,
+    popupPortalToBody,
     ...props
   },
   ref
@@ -327,8 +332,9 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     () => ({
       map: mapInstance,
       isLoaded: isLoaded && isStyleLoaded,
+      popupPortalToBody: popupPortalToBody ?? false,
     }),
-    [mapInstance, isLoaded, isStyleLoaded]
+    [mapInstance, isLoaded, isStyleLoaded, popupPortalToBody]
   );
 
   return (
@@ -544,8 +550,16 @@ function MarkerPopup({
   ...popupOptions
 }: MarkerPopupProps) {
   const { marker, map } = useMarkerContext();
+  const mapContext = useContext(MapContext);
+  const popupPortalToBody = mapContext?.popupPortalToBody ?? false;
   const container = useMemo(() => document.createElement("div"), []);
   const prevPopupOptions = useRef(popupOptions);
+
+  const [portalState, setPortalState] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const popup = useMemo(() => {
     const popupInstance = new MapLibreGL.Popup({
@@ -563,14 +577,67 @@ function MarkerPopup({
   useEffect(() => {
     if (!map) return;
 
+    if (popupPortalToBody) {
+      container.style.visibility = "hidden";
+      container.style.pointerEvents = "none";
+      container.style.position = "absolute";
+      container.style.width = "0";
+      container.style.height = "0";
+    }
+
     popup.setDOMContent(container);
     marker.setPopup(popup);
+
+    if (popupPortalToBody) {
+      const offset = (popupOptions.offset as number) ?? 16;
+      const updatePosition = () => {
+        const lngLat = marker.getLngLat();
+        const point = map.project(lngLat);
+        const rect = map.getContainer().getBoundingClientRect();
+        setPortalState((prev) =>
+          prev
+            ? {
+                ...prev,
+                x: rect.left + point.x,
+                y: rect.top + point.y + offset,
+              }
+            : null
+        );
+      };
+      const onOpen = () => {
+        const lngLat = marker.getLngLat();
+        const point = map.project(lngLat);
+        const rect = map.getContainer().getBoundingClientRect();
+        setPortalState({
+          isOpen: true,
+          x: rect.left + point.x,
+          y: rect.top + point.y + offset,
+        });
+      };
+      const onClose = () => setPortalState(null);
+      popup.on("open", onOpen);
+      popup.on("close", onClose);
+      map.on("move", updatePosition);
+      map.on("moveend", updatePosition);
+      window.addEventListener("scroll", updatePosition, true);
+      if (popup.isOpen()) onOpen();
+
+      return () => {
+        popup.off("open", onOpen);
+        popup.off("close", onClose);
+        map.off("move", updatePosition);
+        map.off("moveend", updatePosition);
+        window.removeEventListener("scroll", updatePosition, true);
+        marker.setPopup(null);
+        setPortalState(null);
+      };
+    }
 
     return () => {
       marker.setPopup(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map]);
+  }, [map, popupPortalToBody]);
 
   if (popup.isOpen()) {
     const prev = prevPopupOptions.current;
@@ -587,7 +654,7 @@ function MarkerPopup({
 
   const handleClose = () => popup.remove();
 
-  return createPortal(
+  const popupContent = (
     <div
       className={cn(
         "relative rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
@@ -606,9 +673,26 @@ function MarkerPopup({
         </button>
       )}
       {children}
-    </div>,
-    container
+    </div>
   );
+
+  if (popupPortalToBody && portalState?.isOpen && map) {
+    return createPortal(
+      <div
+        className="fixed z-[10001]"
+        style={{
+          left: portalState.x,
+          top: portalState.y,
+          transform: "translate(-50%, 0)",
+        }}
+      >
+        {popupContent}
+      </div>,
+      document.body
+    );
+  }
+
+  return createPortal(popupContent, container);
 }
 
 type MarkerTooltipProps = {
@@ -1191,8 +1275,10 @@ type MapClusterLayerProps<
   clusterColors?: [string, string, string];
   /** Point count thresholds for color/size steps: [medium, large] (default: [100, 750]) */
   clusterThresholds?: [number, number];
-  /** Color for unclustered individual points (default: "#3b82f6") */
+  /** Color for unclustered individual points (default: "#3b82f6"). Ignored when pointColorProperty is set. */
   pointColor?: string;
+  /** When set, unclustered points use this feature property for circle color (e.g. "color" for green/red per point) */
+  pointColorProperty?: string;
   /** Callback when an unclustered point is clicked */
   onPointClick?: (
     feature: GeoJSON.Feature<GeoJSON.Point, P>,
@@ -1215,6 +1301,7 @@ function MapClusterLayer<
   clusterColors = ["#22c55e", "#eab308", "#ef4444"],
   clusterThresholds = [100, 750],
   pointColor = "#3b82f6",
+  pointColorProperty,
   onPointClick,
   onClusterClick,
 }: MapClusterLayerProps<P>) {
@@ -1229,6 +1316,7 @@ function MapClusterLayer<
     clusterColors,
     clusterThresholds,
     pointColor,
+    pointColorProperty,
   });
 
   // Add source and layers on mount
@@ -1298,8 +1386,10 @@ function MapClusterLayer<
       source: sourceId,
       filter: ["!", ["has", "point_count"]],
       paint: {
-        "circle-color": pointColor,
-        "circle-radius": 5,
+        "circle-color": pointColorProperty
+          ? ["get", pointColorProperty]
+          : pointColor,
+        "circle-radius": 8,
         "circle-stroke-width": 2,
         "circle-stroke-color": "#fff",
       },
@@ -1362,11 +1452,25 @@ function MapClusterLayer<
     }
 
     // Update unclustered point layer color
-    if (map.getLayer(unclusteredLayerId) && prev.pointColor !== pointColor) {
-      map.setPaintProperty(unclusteredLayerId, "circle-color", pointColor);
+    if (map.getLayer(unclusteredLayerId)) {
+      if (pointColorProperty) {
+        if (prev.pointColorProperty !== pointColorProperty) {
+          map.setPaintProperty(unclusteredLayerId, "circle-color", [
+            "get",
+            pointColorProperty,
+          ]);
+        }
+      } else if (prev.pointColor !== pointColor) {
+        map.setPaintProperty(unclusteredLayerId, "circle-color", pointColor);
+      }
     }
 
-    stylePropsRef.current = { clusterColors, clusterThresholds, pointColor };
+    stylePropsRef.current = {
+      clusterColors,
+      clusterThresholds,
+      pointColor,
+      pointColorProperty,
+    };
   }, [
     isLoaded,
     map,
@@ -1375,6 +1479,7 @@ function MapClusterLayer<
     clusterColors,
     clusterThresholds,
     pointColor,
+    pointColorProperty,
   ]);
 
   // Handle click events

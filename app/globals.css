@@ -83,4 +83,15 @@
   .maplibregl-popup-tip {
     @apply hidden!;
   }
+  /* Ensure popup appears above map markers so it is fully viewable when clicking a pin */
+  .maplibregl-popup {
+    z-index: 1000;
+  }
+  /* Drivers page: allow popup to extend below map (MapLibre sets overflow:hidden on .maplibregl-map) */
+  .drivers-map-wrapper .maplibregl-map {
+    overflow: visible !important;
+  }
+  .drivers-map-wrapper {
+    overflow: visible !important;
+  }
 }

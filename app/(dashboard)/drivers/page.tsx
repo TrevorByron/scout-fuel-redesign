@@ -2,399 +2,310 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
+import { type DateRange } from "react-day-picker"
 import {
-  driverLeaderboard,
-  driverDetails,
   fuelTransactions,
-  type DriverPerformance,
-  type FuelTransaction,
+  driverLeaderboard,
+  STATION_BRANDS,
 } from "@/lib/mock-data"
+import type { FuelTransaction } from "@/lib/mock-data"
+import { FuelTransactionTable } from "@/components/fuel-transaction-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
-import { cn } from "@/lib/utils"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Calendar01Icon } from "@hugeicons/core-free-icons"
 
-const DriverFuelMap = dynamic(() => import("@/components/driver-fuel-map").then((m) => ({ default: m.DriverFuelMap })), {
-  ssr: false,
-})
+const DriverInsightsMap = dynamic(
+  () =>
+    import("@/components/driver-insights-map").then((m) => ({
+      default: m.DriverInsightsMap,
+    })),
+  { ssr: false }
+)
 
-const chartConfig = {
-  mpg: { label: "MPG", color: "var(--chart-1)" },
-  costPerMile: { label: "Cost/Mile", color: "var(--chart-2)" },
-} satisfies ChartConfig
+const PRESETS = [
+  { label: "Last 7 days", days: 7 },
+  { label: "Last 30 days", days: 30 },
+  { label: "Last 90 days", days: 90 },
+] as const
 
-type SortKey = keyof DriverPerformance
-
-function efficiencyColor(score: number) {
-  if (score >= 90) return "text-chart-2"
-  if (score >= 70) return "text-chart-4"
-  return "text-destructive"
+function getPresetRange(days: number): DateRange {
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  return { from, to }
 }
 
-function getDefaultDateRange() {
-  const end = new Date()
-  const start = new Date()
-  start.setDate(start.getDate() - 30)
-  return {
-    from: start.toISOString().slice(0, 10),
-    to: end.toISOString().slice(0, 10),
-  }
+function formatRangeLabel(range: DateRange | undefined): string {
+  if (!range?.from) return "Pick a date range"
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  if (!range.to) return fmt(range.from)
+  return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
-function filterTransactionsByDateRange(
-  txns: FuelTransaction[],
-  driverName: string,
-  dateFrom: string,
-  dateTo: string
-): FuelTransaction[] {
-  const from = new Date(dateFrom)
-  const to = new Date(dateTo)
-  to.setHours(23, 59, 59, 999)
-  return txns.filter((t) => {
-    if (t.driverName !== driverName) return false
-    const d = new Date(t.dateTime)
-    return d >= from && d <= to
-  })
+function getWaste(t: FuelTransaction): number {
+  return t.betterOption?.potentialSavings ?? 0
 }
 
-function DriverDetailModal({
-  driverId,
-  open,
-  onOpenChange,
-}: {
-  driverId: string | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const defaultRange = getDefaultDateRange()
-  const [dateFrom, setDateFrom] = React.useState(defaultRange.from)
-  const [dateTo, setDateTo] = React.useState(defaultRange.to)
-
-  const detail = driverId ? driverDetails[driverId] : null
-  const fuelUpsInRange = React.useMemo(() => {
-    if (!detail) return []
-    return filterTransactionsByDateRange(
-      fuelTransactions,
-      detail.driverName,
-      dateFrom,
-      dateTo
-    )
-  }, [detail, dateFrom, dateTo])
-
-  React.useEffect(() => {
-    if (open) {
-      const { from, to } = getDefaultDateRange()
-      setDateFrom(from)
-      setDateTo(to)
-    }
-  }, [open])
-
-  if (!detail) return null
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl px-4 py-4 lg:px-6 lg:py-6">
-        <SheetHeader>
-          <SheetTitle>{detail.driverName}</SheetTitle>
-        </SheetHeader>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {detail.truckId} · Driver ID: {detail.driverId}
-          </p>
-
-          <div>
-            <h4 className="mb-2 text-sm font-medium">Monthly trend</h4>
-            <ChartContainer config={chartConfig} className="h-[180px] w-full">
-              <LineChart data={detail.monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="mpg"
-                  stroke="var(--chart-1)"
-                  strokeWidth={2}
-                  name="MPG"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="costPerMile"
-                  stroke="var(--chart-2)"
-                  strokeWidth={2}
-                  name="Cost/Mile"
-                />
-              </LineChart>
-            </ChartContainer>
-          </div>
-
-          <div>
-            <h4 className="mb-2 text-sm font-medium">Fuel-ups in range</h4>
-            <div className="mb-2 flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">From</Label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="h-8 w-[140px]"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">To</Label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="h-8 w-[140px]"
-                />
-              </div>
-            </div>
-            {fuelUpsInRange.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No fuel-ups in this date range.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Station</TableHead>
-                      <TableHead className="text-right">Gal</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Best buy?</TableHead>
-                      <TableHead>Opportunity</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fuelUpsInRange.map((t) => (
-                      <TableRow key={t.id}>
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {new Date(t.dateTime).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-xs">{t.location}</TableCell>
-                        <TableCell className="text-xs">{t.stationBrand}</TableCell>
-                        <TableCell className="text-right text-xs">{t.gallons}</TableCell>
-                        <TableCell className="text-right text-xs">${t.pricePerGallon.toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-xs">${t.totalCost.toFixed(2)}</TableCell>
-                        <TableCell>
-                          {t.betterOption ? (
-                            <span className="text-destructive text-xs font-medium">No</span>
-                          ) : (
-                            <span className="text-[var(--success)] text-xs font-medium">Yes</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[180px] text-xs">
-                          {t.betterOption ? (
-                            <span className="text-destructive">
-                              Could have saved ${t.betterOption.potentialSavings.toFixed(2)} at {t.betterOption.stationName} ({t.betterOption.distanceMiles} mi away)
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h4 className="mb-2 text-sm font-medium">Fuel-up map</h4>
-            <DriverFuelMap transactions={fuelUpsInRange} />
-          </div>
-
-          <div>
-            <h4 className="mb-2 text-sm font-medium">Coaching recommendations</h4>
-            <ul className="list-inside list-disc text-sm text-muted-foreground">
-              {detail.recommendations.map((r, i) => (
-                <li key={i}>{r}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-2 text-sm font-medium">Badges</h4>
-            <div className="flex flex-wrap gap-1">
-              {detail.badges.map((b) => (
-                <Badge key={b} variant="secondary">
-                  {b}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  )
-}
+const DRIVER_NAMES = [...new Set(driverLeaderboard.map((d) => d.driverName))].sort()
 
 export default function DriversPage() {
-  const [sortKey, setSortKey] = React.useState<SortKey>("rank")
-  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc")
-  const [selectedDriverId, setSelectedDriverId] = React.useState<string | null>(null)
-  const [modalOpen, setModalOpen] = React.useState(false)
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
+    () => getPresetRange(30)
+  )
+  const [selectedDriverIds, setSelectedDriverIds] = React.useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = React.useState<string[]>([])
+  const [wasteThreshold, setWasteThreshold] = React.useState([0])
+  const [selectedTransactionId, setSelectedTransactionId] = React.useState<string | null>(null)
 
-  const sorted = React.useMemo(() => {
-    const list = [...driverLeaderboard]
-    list.sort((a, b) => {
-      const aVal = a[sortKey]
-      const bVal = b[sortKey]
-      if (typeof aVal === "number" && typeof bVal === "number")
-        return sortDir === "asc" ? aVal - bVal : bVal - aVal
-      if (typeof aVal === "string" && typeof bVal === "string")
-        return sortDir === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal)
-      return 0
+  const dateFrom = dateRange?.from
+  const dateTo = dateRange?.to ?? dateRange?.from
+
+  const filteredTransactions = React.useMemo(() => {
+    return fuelTransactions.filter((t) => {
+      const tDate = new Date(t.dateTime).getTime()
+      if (dateFrom && tDate < dateFrom.getTime()) return false
+      if (dateTo && tDate > dateTo.getTime() + 86400000) return false
+      if (selectedDriverIds.length > 0 && !selectedDriverIds.includes(t.driverName)) return false
+      if (selectedBrands.length > 0 && !selectedBrands.includes(t.stationBrand)) return false
+      const waste = getWaste(t)
+      if (waste < (wasteThreshold[0] ?? 0)) return false
+      return true
     })
-    return list
-  }, [sortKey, sortDir])
+  }, [dateFrom, dateTo, selectedDriverIds, selectedBrands, wasteThreshold])
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
-    else setSortKey(key)
+  const toggleDriver = (name: string) => {
+    setSelectedDriverIds((prev) =>
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
+    )
   }
 
-  const openDetail = (driverId: string) => {
-    setSelectedDriverId(driverId)
-    setModalOpen(true)
+  const handleSelectTransaction = (t: FuelTransaction | null) => {
+    setSelectedTransactionId(t?.id ?? null)
   }
 
   return (
-    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="px-4 lg:px-6">
-        <h2 className="text-lg font-semibold">Driver Performance</h2>
-        <p className="text-sm text-muted-foreground">
-          Leaderboard and efficiency scores. Click a row for details.
-        </p>
-      </div>
-
-      <Card className="mx-4 md:col-span-2 lg:mx-6">
+    <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
+      {/* Row 1: Filters */}
+      <Card>
         <CardHeader>
-          <CardTitle>Leaderboard</CardTitle>
-          <CardDescription>Sort by column header</CardDescription>
+          <CardTitle>Filters</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("rank")}
-                  >
-                    Rank
-                  </button>
-                </TableHead>
-                <TableHead>
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("driverName")}
-                  >
-                    Driver
-                  </button>
-                </TableHead>
-                <TableHead>
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("truckId")}
-                  >
-                    Truck
-                  </button>
-                </TableHead>
-                <TableHead className="text-right">
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("avgMpg")}
-                  >
-                    Avg MPG
-                  </button>
-                </TableHead>
-                <TableHead className="text-right">
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("fuelCostPerMile")}
-                  >
-                    Cost/Mile
-                  </button>
-                </TableHead>
-                <TableHead className="text-right">
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("idleTimeHours")}
-                  >
-                    Idle (hrs)
-                  </button>
-                </TableHead>
-                <TableHead className="text-right">
-                  <button
-                    className="hover:underline"
-                    onClick={() => handleSort("efficiencyScore")}
-                  >
-                    Score
-                  </button>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sorted.map((d) => (
-                <TableRow
-                  key={d.truckId}
-                  className="cursor-pointer"
-                  onClick={() => openDetail("D" + d.truckId.slice(1))}
-                >
-                  <TableCell>{d.rank}</TableCell>
-                  <TableCell>{d.driverName}</TableCell>
-                  <TableCell>{d.truckId}</TableCell>
-                  <TableCell className="text-right">{d.avgMpg.toFixed(1)}</TableCell>
-                  <TableCell className="text-right">${d.fuelCostPerMile.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">{d.idleTimeHours.toFixed(1)}</TableCell>
-                  <TableCell
-                    className={cn(
-                      "text-right font-medium",
-                      efficiencyColor(d.efficiencyScore)
-                    )}
-                  >
-                    {d.efficiencyScore}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Row 1: labels (top-aligned) */}
+            <Label className="text-xs font-medium text-muted-foreground">
+              Date range
+            </Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              Drivers
+            </Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              Fuel brand
+            </Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              Show transactions with waste &gt; ${wasteThreshold[0] ?? 0}
+            </Label>
+
+            {/* Row 2: controls (slider centered with buttons) */}
+            <div className="flex min-h-9 items-center">
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="h-9 gap-2 text-sm font-normal"
+                    >
+                      <HugeiconsIcon
+                        icon={Calendar01Icon}
+                        strokeWidth={1.5}
+                        className="size-4 text-muted-foreground"
+                      />
+                      {formatRangeLabel(dateRange)}
+                    </Button>
+                  }
+                />
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="flex gap-1 border-b px-3 py-2">
+                    {PRESETS.map((p) => (
+                      <Button
+                        key={p.days}
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setDateRange(getPresetRange(p.days))}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex min-h-9 items-center">
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedDriverIds.length === 0
+                        ? "All drivers"
+                        : `${selectedDriverIds.length} driver${selectedDriverIds.length === 1 ? "" : "s"}`}
+                    </Button>
+                  }
+                />
+                <PopoverContent className="w-[280px] p-2" align="start">
+                  <div className="max-h-[200px] space-y-1 overflow-y-auto">
+                    {DRIVER_NAMES.map((name) => (
+                      <div
+                        key={name}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted"
+                      >
+                        <Checkbox
+                          id={`driver-${name}`}
+                          checked={selectedDriverIds.includes(name)}
+                          onCheckedChange={() => toggleDriver(name)}
+                        />
+                        <Label
+                          htmlFor={`driver-${name}`}
+                          className="flex-1 cursor-pointer text-xs"
+                        >
+                          {name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex min-h-9 items-center">
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedBrands.length === 0
+                        ? "All brands"
+                        : `${selectedBrands.length} brand${selectedBrands.length === 1 ? "" : "s"}`}
+                    </Button>
+                  }
+                />
+                <PopoverContent className="w-[280px] p-2" align="start">
+                  <div className="max-h-[200px] space-y-1 overflow-y-auto">
+                    {STATION_BRANDS.map((brand) => (
+                      <div
+                        key={brand}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted"
+                      >
+                        <Checkbox
+                          id={`brand-${brand}`}
+                          checked={
+                            selectedBrands.length === 0 ||
+                            selectedBrands.includes(brand)
+                          }
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedBrands((p) =>
+                                p.length === 0 ? [] : [...p, brand]
+                              )
+                            } else {
+                              setSelectedBrands((p) =>
+                                p.length === 0
+                                  ? STATION_BRANDS.filter((b) => b !== brand)
+                                  : p.filter((b) => b !== brand)
+                              )
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`brand-${brand}`}
+                          className="flex-1 cursor-pointer text-xs"
+                        >
+                          {brand}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex min-h-9 w-full items-center">
+              <Slider
+                min={0}
+                max={100}
+                step={5}
+                value={wasteThreshold}
+                onValueChange={(v) =>
+                  setWasteThreshold(Array.isArray(v) ? [...v] : [v])
+                }
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <DriverDetailModal
-        driverId={selectedDriverId}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-      />
+      {/* Row 2: Map — overflow-visible so popup can extend below map */}
+      <div className="drivers-map-wrapper relative h-[50vh] min-h-[400px] w-full overflow-visible rounded-lg border border-border">
+        <DriverInsightsMap
+          transactions={filteredTransactions}
+          selectedTransactionId={selectedTransactionId}
+          onSelectTransaction={handleSelectTransaction}
+        />
+        <div className="absolute left-2 top-2 flex gap-1">
+          <Button variant="ghost" size="sm">
+            Heat Map
+          </Button>
+          <Button variant="ghost" size="sm">
+            Route Trails
+          </Button>
+          <Button variant="ghost" size="sm">
+            Opportunity Zones
+          </Button>
+        </div>
+      </div>
+
+      {/* Row 3: Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Transactions</CardTitle>
+          <CardDescription>
+            View the same filtered data in table form.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FuelTransactionTable
+            transactions={filteredTransactions}
+            maxRows={50}
+            emptyDescription="Change date range or filters to see transactions for the selected drivers."
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -48,7 +48,7 @@ Component-level screenshots (zoomed in on each feature) plus full-page views:
 ## Scout Fuel — Work Summary (March 9, 2026)
 <empty-block/>
 ### What We Built
-Scout Fuel is a **fleet fuel management dashboard** — a web app that gives fleet managers a single place to see fuel usage, costs, driver performance, and recommendations. We set up the project from the ground up and built the first full set of screens so you can see how the product will look and behave.<br><br>
+Scout Fuel is a **fleet fuel management dashboard** — a web app that gives fleet managers a single place to see fuel usage, costs, driver insights, and recommendations. We set up the project from the ground up and built the first full set of screens so you can see how the product will look and behave.<br><br>
 **Choices we made (and why they matter):**<br><br>
 We chose **Tailwind CSS** for styling. Tailwind is a utility-first CSS framework: instead of writing custom CSS for every button or layout, we use small, reusable classes that do one thing. The benefit for you: the app stays **consistent**, **fast to load**, and **easy to change** later. New features can match the existing look without starting from scratch.<br><br>
 We chose **shadcn/ui** for the interface components. shadcn is a set of open-source, accessible building blocks (buttons, forms, tables, charts, sidebars) that we copy into the project and own. They're not a black box: we can tweak every part to match your brand and UX. The benefits: **professional, accessible UI** out of the box, **full control** over design and behavior, and **no ongoing licensing or lock-in** — it's your code.<br><br>
@@ -60,7 +60,7 @@ On top of that we added **three switchable style themes** (blue/violet, warm/amb
 - **Dashboard (home)** — Main view with KPIs, fuel price trends chart, recent transactions table, cost-saving opportunities, and driver leaderboard.
 - **Live Fleet Map** — Map view for fleet locations (MapLibre/Leaflet), ready for real-time or sample data.
 - **Fuel Transactions** — Filterable, sortable table of fuel transactions.
-- **Driver Performance** — Driver-level metrics (MPG, cost per mile) with charts.
+- **Driver Insights** — Driver-level metrics (MPG, cost per mile) with charts.
 - **Route Optimizer** — Screen for route planning and optimization inputs.
 - **Budget & Forecasting** — Budget vs actual views with bar charts.
 - **Alerts & Recommendations** — Placeholder for alerts and actionable recommendations.
@@ -82,7 +82,7 @@ Screenshots are served from the deployed app. If you don't see them yet, deploy 
 ![Dashboard](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000.png)
 ![Live Fleet Map](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_fleet.png)
 ![Fuel Transactions](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_transactions.png)
-![Driver Performance](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_drivers.png)
+![Driver Insights](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_drivers.png)
 ![Route Optimizer](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_route_optimizer.png)
 ![Budget & Forecasting](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_budget.png)
 ![Alerts & Recommendations](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_alerts.png)

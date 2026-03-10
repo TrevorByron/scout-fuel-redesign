@@ -6,13 +6,12 @@ import { type DateRange } from "react-day-picker"
 import {
   dashboardKpis,
   fuelTransactions,
-  costOpportunities,
   fuelPriceHistory,
   type FuelPricePoint,
 } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { buttonVariants } from "@/components/ui/button"
 import { FuelTransactionTable } from "@/components/fuel-transaction-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -41,6 +40,14 @@ const fuelPriceChartConfig = {
 type PriceRange = "1W" | "1M" | "1Y" | "YTD" | "All"
 
 const TODAY_DATE = "2026-03-06"
+
+/** Returns time-of-day greeting. Eventually use actual user name. */
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
+}
 
 function filterFuelPriceData(data: FuelPricePoint[], range: PriceRange): FuelPricePoint[] {
   if (range === "All") return data
@@ -74,7 +81,7 @@ function FuelPriceTrendsCard() {
   const todayAnchor = filtered.find((d) => d.price !== null && d.forecast !== null)?.date
 
   return (
-    <Card className="@container/card">
+    <Card className="@container/card md:col-span-2">
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -111,7 +118,7 @@ function FuelPriceTrendsCard() {
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col px-2 pb-4 sm:px-6">
-        <ChartContainer config={fuelPriceChartConfig} className="min-h-0 flex-1 w-full aspect-[4/3] @sm:aspect-[16/9]">
+        <ChartContainer config={fuelPriceChartConfig} className="min-h-0 flex-1 w-full aspect-[2/1] @sm:aspect-[3/1] @lg:aspect-[4/1]">
           <AreaChart data={filtered} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="fillActual" x1="0" y1="0" x2="0" y2="1">
@@ -247,6 +254,7 @@ export default function DashboardPage() {
   const recentTxns = React.useMemo(() => {
     return fuelTransactions
       .filter((t) => {
+        if (t.inNetwork) return false
         const tDate = new Date(t.dateTime).getTime()
         if (dateRange?.from && tDate < dateRange.from.getTime()) return false
         if (dateRange?.to && tDate > dateRange.to.getTime() + 86400000) return false
@@ -307,8 +315,16 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      {/* Date range picker */}
-      <div className="flex items-center justify-center px-4 lg:px-6">
+      {/* Greeting + date range filter — eventually tie to actual user name */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+            {getGreeting()}, Pete
+          </h2>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            View fleet activity, fuel spend, and price trends at a glance.
+          </p>
+        </div>
         <Popover>
           <PopoverTrigger
             render={<Button variant="outline" className="h-9 gap-2 text-sm font-normal" />}
@@ -316,7 +332,7 @@ export default function DashboardPage() {
             <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="size-4 text-muted-foreground" />
             {formatRangeLabel(dateRange)}
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
+          <PopoverContent className="w-auto p-0" align="end">
             <div className="flex gap-1 border-b px-3 py-2">
               {PRESETS.map((p) => (
                 <Button
@@ -348,7 +364,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
             <div className="text-xl font-bold tabular-nums">
-              {kpis.totalGallons.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
           <CardContent>
@@ -361,7 +377,7 @@ export default function DashboardPage() {
                 <div key={label} className="flex justify-between">
                   <span className="text-muted-foreground">{label}</span>
                   <span className="tabular-nums font-medium">
-                    {value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
@@ -422,7 +438,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
             <div className="text-xl font-bold tabular-nums text-green-600 dark:text-green-500">
-              ${kpis.totalSavings.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
           <CardContent>
@@ -435,7 +451,7 @@ export default function DashboardPage() {
                 <div key={label} className="flex justify-between">
                   <span className="text-muted-foreground">{label}</span>
                   <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
-                    ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
@@ -448,7 +464,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
             <div className="text-xl font-bold tabular-nums">
-              ${kpis.totalSpent.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              ${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
           <CardContent>
@@ -461,7 +477,7 @@ export default function DashboardPage() {
                 <div key={label} className="flex justify-between">
                   <span className="text-muted-foreground">{label}</span>
                   <span className="tabular-nums font-medium">
-                    ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
@@ -511,7 +527,7 @@ export default function DashboardPage() {
                                 y={viewBox.cy}
                                 className="fill-foreground text-xl font-bold"
                               >
-                                {chainChartData.total.toLocaleString()}
+                                {chainChartData.total.toLocaleString("en-US")}
                               </tspan>
                               <tspan
                                 x={viewBox.cx}
@@ -542,7 +558,7 @@ export default function DashboardPage() {
                       <div className="ml-auto flex items-center gap-2 shrink-0">
                         <span className="text-muted-foreground text-xs">{pct}%</span>
                         <span className="tabular-nums font-medium w-16 text-right">
-                          {item.gallons.toLocaleString()}
+                          {item.gallons.toLocaleString("en-US")}
                         </span>
                       </div>
                     </div>
@@ -553,34 +569,35 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recent transactions */}
+        {/* Transactions that need attention */}
         <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Fuel Transactions</CardTitle>
-            <CardDescription>10 most recent within selected date range</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <div>
+              <CardTitle>Transactions that need attention</CardTitle>
+              <CardDescription>Review recent out-of-network transactions</CardDescription>
+            </div>
+            <Link
+              href="/transactions"
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              See all transactions
+            </Link>
           </CardHeader>
           <CardContent>
-            <FuelTransactionTable transactions={recentTxns} maxRows={10} />
-          </CardContent>
-        </Card>
-
-        {/* Cost opportunities */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 5 Cost-Saving Opportunities</CardTitle>
-            <CardDescription>Estimated savings</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {costOpportunities.map((opp) => (
-                <li key={opp.id} className="flex flex-col gap-0.5 text-xs">
-                  <span className="line-clamp-2">{opp.title}</span>
-                  <Badge variant="outline" className="text-xs font-medium">
-                    ${opp.estimatedSavings.toLocaleString()} saved
-                  </Badge>
-                </li>
-              ))}
-            </ul>
+            <FuelTransactionTable
+              transactions={recentTxns}
+              maxRows={10}
+              emptyTitle="No transactions needing attention"
+              emptyDescription="All recent transactions are in network or efficient."
+              emptyAction={
+                <Link
+                  href="/transactions"
+                  className={buttonVariants({ variant: "link", size: "sm" })}
+                >
+                  View all transactions
+                </Link>
+              }
+            />
           </CardContent>
         </Card>
 

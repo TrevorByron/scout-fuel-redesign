@@ -20,21 +20,23 @@ export function ThemeToggle() {
 
   return (
     <Tooltip>
-      <TooltipTrigger>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggle}
-          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          className="size-8"
-        >
-          {isDark ? (
-            <HugeiconsIcon icon={SunIcon} strokeWidth={2} className="size-4" />
-          ) : (
-            <HugeiconsIcon icon={MoonIcon} strokeWidth={2} className="size-4" />
-          )}
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggle}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            className="size-8"
+          >
+            {isDark ? (
+              <HugeiconsIcon icon={SunIcon} strokeWidth={2} className="size-4" />
+            ) : (
+              <HugeiconsIcon icon={MoonIcon} strokeWidth={2} className="size-4" />
+            )}
+          </Button>
+        }
+      />
       <TooltipContent side="bottom">
         {isDark ? "Light mode" : "Dark mode"}
       </TooltipContent>

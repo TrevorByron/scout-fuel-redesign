@@ -25,6 +25,8 @@ html[data-style="1"] {
   --border: oklch(0.9276 0.0058 264.5313);
   --input: oklch(0.9276 0.0058 264.5313);
   --ring: oklch(0.7686 0.1647 70.0804);
+  --success: oklch(0.52 0.16 145);
+  --warning: oklch(0.75 0.15 85);
   --chart-1: oklch(0.7686 0.1647 70.0804);
   --chart-2: oklch(0.6658 0.1574 58.3183);
   --chart-3: oklch(0.5553 0.1455 48.9975);
@@ -86,6 +88,11 @@ html[data-style="1"] [data-slot="textarea"] {
   min-height: 2.5rem;
 }
 
+html:not([data-style]) [data-slot="popover-trigger"],
+html[data-style="1"] [data-slot="popover-trigger"] {
+  min-height: 2.5rem;
+}
+
 /* Style 1: subtle gradient on dashboard KPI cards (size=sm) */
 html:not([data-style]) [data-slot="card"][data-size="sm"],
 html[data-style="1"] [data-slot="card"][data-size="sm"] {
@@ -117,6 +124,8 @@ html[data-style="1"].dark {
   --border: oklch(0.3715 0 0);
   --input: oklch(0.3715 0 0);
   --ring: oklch(0.7686 0.1647 70.0804);
+  --success: oklch(0.58 0.15 145);
+  --warning: oklch(0.75 0.15 85);
   --chart-1: oklch(0.8369 0.1644 84.4286);
   --chart-2: oklch(0.6658 0.1574 58.3183);
   --chart-3: oklch(0.4732 0.1247 46.2007);

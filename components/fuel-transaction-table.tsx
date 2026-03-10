@@ -60,12 +60,15 @@ function FitTwoPoints({
   return null
 }
 
-function BetterOptionDetails({
+export function BetterOptionDetails({
   option,
   transaction,
 }: {
   option: BetterOption
-  transaction: Pick<FuelTransaction, "lat" | "lng" | "stationBrand" | "location">
+  transaction: Pick<
+    FuelTransaction,
+    "lat" | "lng" | "stationBrand" | "location" | "dateTime" | "gallons" | "pricePerGallon" | "totalCost"
+  >
 }) {
   const [mounted, setMounted] = React.useState(false)
   const [routeCoords, setRouteCoords] = React.useState<[number, number][]>([
@@ -78,17 +81,27 @@ function BetterOptionDetails({
 
   React.useEffect(() => {
     setRouteLoading(true)
+    const ac = new AbortController()
     fetch(
-      `https://router.project-osrm.org/route/v1/driving/${transaction.lng},${transaction.lat};${option.lng},${option.lat}?overview=full&geometries=geojson`
+      `https://router.project-osrm.org/route/v1/driving/${transaction.lng},${transaction.lat};${option.lng},${option.lat}?overview=full&geometries=geojson`,
+      { signal: ac.signal }
     )
       .then((r) => r.json())
       .then((data) => {
-        if (data.routes?.[0]) {
-          setRouteCoords(data.routes[0].geometry.coordinates)
-        }
+        const coords = data.routes?.[0]?.geometry?.coordinates as [number, number][] | undefined
+        if (!coords || coords.length < 2) return
+        const first = coords[0]
+        const last = coords[coords.length - 1]
+        const tol = 2
+        const nearStart = Math.abs(first[0] - transaction.lng) < tol && Math.abs(first[1] - transaction.lat) < tol
+        const nearEnd = Math.abs(last[0] - option.lng) < tol && Math.abs(last[1] - option.lat) < tol
+        if (nearStart && nearEnd) setRouteCoords(coords)
       })
-      .catch(() => { /* keep straight-line fallback */ })
-      .finally(() => setRouteLoading(false))
+      .catch(() => {})
+      .finally(() => {
+        if (!ac.signal.aborted) setRouteLoading(false)
+      })
+    return () => ac.abort()
   }, [transaction.lng, transaction.lat, option.lng, option.lat])
 
   const midLng = (transaction.lng + option.lng) / 2
@@ -164,6 +177,26 @@ function BetterOptionDetails({
         </span>
       </div>
 
+      <div className="flex flex-col gap-1.5 border-b border-border px-3 pb-3 pt-1">
+        <div className="text-[10px] font-medium text-muted-foreground">Actual transaction</div>
+        <div className="font-medium text-foreground">
+          {new Date(transaction.dateTime).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+        <div className="text-muted-foreground">
+          {transaction.location} · {transaction.stationBrand}
+        </div>
+        <div className="text-muted-foreground">
+          {transaction.gallons} gal · ${transaction.pricePerGallon.toFixed(2)}/gal · $
+          {transaction.totalCost.toFixed(2)}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-1.5 px-3 pb-3">
         <div className="text-[10px] font-medium text-muted-foreground">Recommended in-network option</div>
         <div className="font-medium text-foreground">{option.stationName}</div>
@@ -185,12 +218,20 @@ function BetterOptionDetails({
   )
 }
 
+const TABLE_COLUMN_COUNT = 11
+
 export function FuelTransactionTable({
   transactions,
   maxRows = 50,
+  emptyTitle = "No transactions yet",
+  emptyDescription = "Adjust filters or date range to see transactions.",
+  emptyAction,
 }: {
   transactions: FuelTransaction[]
   maxRows?: number
+  emptyTitle?: React.ReactNode
+  emptyDescription?: React.ReactNode
+  emptyAction?: React.ReactNode
 }) {
   const rows = transactions.slice(0, maxRows)
   return (
@@ -211,7 +252,20 @@ export function FuelTransactionTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((t) => {
+        {rows.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={TABLE_COLUMN_COUNT} className="h-32 text-center">
+              <div className="flex flex-col items-center justify-center gap-1 py-8">
+                <p className="font-medium text-foreground">{emptyTitle}</p>
+                <p className="text-muted-foreground text-sm">{emptyDescription}</p>
+                {emptyAction ? (
+                  <div className="mt-2">{emptyAction}</div>
+                ) : null}
+              </div>
+            </TableCell>
+          </TableRow>
+        ) : (
+        rows.map((t) => {
           const status = getEfficiencyStatus(t)
           const hasBetterOption = status === "needs_attention" && !!t.betterOption
           return (
@@ -299,7 +353,8 @@ export function FuelTransactionTable({
               </TableCell>
             </TableRow>
           )
-        })}
+        })
+        )}
       </TableBody>
     </Table>
   )

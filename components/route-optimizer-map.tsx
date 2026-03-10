@@ -117,11 +117,11 @@ export function RouteOptimizerMap({
 
   return (
     <div
-      className="h-full min-h-0 w-full rounded-lg border border-border overflow-hidden"
+      className="box-content h-full min-h-0 w-full rounded-none overflow-hidden"
       aria-label="Route map"
     >
       <Map
-        className="h-full w-full rounded-lg"
+        className="h-full w-full rounded-none"
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
       >

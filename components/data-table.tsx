@@ -322,8 +322,12 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 }
 export function DataTable({
   data: initialData,
+  emptyTitle = "No results",
+  emptyDescription = "Try changing filters or search.",
 }: {
   data: z.infer<typeof schema>[]
+  emptyTitle?: React.ReactNode
+  emptyDescription?: React.ReactNode
 }) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -509,7 +513,14 @@ export function DataTable({
                       colSpan={columns.length}
                       className="h-24 text-center"
                     >
-                      No results.
+                      <div className="flex flex-col items-center justify-center gap-1 py-6">
+                        <p className="font-medium text-foreground">
+                          {emptyTitle}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {emptyDescription}
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
