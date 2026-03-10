@@ -28,6 +28,13 @@ import {
   SentIcon,
 } from "@hugeicons/core-free-icons"
 
+type NavMainItem = {
+  title: string
+  url: string
+  icon: React.ReactNode
+  items?: { title: string; url: string }[]
+}
+
 const data = {
   user: {
     name: "Fleet Manager",
@@ -81,7 +88,7 @@ const data = {
     { title: "Driver Insights", url: "/drivers", icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} /> },
     { title: "Budget & Forecasting", url: "/budget", icon: <HugeiconsIcon icon={ChartHistogramIcon} strokeWidth={2} /> },
     { title: "Alerts & Recommendations", url: "/alerts", icon: <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} /> },
-  ],
+  ] as NavMainItem[],
   navSecondary: [
     { title: "Support", url: "#", icon: <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} /> },
     { title: "Feedback", url: "#", icon: <HugeiconsIcon icon={SentIcon} strokeWidth={2} /> },
