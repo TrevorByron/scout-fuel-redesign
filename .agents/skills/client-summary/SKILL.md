@@ -2,18 +2,21 @@
 name: client-work-summary
 description: >
   Generate a polished, professional client-facing work summary document after completing a development task or feature.
-  Use this skill whenever the user has finished building, redesigning, or shipping something and wants to document it —
-  whether for a client report, a personal record, or a project handoff. Triggers include phrases like "summarize the work",
-  "create a client summary", "document what I built", "write up what we did", "make a release note", "capture this for
-  the client", "create a summary of this feature", or any request to communicate completed work in a clear, professional
-  format. Always use this skill when the user wants screenshots included alongside a written summary.
-  The output is a Notion document (or markdown fallback) with: an executive summary, a value/impact section that explains
-  WHY the work matters, a best practices analysis, and embedded screenshots of the finished work.
+  Use this skill when the user requests a summary (e.g. end of day, "summarize for client", "create a client summary").
+  Do NOT run summaries automatically on every commit or push — the user runs the summary when they want it. When writing
+  the summary, use git log, recent commits, and pushed changes as primary context for what was built or changed.
+  Triggers: "summarize the work", "create a client summary", "document what I built", "write up what we did", "make a
+  release note", "capture this for the client", "create a summary of this feature", or any request for screenshots +
+  written summary. Output: Notion document (or markdown) with executive summary, value/impact, best practices, and
+  embedded screenshots. Screenshots must be saved to public/client-summary-screenshots/ and referenced via the deployed
+  app URL so they display in Notion (see skill docs).
 ---
 
 # Client Work Summary Skill
 
 Produces a professional, visually clear "what we built and why it matters" document — suitable for clients, stakeholders, or personal records. Think of it as a polished release note meets a design rationale.
+
+**When to run:** The user runs the summary when they want it (e.g. end of day). Do **not** run it automatically on every commit or push. When writing the summary, use **git log, recent commits, and pushed changes** as the main source for what was built or changed.
 
 ---
 
@@ -34,41 +37,37 @@ The finished document includes:
 
 ### Step 1 — Gather context
 
-Ask the user (or infer from conversation) the following. Do NOT proceed until you have answers to 1–3.
+**Use git as the source of truth for what was done.** Run `git log` (e.g. since last summary or last 1–2 days), inspect recent commits and pushed changes, and use that to determine what was built or changed. Then ask or infer only what’s missing.
 
-1. **What was built or changed?** (e.g., "redesigned the login flow", "added a dashboard", "fixed the checkout bug")
+1. **What was built or changed?** Prefer inferring from git history and conversation; ask only if unclear.
 2. **Who is the audience?** Client-facing (polished, non-technical) or internal (can include more technical detail)?
-3. **What files or code were touched?** (so you can generate intelligent screenshots)
-4. **Notion integration?** Do they have a Notion API key + target page ID? (If not, output markdown instead.)
-5. **Screenshot targets?** Which URLs or local dev server paths should be captured?
+3. **What files or code were touched?** Use git diff / commit messages to list; this informs which screens to capture.
+4. **Notion integration?** Does the user have a Notion page to update (e.g. via Notion MCP or API)? If not, output markdown.
+5. **Screenshot targets?** Which app routes to capture? Default: main app routes (e.g. `/`, `/login`, `/dashboard`, key feature routes).
 
-If the user just says "summarize what we did" after a coding session, scan the recent conversation for context clues about what was built before asking.
+Summaries are **not** triggered by commits or pushes — the user runs the summary (e.g. end of day). When they do, use commits and pushes as the main reference for content.
 
 ---
 
 ### Step 2 — Capture screenshots
 
-Use the screenshot script bundled with this skill.
+Use the screenshot script bundled with this skill. **Always write screenshots to `public/client-summary-screenshots/`** so that when the app is deployed, they are served at `https://DEPLOY_URL/client-summary-screenshots/filename.png` and can be embedded in Notion.
 
 ```bash
-# Install dependencies (first time only)
-node -e "require('puppeteer')" 2>/dev/null || npm install puppeteer --save-dev
-
-# Run the screenshot script
+# Dev server must be running first (e.g. npm run dev)
 node .agents/skills/client-summary/scripts/screenshot.js \
-  --urls "http://localhost:3000/login,http://localhost:3000/dashboard" \
-  --output "./client-summary-screenshots" \
+  --urls "http://localhost:3000,http://localhost:3000/login,http://localhost:3000/fleet,http://localhost:3000/transactions,http://localhost:3000/drivers,http://localhost:3000/route-optimizer,http://localhost:3000/budget,http://localhost:3000/alerts" \
+  --output "./public/client-summary-screenshots" \
   --width 1440 \
-  --height 900
+  --height 900 \
+  --delay 2000
 ```
 
-**Important:** The dev server must be running before capturing. Remind the user to start it if needed.
+- **Output directory:** Use `--output "./public/client-summary-screenshots"` so the deployed app serves the images. Notion can then display them via URLs (see Step 5).
+- **Script note:** The script uses a `sleep(ms)` helper for delays (Puppeteer’s `waitForTimeout` was removed in newer versions). Do not reintroduce `waitForTimeout`.
+- **Before/after:** Use `--prefix before_` or `--prefix after_` and run twice if needed.
 
-If the user's project uses a different port, adjust `--urls` accordingly.
-
-For capturing **before/after**: take screenshots before applying changes and save them separately, then capture again after. Use `--prefix before_` and `--prefix after_` flags.
-
-See `scripts/screenshot.js` for full options including: auth flows, mobile viewports, full-page vs viewport-only, and element-specific cropping.
+See `scripts/screenshot.js` for full options (auth, mobile viewport, selector, full-page, etc.).
 
 ---
 
@@ -139,10 +138,11 @@ and improving conversion."]
 ---
 
 ## Screenshots
-[Embed each screenshot with a descriptive caption]
+[Use image URLs from the deployed app so they display in Notion. See Step 5.]
 
-![Login screen — new design](./screenshots/login_after.png)
-*The redesigned login screen uses clear visual hierarchy and prominent CTAs.*
+![Login](https://DEPLOY_URL/client-summary-screenshots/localhost_3000_login.png)
+![Dashboard](https://DEPLOY_URL/client-summary-screenshots/localhost_3000.png)
+*Replace DEPLOY_URL with the app’s public URL (e.g. https://scout-fuel-redesign.vercel.app).*
 
 ---
 
@@ -153,29 +153,29 @@ and improving conversion."]
 
 ---
 
-### Step 5 — Publish to Notion (optional)
+### Step 5 — Publish to Notion
 
-If the user has Notion credentials, use the Notion API to create the document.
+**How screenshots work in Notion:** Notion only displays images that have a **public URL**. It does not upload local files via the API. So:
 
-**Requirements:**
-- `NOTION_API_KEY` environment variable set
-- `NOTION_PARENT_PAGE_ID` — the page under which the summary will be created
+1. **Save screenshots to** `public/client-summary-screenshots/` (Step 2). After the app is deployed, each image is available at `https://DEPLOY_URL/client-summary-screenshots/filename.png`.
+2. **When updating Notion**, use those URLs in image blocks. For example with the Notion MCP `notion-update-page`: add content with Notion-flavored Markdown image syntax: `![Caption](https://DEPLOY_URL/client-summary-screenshots/localhost_3000_login.png)`. Replace `DEPLOY_URL` with the real deployed app URL (e.g. `https://scout-fuel-redesign.vercel.app`).
+3. If the app is **not deployed yet**, either (a) add the image URLs anyway so they appear after the next deploy, or (b) tell the user to drag-drop the PNGs from `public/client-summary-screenshots/` into the Notion page.
+
+**Option A — Update an existing page (e.g. Work Completed Summary) via Notion MCP:**  
+Fetch the page, then use `notion-update-page` with `update_content` or `replace_content` to append the summary and image blocks using the deployed-app image URLs above.
+
+**Option B — Create a new child page via script:**  
+Requires `NOTION_API_KEY` and `NOTION_PARENT_PAGE_ID`.
 
 ```bash
 node .agents/skills/client-summary/scripts/publish-to-notion.js \
-  --title "Login Redesign — Client Summary" \
-  --markdown "./client-summary.md" \
-  --screenshots "./client-summary-screenshots" \
+  --title "Work Summary — [date]" \
+  --markdown "./client-summary-[date].md" \
+  --screenshots "./public/client-summary-screenshots" \
   --parent-page-id "$NOTION_PARENT_PAGE_ID"
 ```
 
-The script will:
-1. Create a new child page under the parent
-2. Convert the markdown to Notion blocks
-3. Upload screenshots as image blocks via Notion's file API
-4. Return the URL of the new page
-
-If Notion credentials are missing, output a clean `.md` file instead and let the user know they can paste it into Notion manually or enable the integration.
+The script creates a new child page and converts markdown to Notion blocks. It does not upload image binaries; it adds callouts with local paths. For inline images on the page, use the MCP and the deployed image URLs as in Option A.
 
 ---
 
@@ -183,11 +183,12 @@ If Notion credentials are missing, output a clean `.md` file instead and let the
 
 Before delivering the summary, verify:
 
+- [ ] Context taken from git log / recent commits and pushes (not assumed from memory)
 - [ ] Summary written in audience-appropriate tone
 - [ ] "Why it matters" section focuses on benefits, not implementation
 - [ ] At least one best practice per major feature area called out with specifics
-- [ ] Screenshots captured and referenced correctly
-- [ ] If Notion: page created and URL returned to user
+- [ ] Screenshots saved to `public/client-summary-screenshots/` and referenced via deployed app URL in Notion (so they display)
+- [ ] If Notion: page updated or created; image URLs use `https://DEPLOY_URL/client-summary-screenshots/...`
 - [ ] If markdown: file saved to `./client-summary-[date].md`
 
 ---

@@ -7,7 +7,7 @@ import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { OrgSwitcher } from "@/components/org-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  CommandIcon,
   DashboardSquare01Icon,
   MapsSquare01Icon,
   ReceiptDollarIcon,
@@ -38,11 +37,42 @@ const data = {
     email: "admin@scoutfuel.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  teams: [
+  organizations: [
     {
-      name: "Scout Fuel",
-      logo: <HugeiconsIcon icon={CommandIcon} strokeWidth={2} />,
-      plan: "Fleet Management",
+      name: "Frontier Trucking",
+      logo: (
+        <img
+          src="/logos/frontier-trucking.png"
+          alt=""
+          className="size-full object-contain"
+        />
+      ),
+      subtitle: "Fuel Management",
+      logoBackground: "dark" as const,
+    },
+    {
+      name: "Brink Truck Lines",
+      logo: (
+        <img
+          src="/logos/brink-truck-lines.png"
+          alt=""
+          className="size-full object-contain"
+        />
+      ),
+      subtitle: "Fuel Management",
+      logoBackground: "light" as const,
+    },
+    {
+      name: "JFW Trucking",
+      logo: (
+        <img
+          src="/logos/jfw-trucking.png"
+          alt=""
+          className="size-full object-contain"
+        />
+      ),
+      subtitle: "Fuel Management",
+      logoBackground: "light" as const,
     },
   ],
   navMain: [
@@ -79,7 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <OrgSwitcher organizations={data.organizations} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMainWithActive} />
