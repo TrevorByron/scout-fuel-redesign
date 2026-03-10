@@ -3,7 +3,7 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { format } from "date-fns"
-import { trucks, driverLeaderboard, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
+import { trucks, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
 import { geocodeAddress } from "@/lib/geocode"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,7 +19,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Loader2, MapPin, Plus } from "lucide-react"
+import { Loader2, MapPin, Plus, ChevronLeft } from "lucide-react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
@@ -36,6 +36,20 @@ type LngLat = [number, number]
 
 const OSRM_ROUTE_URL = (origin: LngLat, dest: LngLat) =>
   `https://router.project-osrm.org/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson`
+
+function sampleRouteForStops(routeCoords: LngLat[], stopCount: number): LngLat[] {
+  if (routeCoords.length < 2 || stopCount < 1) return []
+  const result: LngLat[] = []
+  for (let i = 0; i < stopCount; i++) {
+    const t = (i + 1) / (stopCount + 1)
+    const idx = Math.min(
+      Math.floor(t * routeCoords.length),
+      routeCoords.length - 1
+    )
+    result.push(routeCoords[idx])
+  }
+  return result
+}
 
 function useDebouncedGeocode(
   address: string,
@@ -83,7 +97,6 @@ function useDebouncedGeocode(
 }
 
 export default function RouteOptimizerPage() {
-  const [driverId, setDriverId] = React.useState("")
   const [tripStart, setTripStart] = React.useState<Date | undefined>(undefined)
   const [tripEnd, setTripEnd] = React.useState<Date | undefined>(undefined)
   const [initialFuelLevel, setInitialFuelLevel] = React.useState(100)
@@ -94,6 +107,7 @@ export default function RouteOptimizerPage() {
   const [destination, setDestination] = React.useState("")
   const [waypoints, setWaypoints] = React.useState<string[]>([])
   const [calculated, setCalculated] = React.useState(false)
+  const [isOptimizing, setIsOptimizing] = React.useState(false)
   const [routeCoordinates, setRouteCoordinates] = React.useState<LngLat[]>([])
   const [routeLoading, setRouteLoading] = React.useState(false)
 
@@ -133,7 +147,13 @@ export default function RouteOptimizerPage() {
   }, [originCoords, destinationCoords])
 
   const handleOptimize = () => {
-    if (origin && destination && truckId) setCalculated(true)
+    setIsOptimizing(true)
+    setTimeout(() => {
+      setIsOptimizing(false)
+      if (origin?.trim() && destination?.trim() && truckId) {
+        setCalculated(true)
+      }
+    }, 4000)
   }
 
   const addWaypoint = () => {
@@ -149,9 +169,14 @@ export default function RouteOptimizerPage() {
     setTankSize("120")
   }, [selectedTruck?.id])
 
+  const fuelStopCoords = React.useMemo(() => {
+    if (!calculated || routeCoordinates.length < 2) return []
+    return sampleRouteForStops(routeCoordinates, mockRouteStops.length)
+  }, [calculated, routeCoordinates])
+
   return (
     <div
-      className="relative flex min-h-0 flex-1 flex-row gap-0 p-0"
+      className="relative flex flex-col-reverse flex-1 min-h-0 gap-0 overflow-y-auto p-0 md:overflow-visible md:flex-row"
       style={{
         height: "100%",
         maxHeight: "calc(100dvh - var(--header-height, 3rem) - 2rem)",
@@ -159,14 +184,68 @@ export default function RouteOptimizerPage() {
     >
       {/* Left panel: form 1/3 */}
       <aside
-        className="flex w-full min-w-0 flex-shrink-0 flex-col border-r border-border bg-background md:w-1/3"
+        className="flex min-h-0 w-full min-w-0 flex-1 flex-col border-r-0 border-border bg-background md:w-1/3 md:flex-shrink-0 md:border-r"
         aria-label="Route details"
       >
         <div className="flex flex-col gap-4 overflow-y-auto p-4">
-          <div>
-            <h2 className="text-lg font-semibold">Fuel Purchase Optimizer</h2>
-          </div>
-
+          {calculated ? (
+            <div className="space-y-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-2 justify-start gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => setCalculated(false)}
+              >
+                <ChevronLeft className="size-4" />
+                Back
+              </Button>
+              <p className="text-xs font-medium text-muted-foreground">
+                Trip plan
+              </p>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Pickup</p>
+                <p className="text-sm font-medium">{origin || "Starting location"}</p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground">Refuel stops</p>
+                {mockRouteStops.map((stop, i) => {
+                  const costAtStop = stop.pricePerGallon * stop.refuelGallons
+                  return (
+                    <Card key={i} className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-medium">
+                          Stop {i + 1}: {stop.station}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1 text-xs text-muted-foreground">
+                        <p>{stop.location}</p>
+                        <p>Estimated fuel at stop: {stop.fuelPct}%</p>
+                        <p>Estimated cost at stop: ${costAtStop.toFixed(2)}</p>
+                        <p>
+                          {stop.distanceFromPrev} mi from previous · ETA {stop.eta}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+              <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-xs">
+                <p className="font-medium text-foreground">
+                  Total estimated fuel cost: ${mockRouteSummary.totalCost.toLocaleString()}
+                </p>
+                <p className="text-[var(--success)]">
+                  Savings vs alternative routes: ${mockRouteSummary.savingsVsAlternate}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setCalculated(false)}
+              >
+                Plan another trip
+              </Button>
+            </div>
+          ) : (
           <FieldGroup className="space-y-4">
             <div className="space-y-3">
               <p className="text-xs font-medium text-muted-foreground">
@@ -248,12 +327,14 @@ export default function RouteOptimizerPage() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "min-w-0 w-full justify-start truncate text-left font-normal",
                           !tripStart && "text-muted-foreground"
                         )}
                       >
-                        <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="mr-2 size-4" />
-                        {tripStart ? format(tripStart, "PPP") : "Pick date"}
+                        <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="mr-2 size-4 shrink-0" />
+                        <span className="min-w-0 truncate">
+                          {tripStart ? format(tripStart, "MMM d, yyyy") : "Pick date"}
+                        </span>
                       </Button>
                     }
                   />
@@ -270,12 +351,14 @@ export default function RouteOptimizerPage() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "min-w-0 w-full justify-start truncate text-left font-normal",
                           !tripEnd && "text-muted-foreground"
                         )}
                       >
-                        <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="mr-2 size-4" />
-                        {tripEnd ? format(tripEnd, "PPP") : "Pick date"}
+                        <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="mr-2 size-4 shrink-0" />
+                        <span className="min-w-0 truncate">
+                          {tripEnd ? format(tripEnd, "MMM d, yyyy") : "Pick date"}
+                        </span>
                       </Button>
                     }
                   />
@@ -319,7 +402,7 @@ export default function RouteOptimizerPage() {
                 />
                 <span className="text-xs font-medium text-muted-foreground shrink-0">F</span>
               </div>
-              <p className="text-sm font-medium text-primary">{initialFuelLevel}%</p>
+              <p className="text-xs font-medium text-primary">{initialFuelLevel}%</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -343,81 +426,28 @@ export default function RouteOptimizerPage() {
               </Field>
             </div>
 
-            <Field>
-              <FieldLabel>Select driver</FieldLabel>
-              <Select value={driverId} onValueChange={(v) => setDriverId(v ?? "")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select driver" />
-                </SelectTrigger>
-                <SelectContent>
-                  {driverLeaderboard.map((d) => (
-                    <SelectItem key={d.truckId} value={d.truckId}>
-                      {d.driverName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Button onClick={handleOptimize} className="w-full">
+            <Button
+              onClick={handleOptimize}
+              className="w-full"
+              disabled={!origin?.trim() || !destination?.trim()}
+            >
               Optimize trip
             </Button>
           </FieldGroup>
-
-          {calculated && (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recommended fuel stops</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {mockRouteStops.map((stop, i) => (
-                      <Card key={i} className="bg-muted/30">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-xs">{stop.station}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-xs text-muted-foreground">
-                          <p>{stop.location}</p>
-                          <p>
-                            ${stop.pricePerGallon.toFixed(2)}/gal · {stop.refuelGallons} gal refuel
-                          </p>
-                          <p>
-                            {stop.distanceFromPrev} mi from previous · ETA {stop.eta} · Fuel {stop.fuelPct}%
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Trip summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1 text-xs">
-                  <p>
-                    <span className="text-muted-foreground">Total trip cost (est.):</span>{" "}
-                    ${mockRouteSummary.totalCost.toLocaleString()}
-                  </p>
-                  <p className="text-[var(--success)]">
-                    Savings vs alternative routes: ${mockRouteSummary.savingsVsAlternate}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
           )}
         </div>
       </aside>
 
-      {/* Right panel: map ~3/4 */}
-      <div className="flex min-h-0 flex-1 flex-col p-4 pl-0">
+      {/* Right panel: map ~3/4 (on mobile: on top, fixed height) */}
+      <div className="flex h-[26vh] min-h-[160px] shrink-0 flex-col p-4 md:h-auto md:min-h-0 md:flex-1 md:pl-0">
         <div className="h-full min-h-0 w-full">
           <RouteOptimizerMapDynamic
             originCoords={originCoords}
             destinationCoords={destinationCoords}
             routeCoordinates={routeCoordinates}
             routeLoading={routeLoading}
+            showOptimizingOverlay={isOptimizing}
+            fuelStopCoords={fuelStopCoords}
           />
         </div>
       </div>

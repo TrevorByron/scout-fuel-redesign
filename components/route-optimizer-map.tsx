@@ -81,6 +81,8 @@ export type RouteOptimizerMapProps = {
   destinationCoords: LngLat | null
   routeCoordinates: LngLat[]
   routeLoading?: boolean
+  showOptimizingOverlay?: boolean
+  fuelStopCoords?: LngLat[]
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
@@ -91,6 +93,8 @@ export function RouteOptimizerMap({
   destinationCoords,
   routeCoordinates,
   routeLoading = false,
+  showOptimizingOverlay = false,
+  fuelStopCoords = [],
 }: RouteOptimizerMapProps) {
   const [mounted, setMounted] = React.useState(false)
 
@@ -103,7 +107,7 @@ export function RouteOptimizerMap({
   if (!mounted) {
     return (
       <div
-        className="flex h-full min-h-[50vh] items-center justify-center rounded-lg border border-border bg-muted/30 text-muted-foreground"
+        className="flex h-full min-h-0 items-center justify-center rounded-lg border border-border bg-muted/30 text-muted-foreground"
         aria-label="Route map"
       >
         Loading map…
@@ -113,7 +117,7 @@ export function RouteOptimizerMap({
 
   return (
     <div
-      className="h-full w-full min-h-[50vh] rounded-lg border border-border overflow-hidden"
+      className="h-full min-h-0 w-full rounded-lg border border-border overflow-hidden"
       aria-label="Route map"
     >
       <Map
@@ -180,6 +184,26 @@ export function RouteOptimizerMap({
             <span className="text-xs text-muted-foreground">Loading route…</span>
           </div>
         )}
+        {showOptimizingOverlay && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-background/70 pointer-events-none">
+            <p className="text-sm font-medium text-foreground animate-pulse">Optimizing your trip</p>
+          </div>
+        )}
+        {fuelStopCoords.map((coords, i) => (
+          <MapMarker key={i} longitude={coords[0]} latitude={coords[1]}>
+            <MarkerContent>
+              <div
+                className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-background shadow-sm"
+                style={{ backgroundColor: "var(--chart-3)" }}
+                aria-hidden
+              >
+                <span className="text-[9px] font-bold text-primary-foreground">
+                  {i + 1}
+                </span>
+              </div>
+            </MarkerContent>
+          </MapMarker>
+        ))}
         <MapControls showZoom showLocate position="bottom-right" />
       </Map>
     </div>
