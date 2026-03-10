@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { Progress } from "@/components/ui/progress"
-import { ScoutIcon } from "@/components/scout-icon"
 import { cn } from "@/lib/utils"
 
 const SPLASH_DURATION_MS = 5000
@@ -71,9 +71,13 @@ export function LoginSplashScreen({ onComplete }: { onComplete: () => void }) {
       aria-label="Loading dashboard"
     >
       <div className="flex flex-col items-center gap-6 text-center">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <ScoutIcon className="size-6" />
-        </div>
+        <Image
+          src="/full-logo.svg"
+          alt="Scout Fuel"
+          width={139}
+          height={79}
+          className="h-auto w-[100px]"
+        />
         <div className="space-y-2">
           <p className="text-base font-semibold tracking-tight">
             Opening Scout Fuel

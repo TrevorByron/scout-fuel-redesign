@@ -61,6 +61,27 @@ html[data-style="2"] {
   --spacing: 0.25rem;
 }
 
+/* Style 2: same chunky form controls as Style 1 (min-height 40px) */
+html[data-style="2"] [data-slot="button"] {
+  min-height: 40px;
+}
+
+html[data-style="2"] [data-slot="input"] {
+  min-height: 40px;
+}
+
+html[data-style="2"] [data-slot="select-trigger"] {
+  min-height: 40px;
+}
+
+html[data-style="2"] [data-slot="input-group"] {
+  min-height: 40px;
+}
+
+html[data-style="2"] [data-slot="textarea"] {
+  min-height: 40px;
+}
+
 html[data-style="2"].dark {
   --background: oklch(0.14 0.02 233);
   --foreground: oklch(0.98 0 0);

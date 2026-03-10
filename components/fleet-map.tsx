@@ -58,10 +58,7 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
 
   if (!mounted) {
     return (
-      <div
-        className="flex items-center justify-center rounded-lg border border-border bg-muted/30 text-muted-foreground"
-        style={{ minHeight: "60vh" }}
-      >
+      <div className="flex min-h-[50vh] items-center justify-center rounded-lg border border-border bg-muted/30 text-muted-foreground md:min-h-[60vh]">
         Loading map…
       </div>
     )
@@ -69,10 +66,7 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
 
   if (trucks.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center rounded-lg border border-border bg-muted/30 text-xs text-muted-foreground"
-        style={{ minHeight: "60vh" }}
-      >
+      <div className="flex min-h-[50vh] items-center justify-center rounded-lg border border-border bg-muted/30 text-xs text-muted-foreground md:min-h-[60vh]">
         No trucks to show
       </div>
     )
@@ -82,10 +76,7 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
   const centerLat = trucks.reduce((a, t) => a + t.lat, 0) / trucks.length
 
   return (
-    <div
-      className="h-full min-h-[60vh] w-full rounded-lg border border-border"
-      style={{ minHeight: "60vh" }}
-    >
+    <div className="h-full min-h-[50vh] w-full rounded-lg border border-border md:min-h-[60vh]">
       <Map
         className="h-full w-full rounded-lg"
         center={[centerLng, centerLat]}
