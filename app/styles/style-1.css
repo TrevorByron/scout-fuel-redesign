@@ -93,6 +93,12 @@ html[data-style="1"] [data-slot="popover-trigger"] {
   min-height: 2.5rem;
 }
 
+/* Sheet footer primary action (Apply filters) — same height as buttons */
+html:not([data-style]) [data-slot="sheet-footer"] [data-slot="sheet-close"],
+html[data-style="1"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+  min-height: 2.5rem;
+}
+
 /* Style 1: subtle gradient on dashboard KPI cards (size=sm) */
 html:not([data-style]) [data-slot="card"][data-size="sm"],
 html[data-style="1"] [data-slot="card"][data-size="sm"] {

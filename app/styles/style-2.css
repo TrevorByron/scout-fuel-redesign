@@ -86,6 +86,11 @@ html[data-style="2"] [data-slot="popover-trigger"] {
   min-height: 40px;
 }
 
+/* Sheet footer primary action (Apply filters) — same height as buttons */
+html[data-style="2"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+  min-height: 40px;
+}
+
 html[data-style="2"].dark {
   --background: oklch(0.14 0.02 233);
   --foreground: oklch(0.98 0 0);

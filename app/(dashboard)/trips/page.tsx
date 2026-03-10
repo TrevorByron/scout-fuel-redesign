@@ -7,9 +7,16 @@ import { format } from "date-fns"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
 import { computeTripProgress } from "@/lib/trips"
-import { fuelTransactions } from "@/lib/mock-data"
+import { fuelTransactions, trucks } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { MapPin, Fuel, ChevronRight, Pencil, CheckCircle2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -33,11 +40,25 @@ function getTripStatus(trip: TripPlan): "upcoming" | "in_progress" | "completed"
 export default function TripsPage() {
   const { tripPlans, getTripPlan } = useTrips()
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
+  const [driverFilter, setDriverFilter] = React.useState<string>("all")
   const selectedTrip = selectedId ? getTripPlan(selectedId) : null
   const progress = React.useMemo(() => {
     if (!selectedTrip) return null
     return computeTripProgress(selectedTrip, fuelTransactions)
   }, [selectedTrip])
+
+  const driverOptions = React.useMemo(() => {
+    const truckIds = [...new Set(tripPlans.map((t) => t.truckId))].sort()
+    return truckIds.map((id) => {
+      const truck = trucks.find((t) => t.id === id)
+      return { value: id, label: truck ? `${truck.driverName} · ${id}` : id }
+    })
+  }, [tripPlans])
+
+  const filteredTrips = React.useMemo(() => {
+    if (driverFilter === "all") return tripPlans
+    return tripPlans.filter((t) => t.truckId === driverFilter)
+  }, [tripPlans, driverFilter])
 
   return (
     <div
@@ -48,13 +69,31 @@ export default function TripsPage() {
     >
       {/* List panel */}
       <aside className="flex flex-col w-full md:max-w-sm md:w-1/3 border-r border-border bg-background overflow-hidden">
-        <div className="p-4">
+        <div className="p-4 px-[18px]">
           <h1 className="text-lg font-semibold">Trips</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Trip plans from the Optimizer. Select one to track progress.
           </p>
+          <div className="mt-3 flex flex-col gap-2">
+            <label htmlFor="trips-driver-filter" className="text-xs font-medium text-muted-foreground">
+              Driver
+            </label>
+            <Select value={driverFilter} onValueChange={(v) => setDriverFilter(v ?? "all")}>
+              <SelectTrigger id="trips-driver-filter" className="w-full min-w-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All drivers</SelectItem>
+                {driverOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2 px-[18px]">
           {tripPlans.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
               <p className="font-medium text-foreground">No trip plans yet</p>
@@ -68,9 +107,14 @@ export default function TripsPage() {
                 Open Optimizer
               </Link>
             </div>
+          ) : filteredTrips.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">No trips for this driver</p>
+              <p className="mt-1">Change the driver filter or create trips in the Optimizer.</p>
+            </div>
           ) : (
             <ul className="space-y-1">
-              {tripPlans.map((trip) => {
+              {filteredTrips.map((trip) => {
                 const status = getTripStatus(trip)
                 const isSelected = selectedId === trip.id
                 return (

@@ -25,6 +25,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet"
 
 type EfficiencyFilter = "all" | "efficient" | "needs_attention"
 type NetworkFilter = "all" | "in_network" | "out_of_network"
@@ -463,6 +475,38 @@ export default function TransactionsPage() {
     })
   }, [driverFilter, stationFilter, stateFilter, alertsOnly, efficiencyFilter, networkFilter, dateFrom, dateTo])
 
+  const hasActiveFilters =
+    !!dateFrom ||
+    !!dateTo ||
+    driverFilter !== "all" ||
+    stationFilter !== "all" ||
+    stateFilter !== "all" ||
+    networkFilter !== "all" ||
+    efficiencyFilter !== "all" ||
+    alertsOnly
+
+  const activeFilterCount = [
+    dateFrom,
+    dateTo,
+    driverFilter !== "all",
+    stationFilter !== "all",
+    stateFilter !== "all",
+    networkFilter !== "all",
+    efficiencyFilter !== "all",
+    alertsOnly,
+  ].filter(Boolean).length
+
+  function clearAllFilters() {
+    setDateFrom("")
+    setDateTo("")
+    setDriverFilter("all")
+    setStationFilter("all")
+    setStateFilter("all")
+    setNetworkFilter("all")
+    setEfficiencyFilter("all")
+    setAlertsOnly(false)
+  }
+
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
@@ -610,122 +654,171 @@ export default function TransactionsPage() {
         </Card>
       </div>
 
-      {/* Combined filters + table */}
+      {/* Fuel transactions table */}
       <Card className="mx-4 md:col-span-2 lg:mx-6">
-        <CardHeader className="border-b">
-          <CardTitle className="text-xs">Filters</CardTitle>
-          <CardDescription>Narrow by date, driver, station, state, network, or alerts</CardDescription>
-          <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Date from</Label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full min-w-0"
+        <div className="flex flex-col gap-2 border-b px-4 pt-0 pb-4 lg:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <h3 className="text-sm font-medium">All fuel transactions</h3>
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>{activeFilterCount} filters applied</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-xs font-medium"
+                    onClick={clearAllFilters}
+                  >
+                    Clear all
+                  </Button>
+                </div>
+              )}
+            </div>
+            <Sheet>
+              <SheetTrigger
+                render={
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Filters
+                    {hasActiveFilters && (
+                      <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[0.625rem]">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                }
               />
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Date to</Label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full min-w-0"
-              />
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Driver</Label>
-              <Select value={driverFilter} onValueChange={(v) => setDriverFilter(v ?? "all")}>
-                <SelectTrigger className="w-full min-w-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All drivers</SelectItem>
-                  {driverNames.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Station brand</Label>
-              <Select value={stationFilter} onValueChange={(v) => setStationFilter(v ?? "all")}>
-                <SelectTrigger className="w-full min-w-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All stations</SelectItem>
-                  {STATION_BRANDS.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">State</Label>
-              <Select value={stateFilter} onValueChange={(v) => setStateFilter(v ?? "all")}>
-                <SelectTrigger className="w-full min-w-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All states</SelectItem>
-                  {stateList.map((state) => (
-                    <SelectItem key={state} value={state}>
-                      {state}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Network</Label>
-              <Select value={networkFilter} onValueChange={(v) => setNetworkFilter((v ?? "all") as NetworkFilter)}>
-                <SelectTrigger className="w-full min-w-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="in_network">In network</SelectItem>
-                  <SelectItem value="out_of_network">Out of network</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Efficiency</Label>
-              <Select
-                value={efficiencyFilter}
-                onValueChange={(v) => setEfficiencyFilter((v ?? "all") as EfficiencyFilter)}
-              >
-                <SelectTrigger className="w-full min-w-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="efficient">Efficient only</SelectItem>
-                  <SelectItem value="needs_attention">Needs attention only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <Label className="text-xs">Alerts</Label>
-              <div className="flex h-7 items-center">
-                <Checkbox
-                  id="alerts"
-                  checked={alertsOnly}
-                  onCheckedChange={(c) => setAlertsOnly(!!c)}
-                />
-                <Label htmlFor="alerts" className="cursor-pointer pl-2 text-xs">
-                  Show only alerts
-                </Label>
-              </div>
-            </div>
+              <SheetContent side="right" className="sm:max-w-md">
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Narrow by date, driver, station, state, network, or alerts
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="grid grid-cols-1 gap-4 px-[18px] py-6 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Label className="text-xs">Date from</Label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-full min-w-0"
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Label className="text-xs">Date to</Label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-full min-w-0"
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
+                    <Label className="text-xs">Driver</Label>
+                    <Select value={driverFilter} onValueChange={(v) => setDriverFilter(v ?? "all")}>
+                      <SelectTrigger className="w-full min-w-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All drivers</SelectItem>
+                        {driverNames.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
+                    <Label className="text-xs">Station brand</Label>
+                    <Select value={stationFilter} onValueChange={(v) => setStationFilter(v ?? "all")}>
+                      <SelectTrigger className="w-full min-w-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All stations</SelectItem>
+                        {STATION_BRANDS.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Label className="text-xs">State</Label>
+                    <Select value={stateFilter} onValueChange={(v) => setStateFilter(v ?? "all")}>
+                      <SelectTrigger className="w-full min-w-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All states</SelectItem>
+                        {stateList.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Label className="text-xs">Network</Label>
+                    <Select value={networkFilter} onValueChange={(v) => setNetworkFilter((v ?? "all") as NetworkFilter)}>
+                      <SelectTrigger className="w-full min-w-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="in_network">In network</SelectItem>
+                        <SelectItem value="out_of_network">Out of network</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Label className="text-xs">Efficiency</Label>
+                    <Select
+                      value={efficiencyFilter}
+                      onValueChange={(v) => setEfficiencyFilter((v ?? "all") as EfficiencyFilter)}
+                    >
+                      <SelectTrigger className="w-full min-w-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="efficient">Efficient only</SelectItem>
+                        <SelectItem value="needs_attention">Needs attention only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
+                    <Label className="text-xs">Alerts</Label>
+                    <div className="flex h-7 items-center">
+                      <Checkbox
+                        id="sheet-alerts"
+                        checked={alertsOnly}
+                        onCheckedChange={(c) => setAlertsOnly(!!c)}
+                      />
+                      <Label htmlFor="sheet-alerts" className="cursor-pointer pl-2 text-xs">
+                        Show only alerts
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-xs font-medium"
+                      onClick={clearAllFilters}
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                </div>
+                <SheetFooter>
+                  <SheetClose render={<Button>Apply filters</Button>} />
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
-        </CardHeader>
+        </div>
         <CardContent className="p-0">
           <FuelTransactionTable
             transactions={filtered}

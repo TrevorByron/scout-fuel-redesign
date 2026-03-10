@@ -9,6 +9,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/fleet": "Live Fleet Map",
   "/transactions": "Fuel Transactions",
+  "/pricing-summary": "Pricing Summary",
   "/drivers": "Driver Insights",
   "/route-optimizer": "Optimizer",
   "/trips": "Trips",

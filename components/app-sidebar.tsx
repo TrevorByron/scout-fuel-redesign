@@ -83,6 +83,7 @@ const data = {
     { title: "Trips", url: "/trips", icon: <HugeiconsIcon icon={TruckDeliveryIcon} strokeWidth={2} /> },
     { title: "Live Fleet Map", url: "/fleet", icon: <HugeiconsIcon icon={MapsSquare01Icon} strokeWidth={2} /> },
     { title: "Fuel Transactions", url: "/transactions", icon: <HugeiconsIcon icon={ReceiptDollarIcon} strokeWidth={2} /> },
+    { title: "Pricing Summary", url: "/pricing-summary", icon: <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} /> },
     { title: "Driver Insights", url: "/drivers", icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} /> },
   ] as NavMainItem[],
   navSecondary: [

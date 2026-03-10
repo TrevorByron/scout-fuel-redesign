@@ -116,6 +116,17 @@ export interface DriverDetail {
   badges: string[]
 }
 
+export interface PricingSummaryRow {
+  date: string
+  chain: string
+  location: string
+  city: string
+  state: string
+  retailPrice: number
+  yourPrice: number
+  discount: number
+}
+
 const DRIVER_NAMES = [
   "Mike Johnson",
   "Sarah Williams",
@@ -700,3 +711,79 @@ export const mockRouteStops = [
   },
 ]
 export const mockRouteSummary = { totalCost: 1428, savingsVsAlternate: 187 }
+
+const PRICING_SUMMARY_CHAINS = ["Other", "TA/Petro", "7 Fleet", "QT"] as const
+const PRICING_SUMMARY_LOCATIONS = [
+  "Sun Stop #612",
+  "Diamond Store 21",
+  "TA Express",
+  "Cowboys #3672",
+  "Pilot #889",
+  "Love's #445",
+  "Flying J #102",
+  "Shell #301",
+  "QuickStop #12",
+  "Mapco #88",
+]
+const PRICING_SUMMARY_CITIES_AL = [
+  "Andalusia",
+  "Atmore",
+  "Birmingham",
+  "Boaz",
+  "Brewton",
+  "Brundidge",
+  "Calera",
+  "Centre",
+  "Childersburg",
+  "Cottondale",
+  "Decatur",
+  "Dothan",
+  "Enterprise",
+  "Eufaula",
+  "Gadsden",
+  "Huntsville",
+  "Mobile",
+  "Montgomery",
+  "Opelika",
+  "Oxford",
+]
+const PRICING_SUMMARY_CITIES_GA = ["Atlanta", "Augusta", "Columbus", "Macon", "Savannah"]
+const PRICING_SUMMARY_CITIES_TN = ["Nashville", "Memphis", "Knoxville", "Chattanooga"]
+
+function buildPricingSummaryRows(): PricingSummaryRow[] {
+  const rows: PricingSummaryRow[] = []
+  const citiesByState: Record<string, string[]> = {
+    AL: PRICING_SUMMARY_CITIES_AL,
+    GA: PRICING_SUMMARY_CITIES_GA,
+    TN: PRICING_SUMMARY_CITIES_TN,
+  }
+  const states = ["AL", "AL", "AL", "GA", "TN"] as const
+  const dates = ["2026-03-10", "2026-03-09", "2026-03-08", "2026-03-07", "2026-03-06"]
+  let idx = 0
+  for (const date of dates) {
+    for (let i = 0; i < 32; i++) {
+      const state = states[idx % states.length]
+      const cities = citiesByState[state] ?? PRICING_SUMMARY_CITIES_AL
+      const city = cities[idx % cities.length]
+      const chain = PRICING_SUMMARY_CHAINS[idx % PRICING_SUMMARY_CHAINS.length]
+      const location = PRICING_SUMMARY_LOCATIONS[idx % PRICING_SUMMARY_LOCATIONS.length]
+      const retailPrice = Math.round((3.5 + Math.random() * 1.8) * 1000) / 1000
+      const discount = Math.round((0.02 + Math.random() * 0.15) * 1000) / 1000
+      const yourPrice = Math.round((retailPrice - discount) * 1000) / 1000
+      rows.push({
+        date,
+        chain,
+        location,
+        city,
+        state,
+        retailPrice,
+        yourPrice,
+        discount,
+      })
+      idx++
+    }
+  }
+  return rows
+}
+
+export const pricingSummaryRows = buildPricingSummaryRows()
