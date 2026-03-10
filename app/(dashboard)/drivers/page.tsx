@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 
@@ -96,35 +97,33 @@ export default function DriversPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
-      {/* Row 1: Filters */}
+      <Tabs defaultValue="overview">
+        <TabsList variant="line">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="by-driver">By Driver</TabsTrigger>
+          <TabsTrigger value="by-chain">By Chain</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="flex flex-col gap-4 md:gap-6 mt-0">
+          {/* Row 1: Filters */}
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Row 1: labels (top-aligned) */}
-            <Label className="text-xs font-medium text-muted-foreground">
-              Date range
-            </Label>
-            <Label className="text-xs font-medium text-muted-foreground">
-              Drivers
-            </Label>
-            <Label className="text-xs font-medium text-muted-foreground">
-              Fuel brand
-            </Label>
-            <Label className="text-xs font-medium text-muted-foreground">
-              Show transactions with waste &gt; ${wasteThreshold[0] ?? 0}
-            </Label>
-
-            {/* Row 2: controls (slider centered with buttons) */}
-            <div className="flex min-h-9 items-center">
-              <Popover>
+            {/* Date range */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Date range
+              </Label>
+              <div className="flex min-h-9 items-center">
+                <Popover>
                 <PopoverTrigger
                   render={
                     <Button
                       variant="outline"
-                      className="h-9 gap-2 text-sm font-normal"
+                      className="h-9 w-full justify-start gap-2 text-xs font-normal"
                     >
                       <HugeiconsIcon
                         icon={Calendar01Icon}
@@ -159,7 +158,13 @@ export default function DriversPage() {
                 </PopoverContent>
               </Popover>
             </div>
+            </div>
 
+            {/* Drivers */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Drivers
+              </Label>
             <div className="flex min-h-9 items-center">
               <Popover>
                 <PopoverTrigger
@@ -199,7 +204,13 @@ export default function DriversPage() {
                 </PopoverContent>
               </Popover>
             </div>
+            </div>
 
+            {/* Fuel brand */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Fuel brand
+              </Label>
             <div className="flex min-h-9 items-center">
               <Popover>
                 <PopoverTrigger
@@ -254,7 +265,13 @@ export default function DriversPage() {
                 </PopoverContent>
               </Popover>
             </div>
+            </div>
 
+            {/* Show transactions with waste */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Show transactions with waste &gt; ${wasteThreshold[0] ?? 0}
+              </Label>
             <div className="flex min-h-9 w-full items-center">
               <Slider
                 min={0}
@@ -265,6 +282,7 @@ export default function DriversPage() {
                   setWasteThreshold(Array.isArray(v) ? [...v] : [v])
                 }
               />
+            </div>
             </div>
           </div>
         </CardContent>
@@ -306,6 +324,16 @@ export default function DriversPage() {
           />
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="by-driver" className="mt-0">
+          <div className="flex flex-col gap-4 md:gap-6" />
+        </TabsContent>
+
+        <TabsContent value="by-chain" className="mt-0">
+          <div className="flex flex-col gap-4 md:gap-6" />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

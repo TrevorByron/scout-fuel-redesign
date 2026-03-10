@@ -236,7 +236,7 @@ const FUEL_TYPE_SEQUENCE: FuelType[] = [
   "Diesel", "Diesel", "Reefer", "Reefer", "DEF",
 ]
 
-export const fuelTransactions: FuelTransaction[] = Array.from({ length: 80 }, (_, i) => {
+export const fuelTransactions: FuelTransaction[] = Array.from({ length: 110 }, (_, i) => {
   const location = LOCATIONS[i % LOCATIONS.length]
   const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
   const fuelType = FUEL_TYPE_SEQUENCE[i % 10]
@@ -252,9 +252,9 @@ export const fuelTransactions: FuelTransaction[] = Array.from({ length: 80 }, (_
   const optimalPrice = pricePerGallon * 0.97
   const variance = Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
   const alert = variance < -15
-  // Spread transactions over the past year (0 to 364 days ago) for chart/filtering
+  // Spread transactions over the last 3 months (0 to 90 days ago) for chart/filtering
   const anchor = new Date(2026, 2, 6) // March 6, 2026 — match TODAY_DATE in spending chart
-  const daysAgo = Math.floor((i / 79) * 365)
+  const daysAgo = i === 0 ? 0 : Math.floor((i / 109) * 90)
   const date = new Date(anchor)
   date.setDate(date.getDate() - daysAgo)
   date.setHours(6 + (i % 14), (i % 4) * 15, 0, 0)

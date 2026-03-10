@@ -321,7 +321,7 @@ export default function DashboardPage() {
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
             {getGreeting()}, Pete
           </h2>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <p className="text-muted-foreground text-xs mt-0.5">
             View fleet activity, fuel spend, and price trends at a glance.
           </p>
         </div>
