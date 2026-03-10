@@ -1,96 +1,82 @@
-# Scout Fuel — Work Summary
-
+# Scout Fuel — Work Summary (Since Last Write-Up)
 **Date:** March 9, 2026  
-**For:** Client review
+**For:** Client / Notion
 
 ---
 
-## What We Built
+## What We Built This Round
 
-Scout Fuel is a **fleet fuel management dashboard** — a web app that gives fleet managers a single place to see fuel usage, costs, driver performance, and recommendations. We set up the project from the ground up and built the first full set of screens so you can see how the product will look and behave.
-
-**Choices we made (and why they matter):**
-
-We chose **Tailwind CSS** for styling. Tailwind is a utility-first CSS framework: instead of writing custom CSS for every button or layout, we use small, reusable classes that do one thing (e.g. “this text is bold,” “this box has padding”). The benefit for you: the app stays **consistent**, **fast to load**, and **easy to change** later. New features can match the existing look without starting from scratch, and the codebase stays maintainable as the product grows.
-
-We chose **shadcn/ui** for the interface components. shadcn is a set of open-source, accessible building blocks (buttons, forms, tables, charts, sidebars, etc.) that we copy into the project and own. They’re not a black box: we can tweak every part to match your brand and UX. The benefits: **professional, accessible UI** out of the box, **full control** over design and behavior, and **no ongoing licensing or lock-in** — it’s your code.
-
-On top of that we added **three switchable style themes** (blue/violet, warm/amber, teal/green) so the same dashboard can be previewed in different palettes. The app also supports **light and dark mode** and a **collapsible sidebar** so the layout works on different screen sizes.
+We focused on making the app feel **owned by your clients** — the trucking companies and fleets you serve — rather than by Scout Fuel. That means putting **their** brand and **their** organization front and centre: their logos, their company names, and a smooth, branded experience from login through to the dashboard. We also added a **login splash screen** so that the transition from “signed in” to “dashboard ready” feels intentional and professional.
 
 ---
 
 ## What's New
 
-- **Project foundation** — Next.js app with Tailwind CSS and shadcn/ui; responsive layout with sidebar and header.
-- **Login** — Dedicated login screen with a simple form and branding area, ready to be wired to your auth.
-- **Dashboard (home)** — Main view with KPIs (gallons, spend, savings), fuel price trends chart, recent transactions table, cost-saving opportunities, and driver leaderboard. Date range and fuel-type toggles.
-- **Live Fleet Map** — Map view for fleet locations (MapLibre/Leaflet), ready for real-time or sample data.
-- **Fuel Transactions** — Filterable, sortable table of fuel transactions with driver, date, location, and cost.
-- **Driver Performance** — Driver-level metrics (e.g. MPG, cost per mile) with charts and comparison.
-- **Route Optimizer** — Screen for route planning and optimization inputs.
-- **Budget & Forecasting** — Budget vs actual views with bar charts by category/time.
-- **Alerts & Recommendations** — Placeholder for alerts and actionable recommendations.
-- **Style switcher** — Three theme variants (Style 1, 2, 3) plus light/dark mode, with styles stored so the choice persists.
+- **Organization switcher** — The sidebar now shows the **current client’s logo and name** (e.g. Frontier Trucking, Brink Truck Lines, JFW Trucking) instead of Scout Fuel. Users can switch between organizations; each org can have its own logo and subtitle. This makes it clear whose data they’re looking at and reinforces that the app is **theirs**.
+
+  ![Organization switcher (component)](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/org-switcher_localhost_3000.png)
+
+- **Login experience** — Login page supports optional full logo (e.g. full-logo.svg) and a split layout with branding and form. After submitting, users see a **splash screen** before entering the dashboard.
+
+  ![Login form (component)](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/login-form_localhost_3000_login.png)
+
+- **Client-first branding** — Across the app we surface **organization logos and names** rather than Scout Fuel everywhere. The design decision is explicit: when you’re selling to trucking companies, the product should feel like **their** command centre, not a white-label shell with our name on it.
+
+- **Login splash screen** — After a successful login, a short full-screen splash appears with a progress bar and reassuring steps (“Loading all fuel transactions…”, “Building your dashboard…”, “Gathering insights…”). It sets the tone that the app is loading their data and reduces the abrupt jump straight into the dashboard.
 
 ---
 
-## Why It Matters
+## Why It Matters — Client-First Branding
 
-You get a **single, coherent product** instead of a patchwork of screens. Fleet managers can move from login to dashboard to transactions to drivers to budget without leaving one app. The choices we made (Tailwind + shadcn) mean the UI is **consistent**, **accessible**, and **easy to evolve** — so when you add real data, new roles, or new features, the foundation is already in place. The themes and dark mode show that the product can adapt to different brands and user preferences without a redesign.
+As a startup it’s tempting to put our own brand everywhere. But when your customers are **trucking companies and fleets**, they need to feel that this is **their** tool: their logo, their name, their fuel data. The updates we made are designed to do exactly that:
+
+- **Organization switcher** shows **company logos and organization names** in the sidebar. So at a glance users see “Frontier Trucking” or “Brink Truck Lines,” not “Scout Fuel.” That builds trust and makes the app feel like part of their operations.
+
+- **Login** can carry your client’s logo (or Scout Fuel’s when that’s appropriate), and the **splash screen** gives a clear, professional handoff from authentication to dashboard.
+
+- The result: a more **powerful product** for you — one that feels white-label and client-owned, which is exactly what fleet and trucking clients expect when they’re making buying decisions.
+
+---
+
+## Why the Splash Screen Matters
+
+The splash screen isn’t just eye candy. It:
+
+- **Sets expectations** — Users see that the app is loading their data, not just flipping a page.
+- **Reduces perceived wait** — A short, purposeful sequence with a progress bar and messages feels faster and more controlled than a blank or spinner-only load.
+- **Reinforces branding** — The “Opening Scout Fuel” moment (or your client’s name when customized) gives one last clear cue before the dashboard takes over with the **client’s** branding.
 
 ---
 
 ## How It Follows Best Practices
 
-- **Visual hierarchy and consistency** — Headings, cards, and tables use a clear structure and shared design tokens so the most important information stands out and the app feels like one product (UX consistency).
-- **Recognition over recall** — Navigation is always visible in the sidebar with clear labels (Dashboard, Live Fleet Map, Fuel Transactions, etc.), so users don’t have to remember where things are.
-- **Accessibility** — We use shadcn components built with accessibility in mind (keyboard navigation, focus states, semantic structure), which supports WCAG-oriented design and better experience for all users.
-- **Responsive layout** — The sidebar collapses to icons on smaller widths, and the layout is built to work across desktop and tablet; the login page uses a two-column layout that stacks on small screens.
-- **Performance** — Next.js and Tailwind support code splitting and lean CSS so the app can stay fast as we add more screens and data.
+- **Recognition over recall** — The org switcher shows logos and names so users always know which organization they’re in.
+- **Clear feedback** — The splash screen provides explicit loading steps and progress so users aren’t left wondering what’s happening.
+- **Consistency** — Client logos and names are used consistently in the sidebar and org switcher.
+- **Personalisation** — The UI is built to highlight the **client’s** brand, which supports conversion and trust in B2B fleet contexts.
 
 ---
 
 ## Screenshots
 
-Below are captures of the main screens as they look today. You can use these to see the value of the work at a glance.
+Component-level screenshots (zoomed in on each feature) plus full-page views:
 
-**Login**  
-![Login screen](client-summary-screenshots/localhost_3000_login.png)  
-*Simple login screen with branding and form, ready to connect to your authentication.*
+![Organization switcher (component)](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/org-switcher_localhost_3000.png)
 
-**Dashboard (home)**  
-![Dashboard](client-summary-screenshots/localhost_3000.png)  
-*Main dashboard with KPIs, fuel price trends, transactions, cost opportunities, and driver leaderboard.*
+![Login form (component)](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/login-form_localhost_3000_login.png)
 
-**Live Fleet Map**  
-![Fleet map](client-summary-screenshots/localhost_3000_fleet.png)  
-*Map view for fleet locations and routes.*
+![Login (full page)](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000_login.png)
 
-**Fuel Transactions**  
-![Transactions](client-summary-screenshots/localhost_3000_transactions.png)  
-*Filterable and sortable fuel transaction list.*
+![Dashboard with organization switcher](https://scout-fuel-redesign.vercel.app/client-summary-screenshots/localhost_3000.png)
 
-**Driver Performance**  
-![Drivers](client-summary-screenshots/localhost_3000_drivers.png)  
-*Driver-level metrics and comparison.*
+*Tip: Add a screenshot of the splash screen to `public/client-summary-screenshots/` (e.g. `splash-screen.png`) after capturing it from the app.*
 
-**Route Optimizer**  
-![Route optimizer](client-summary-screenshots/localhost_3000_route_optimizer.png)  
-*Route planning and optimization.*
-
-**Budget & Forecasting**  
-![Budget](client-summary-screenshots/localhost_3000_budget.png)  
-*Budget vs actual with charts.*
-
-**Alerts & Recommendations**  
-![Alerts](client-summary-screenshots/localhost_3000_alerts.png)  
-*Alerts and recommendations screen.*
+**Document order:** This summary is written for newest-first: the most recent work appears at the top of the Notion page; older summaries stay below.
 
 ---
 
-## Next Steps
+## Next Steps (optional)
 
-- Connect login to your authentication provider.
-- Plug in real data sources for transactions, drivers, and fleet locations.
-- Add any role-based views or permissions you need.
-- Refine copy, labels, and any branding (logo, colors) to match your final product.
+- Capture and add a splash-screen screenshot to the summary once the app is deployed.
+- Connect login to your authentication provider and optionally customize splash copy per client.
+- Add more organizations and logos as you onboard new fleet clients.
