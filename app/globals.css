@@ -103,7 +103,7 @@
 }
 @media (max-width: 767px) {
   :root {
-    --mobile-text-ratio: 1.333; /* 16/12 so text-xs (0.75rem) => 16px */
+    --mobile-text-ratio: 1.33; /* 16/12 so text-xs (0.75rem) => 16px */
     --text-xs: calc(0.75rem * var(--mobile-text-ratio));
     --text-sm: calc(0.875rem * var(--mobile-text-ratio));
     --text-base: calc(1rem * var(--mobile-text-ratio));
