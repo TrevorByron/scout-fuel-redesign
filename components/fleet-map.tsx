@@ -91,7 +91,7 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
           >
             <MarkerContent>
               <div
-                className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background text-[10px] font-bold text-primary-foreground shadow-sm"
+                className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background text-[var(--text-2xs)] font-bold text-primary-foreground shadow-sm"
                 style={{ backgroundColor: getStatusColor(truck) }}
               >
                 {truck.id.replace("T", "")}

@@ -100,6 +100,9 @@
    Change --mobile-text-ratio below to adjust scale (e.g. 1.333 => text-xs = 16px). */
 :root {
   --mobile-text-ratio: 1;
+  --text-2xs-sm: 0.5625rem;
+  --text-2xs: 0.625rem;
+  --text-tiny: 0.8rem;
 }
 @media (max-width: 767px) {
   :root {
@@ -117,5 +120,8 @@
     --text-7xl: calc(4.5rem * var(--mobile-text-ratio));
     --text-8xl: calc(6rem * var(--mobile-text-ratio));
     --text-9xl: calc(8rem * var(--mobile-text-ratio));
+    --text-2xs-sm: calc(0.5625rem * var(--mobile-text-ratio));
+    --text-2xs: calc(0.625rem * var(--mobile-text-ratio));
+    --text-tiny: calc(0.8rem * var(--mobile-text-ratio));
   }
 }

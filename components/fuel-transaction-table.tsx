@@ -129,7 +129,7 @@ export function BetterOptionDetails({
                 <div className="size-4 rounded-full bg-destructive ring-2 ring-background shadow-md" />
               </MarkerContent>
               <MarkerLabel position="bottom">
-                <span className="rounded bg-background/80 px-1.5 py-0.5 text-[9px] font-medium shadow-sm">
+                <span className="rounded bg-background/80 px-1.5 py-0.5 text-[var(--text-2xs-sm)] font-medium shadow-sm">
                   {transaction.stationBrand}
                 </span>
               </MarkerLabel>
@@ -142,7 +142,7 @@ export function BetterOptionDetails({
                 />
               </MarkerContent>
               <MarkerLabel position="bottom">
-                <span className="rounded bg-background/80 px-1.5 py-0.5 text-[9px] font-medium shadow-sm">
+                <span className="rounded bg-background/80 px-1.5 py-0.5 text-[var(--text-2xs-sm)] font-medium shadow-sm">
                   {option.stationName}
                 </span>
               </MarkerLabel>
@@ -163,7 +163,7 @@ export function BetterOptionDetails({
         )}
       </div>
 
-      <div className="flex gap-3 px-3 pb-1.5 pt-2 text-[10px] text-muted-foreground">
+      <div className="flex gap-3 px-3 pb-1.5 pt-2 text-[var(--text-2xs)] text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block size-2.5 rounded-full bg-destructive" />
           Filled up (out of network)
@@ -178,7 +178,7 @@ export function BetterOptionDetails({
       </div>
 
       <div className="flex flex-col gap-1.5 border-b border-border px-3 pb-3 pt-1">
-        <div className="text-[10px] font-medium text-muted-foreground">Actual transaction</div>
+        <div className="text-[var(--text-2xs)] font-medium text-muted-foreground">Actual transaction</div>
         <div className="font-medium text-foreground">
           {new Date(transaction.dateTime).toLocaleDateString("en-US", {
             month: "short",
@@ -198,7 +198,7 @@ export function BetterOptionDetails({
       </div>
 
       <div className="flex flex-col gap-1.5 px-3 pb-3">
-        <div className="text-[10px] font-medium text-muted-foreground">Recommended in-network option</div>
+        <div className="text-[var(--text-2xs)] font-medium text-muted-foreground">Recommended in-network option</div>
         <div className="font-medium text-foreground">{option.stationName}</div>
         <div className="text-muted-foreground">{option.location}</div>
         <div className="flex justify-between gap-4">
@@ -285,7 +285,7 @@ export function FuelTransactionTable({
                 {t.inNetwork ? (
                   <Badge
                     variant="secondary"
-                    className="gap-1 border-chart-2/30 bg-chart-2/10 text-chart-2 text-[0.625rem]"
+                    className="gap-1 border-chart-2/30 bg-chart-2/10 text-chart-2 text-[var(--text-2xs)]"
                   >
                     <HugeiconsIcon icon={CheckmarkCircle01Icon} strokeWidth={2} className="size-3" />
                     In Network
@@ -295,7 +295,7 @@ export function FuelTransactionTable({
                     <DropdownMenuTrigger className="cursor-pointer border-0 bg-transparent p-0 outline-none [&>span]:cursor-pointer">
                       <Badge
                         variant="destructive"
-                        className="cursor-pointer gap-1 text-[0.625rem]"
+                        className="cursor-pointer gap-1 text-[var(--text-2xs)]"
                         title="Recommended in-network option available"
                       >
                         <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3" />
@@ -309,7 +309,7 @@ export function FuelTransactionTable({
                 ) : (
                   <Badge
                     variant="secondary"
-                    className="gap-1 text-[0.625rem] border-muted-foreground/20 bg-muted text-muted-foreground"
+                    className="gap-1 text-[var(--text-2xs)] border-muted-foreground/20 bg-muted text-muted-foreground"
                   >
                     Out of Network
                   </Badge>
@@ -321,7 +321,7 @@ export function FuelTransactionTable({
                     <DropdownMenuTrigger className="cursor-pointer border-0 bg-transparent p-0 outline-none [&>span]:cursor-pointer">
                       <Badge
                         variant="secondary"
-                        className="cursor-pointer font-mono tabular-nums text-[0.625rem] border-destructive/30 bg-destructive/10 text-destructive"
+                        className="cursor-pointer font-mono tabular-nums text-[var(--text-2xs)] border-destructive/30 bg-destructive/10 text-destructive"
                       >
                         {t.variance >= 0 ? "+" : ""}${t.variance.toFixed(2)}
                       </Badge>
@@ -334,7 +334,7 @@ export function FuelTransactionTable({
                   <Badge
                     variant="secondary"
                     className={cn(
-                      "font-mono tabular-nums text-[0.625rem]",
+                      "font-mono tabular-nums text-[var(--text-2xs)]",
                       status === "needs_attention"
                         ? "border-destructive/30 bg-destructive/10 text-destructive"
                         : "border-muted-foreground/20 bg-muted text-muted-foreground"
@@ -346,7 +346,7 @@ export function FuelTransactionTable({
               </TableCell>
               <TableCell>
                 {t.alert ? (
-                  <Badge variant="destructive" className="text-[0.625rem]">
+                  <Badge variant="destructive" className="text-[var(--text-2xs)]">
                     Overspend
                   </Badge>
                 ) : null}

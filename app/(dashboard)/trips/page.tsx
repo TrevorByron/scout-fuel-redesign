@@ -138,7 +138,7 @@ export default function TripsPage() {
                         </p>
                         <Badge
                           variant={status === "completed" ? "secondary" : status === "in_progress" ? "default" : "outline"}
-                          className="mt-1.5 text-[10px]"
+                          className="mt-1.5 text-[var(--text-2xs)]"
                         >
                           {status === "upcoming" && "Upcoming"}
                           {status === "in_progress" && "In progress"}
@@ -178,7 +178,7 @@ export default function TripsPage() {
                       ? "default"
                       : "outline"
                 }
-                className="text-[10px]"
+                className="text-[var(--text-2xs)]"
               >
                 {detailStatus === "upcoming" && "Upcoming"}
                 {detailStatus === "in_progress" && "In progress"}
@@ -300,11 +300,11 @@ export default function TripsPage() {
                               <p className="text-xs text-muted-foreground truncate">{sp.stop.location}</p>
                             </div>
                             {sp.status === "completed" && sp.transaction ? (
-                              <Badge variant="secondary" className="shrink-0 text-[10px]">
+                              <Badge variant="secondary" className="shrink-0 text-[var(--text-2xs)]">
                                 Completed
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="shrink-0 text-[10px]">
+                              <Badge variant="outline" className="shrink-0 text-[var(--text-2xs)]">
                                 Pending
                               </Badge>
                             )}

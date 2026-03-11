@@ -146,7 +146,7 @@ export function RouteOptimizerMap({
                 style={{ backgroundColor: "var(--chart-2)" }}
                 aria-hidden
               >
-                <span className="text-[10px] font-bold text-primary-foreground">
+                <span className="text-[var(--text-2xs)] font-bold text-primary-foreground">
                   A
                 </span>
               </div>
@@ -164,7 +164,7 @@ export function RouteOptimizerMap({
                 style={{ backgroundColor: "var(--destructive)" }}
                 aria-hidden
               >
-                <span className="text-[10px] font-bold text-primary-foreground">
+                <span className="text-[var(--text-2xs)] font-bold text-primary-foreground">
                   B
                 </span>
               </div>
@@ -197,7 +197,7 @@ export function RouteOptimizerMap({
                 style={{ backgroundColor: "var(--chart-3)" }}
                 aria-hidden
               >
-                <span className="text-[9px] font-bold text-primary-foreground">
+                <span className="text-[var(--text-2xs-sm)] font-bold text-primary-foreground">
                   {i + 1}
                 </span>
               </div>
