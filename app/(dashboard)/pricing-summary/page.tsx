@@ -70,8 +70,8 @@ export default function PricingSummaryPage() {
   }, [selectedDate, stateFilter, cityFilter])
 
   return (
-    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 px-4 lg:px-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="shrink-0 flex flex-wrap items-start justify-between gap-3 px-4 lg:px-6">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
             Pricing Summary
@@ -156,9 +156,9 @@ export default function PricingSummaryPage() {
         </div>
       </div>
 
-      <Card className="mx-4 lg:mx-6 flex flex-col min-h-0">
-        <CardContent className="p-0 flex flex-col min-h-0">
-          <div className="overflow-auto max-h-[min(60vh,32rem)]">
+      <Card className="mx-4 flex min-h-0 flex-1 flex-col lg:mx-6">
+        <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+          <div className="min-h-0 flex-1 overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow className="sticky top-0 z-10 bg-card border-b shadow-[0_1px_0_0_hsl(var(--border))]">

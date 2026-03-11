@@ -80,8 +80,11 @@ export function LoginSplashScreen({ onComplete }: { onComplete: () => void }) {
         />
         <div className="space-y-2">
           <p className="text-base font-semibold tracking-tight">
-            Opening Scout Fuel
+            Opening your account
           </p>
+          <div className="w-full min-w-xs max-w-xs space-y-2">
+        <Progress value={progress} className="h-2 [&>div:last-child]:transition-[width] [&>div:last-child]:duration-700 [&>div:last-child]:ease-out" />
+      </div>
           <div className="flex min-h-[2rem] items-center justify-center pt-2 text-sm text-muted-foreground">
             <p
               key={LOADING_STEPS[currentStep]}
@@ -92,9 +95,7 @@ export function LoginSplashScreen({ onComplete }: { onComplete: () => void }) {
           </div>
         </div>
       </div>
-      <div className="w-full max-w-xs space-y-2">
-        <Progress value={progress} className="h-2 [&>div:last-child]:transition-[width] [&>div:last-child]:duration-700 [&>div:last-child]:ease-out" />
-      </div>
+
     </div>
   )
 }

@@ -95,3 +95,27 @@
     overflow: visible !important;
   }
 }
+
+/* Mobile type scale: one ratio for phone font sizes.
+   Change --mobile-text-ratio below to adjust scale (e.g. 1.333 => text-xs = 16px). */
+:root {
+  --mobile-text-ratio: 1;
+}
+@media (max-width: 767px) {
+  :root {
+    --mobile-text-ratio: 1.333; /* 16/12 so text-xs (0.75rem) => 16px */
+    --text-xs: calc(0.75rem * var(--mobile-text-ratio));
+    --text-sm: calc(0.875rem * var(--mobile-text-ratio));
+    --text-base: calc(1rem * var(--mobile-text-ratio));
+    --text-lg: calc(1.125rem * var(--mobile-text-ratio));
+    --text-xl: calc(1.25rem * var(--mobile-text-ratio));
+    --text-2xl: calc(1.5rem * var(--mobile-text-ratio));
+    --text-3xl: calc(1.875rem * var(--mobile-text-ratio));
+    --text-4xl: calc(2.25rem * var(--mobile-text-ratio));
+    --text-5xl: calc(3rem * var(--mobile-text-ratio));
+    --text-6xl: calc(3.75rem * var(--mobile-text-ratio));
+    --text-7xl: calc(4.5rem * var(--mobile-text-ratio));
+    --text-8xl: calc(6rem * var(--mobile-text-ratio));
+    --text-9xl: calc(8rem * var(--mobile-text-ratio));
+  }
+}
