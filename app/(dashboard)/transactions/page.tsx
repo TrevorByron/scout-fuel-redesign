@@ -693,6 +693,7 @@ export default function TransactionsPage() {
                     Narrow by date, driver, station, state, network, or alerts
                   </SheetDescription>
                 </SheetHeader>
+                <div className="min-h-0 flex-1 overflow-y-auto">
                 <div className="grid grid-cols-1 gap-4 px-[18px] py-6 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-2">
                     <Label className="text-xs">Date from</Label>
@@ -811,6 +812,7 @@ export default function TransactionsPage() {
                       Clear all
                     </Button>
                   </div>
+                </div>
                 </div>
                 <SheetFooter>
                   <SheetClose render={<Button>Apply filters</Button>} />
