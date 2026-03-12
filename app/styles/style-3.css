@@ -10,6 +10,29 @@ html[data-style="3"].dark body {
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Badge colors: ensure semantic variant colors apply (Tailwind text-[var()] can be interpreted as color) */
+html[data-style="3"] [data-slot="badge"][data-variant="secondary"],
+html[data-style="3"].dark [data-slot="badge"][data-variant="secondary"] {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+html[data-style="3"] [data-slot="badge"][data-variant="outline"],
+html[data-style="3"].dark [data-slot="badge"][data-variant="outline"] {
+  background-color: var(--input);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+html[data-style="3"] [data-slot="badge"][data-variant="destructive"],
+html[data-style="3"].dark [data-slot="badge"][data-variant="destructive"] {
+  background-color: color-mix(in oklch, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+}
+html[data-style="3"] [data-slot="badge"][data-variant="default"],
+html[data-style="3"].dark [data-slot="badge"][data-variant="default"] {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
 html[data-style="3"] {
   --background: oklch(0.99 0.005 165);
   --foreground: oklch(0.20 0.03 165);

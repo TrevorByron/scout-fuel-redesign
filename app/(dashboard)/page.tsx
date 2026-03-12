@@ -484,8 +484,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Main grid: 2 cols from md up so two cards sit side-by-side on larger screens */}
-      <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:px-6">
+      {/* Main grid: 2 cols as soon as @container/main has room for two 32.5rem cards (66rem) */}
+      <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2">
         {/* Gallons by chain */}
         <Card className="flex min-h-0 min-w-0 flex-col">
           <CardHeader>
@@ -571,7 +571,7 @@ export default function DashboardPage() {
         <FuelPriceTrendsCard />
 
         {/* Transactions that need attention */}
-        <Card className="md:col-span-2">
+        <Card className="col-span-full @[66rem]/main:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between gap-2">
             <div>
               <CardTitle>Transactions that need attention</CardTitle>

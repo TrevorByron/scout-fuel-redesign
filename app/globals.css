@@ -96,12 +96,12 @@
   }
 }
 
-/* Mobile type scale: one ratio for phone font sizes.
-   Change --mobile-text-ratio below to adjust scale (e.g. 1.333 => text-xs = 16px). */
+/* Desktop: small text sizes (e.g. --text-2xs = 10px). Used by badges and other compact UI.
+   Mobile: the block below applies only when viewport width <= 767px; desktop always uses the values here. */
 :root {
   --mobile-text-ratio: 1;
-  --text-2xs-sm: 0.5625rem;
-  --text-2xs: 0.625rem;
+  --text-2xs-sm: 0.5625rem;   /* 9px desktop */
+  --text-2xs: 0.625rem;       /* 10px desktop */
   --text-tiny: 0.8rem;
 }
 @media (max-width: 767px) {

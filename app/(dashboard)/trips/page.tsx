@@ -137,8 +137,8 @@ export default function TripsPage() {
                           {format(new Date(trip.tripStart), "MMM d, yyyy")} – {format(new Date(trip.tripEnd), "MMM d, yyyy")} · {trip.truckId}
                         </p>
                         <Badge
-                          variant={status === "completed" ? "secondary" : status === "in_progress" ? "default" : "outline"}
-                          className="mt-1.5 text-[var(--text-2xs)]"
+                          variant={status === "completed" ? "default" : status === "in_progress" ? "default" : "outline"}
+                          className="mt-1.5 text-[length:var(--text-2xs)]"
                         >
                           {status === "upcoming" && "Upcoming"}
                           {status === "in_progress" && "In progress"}
@@ -173,12 +173,12 @@ export default function TripsPage() {
               <Badge
                 variant={
                   detailStatus === "completed"
-                    ? "secondary"
+                    ? "default"
                     : detailStatus === "in_progress"
                       ? "default"
                       : "outline"
                 }
-                className="text-[var(--text-2xs)]"
+                className="text-[length:var(--text-2xs)]"
               >
                 {detailStatus === "upcoming" && "Upcoming"}
                 {detailStatus === "in_progress" && "In progress"}
@@ -300,11 +300,11 @@ export default function TripsPage() {
                               <p className="text-xs text-muted-foreground truncate">{sp.stop.location}</p>
                             </div>
                             {sp.status === "completed" && sp.transaction ? (
-                              <Badge variant="secondary" className="shrink-0 text-[var(--text-2xs)]">
+                              <Badge variant="default" className="shrink-0 text-[length:var(--text-2xs)]">
                                 Completed
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="shrink-0 text-[var(--text-2xs)]">
+                              <Badge variant="outline" className="shrink-0 text-[length:var(--text-2xs)]">
                                 Pending
                               </Badge>
                             )}
