@@ -352,8 +352,8 @@ function SpendingTrendsCard() {
   )
 
   return (
-    <Card className="@container/card md:col-span-2">
-      <CardHeader className="pb-2">
+    <Card className="@container/card md:col-span-2 xl:max-h-[320px] xl:flex xl:flex-col xl:min-h-0">
+      <CardHeader className="pb-2 shrink-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>Gallons purchased</CardTitle>
@@ -384,7 +384,7 @@ function SpendingTrendsCard() {
       <CardContent className="flex flex-1 flex-col px-2 pb-4 sm:px-6">
         <ChartContainer
           config={spendingChartConfig}
-          className="min-h-0 flex-1 w-full aspect-[2/1] @sm:aspect-[3/1] @lg:aspect-[4/1]"
+          className="min-h-0 flex-1 w-full aspect-[2/1] @sm:aspect-[3/1] @lg:aspect-[4/1] @xl:aspect-[5/1] @2xl:aspect-[6/1]"
         >
           <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
             <CartesianGrid vertical={false} />
@@ -529,13 +529,13 @@ export default function TransactionsPage() {
         <SpendingTrendsCard />
 
         {/* Gallons by chain — pie chart */}
-        <Card className="@container/card">
-          <CardHeader>
+        <Card className="@container/card flex flex-col min-h-0">
+          <CardHeader className="shrink-0">
             <CardTitle>Gallons by chain</CardTitle>
             <CardDescription>Total gallons purchased per station brand</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <CardContent className="min-h-0 flex flex-col flex-1">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center min-h-0">
               <ChartContainer
                 config={chainChartData.config}
                 className="mx-auto aspect-square h-[200px] shrink-0"
@@ -617,8 +617,8 @@ export default function TransactionsPage() {
             <CardTitle>Gallons by state</CardTitle>
             <CardDescription>Total gallons purchased per state</CardDescription>
           </CardHeader>
-          <CardContent className="min-h-0 flex flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto max-h-[min(50vh,420px)]">
+          <CardContent className="min-h-0 flex flex-col flex-1">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <ChartContainer
                 config={stateChartConfig}
                 className="w-full"

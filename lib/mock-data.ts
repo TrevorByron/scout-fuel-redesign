@@ -247,76 +247,85 @@ const FUEL_TYPE_SEQUENCE: FuelType[] = [
   "Diesel", "Diesel", "Reefer", "Reefer", "DEF",
 ]
 
-export const fuelTransactions: FuelTransaction[] = Array.from({ length: 110 }, (_, i) => {
-  const location = LOCATIONS[i % LOCATIONS.length]
-  const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
-  const fuelType = FUEL_TYPE_SEQUENCE[i % 10]
-  const gallons = Math.round((80 + Math.random() * 120) * 10) / 10
-  const pricePerGallon = Math.round((320 + Math.random() * 130) / 100) / 100
-  const totalCost = Math.round(gallons * pricePerGallon * 100) / 100
-  // Saved amount reflects fleet card discount vs retail: Diesel ~6%, Reefer ~8%, DEF ~3%
-  const discountPct =
-    fuelType === "Diesel" ? 0.04 + (i % 5) * 0.008
-    : fuelType === "Reefer" ? 0.05 + (i % 5) * 0.01
-    : 0.02 + (i % 4) * 0.005
-  const savedAmount = Math.round(totalCost * discountPct * 100) / 100
-  const optimalPrice = pricePerGallon * 0.97
-  const variance = Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
-  const alert = variance < -15
-  // Spread transactions over the last 3 months (0 to 90 days ago) for chart/filtering
+/** Build fuel transactions with at least one transaction every day for the past 365 days. */
+function buildFuelTransactions(): FuelTransaction[] {
   const anchor = new Date(2026, 2, 6) // March 6, 2026 — match TODAY_DATE in spending chart
-  const daysAgo = i === 0 ? 0 : Math.floor((i / 109) * 90)
-  const date = new Date(anchor)
-  date.setDate(date.getDate() - daysAgo)
-  date.setHours(6 + (i % 14), (i % 4) * 15, 0, 0)
+  const list: FuelTransaction[] = []
+  let i = 0
+  for (let daysAgo = 0; daysAgo <= 365; daysAgo++) {
+    // 1–3 transactions per day so every day has activity and charts look full
+    const count = 1 + (daysAgo % 3)
+    for (let j = 0; j < count; j++) {
+      const location = LOCATIONS[i % LOCATIONS.length]
+      const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
+      const fuelType = FUEL_TYPE_SEQUENCE[i % 10]
+      const gallons = Math.round((80 + (i % 121)) * 10) / 10
+      const pricePerGallon = Math.round((320 + (i % 130)) / 100) / 100
+      const totalCost = Math.round(gallons * pricePerGallon * 100) / 100
+      const discountPct =
+        fuelType === "Diesel" ? 0.04 + (i % 5) * 0.008
+        : fuelType === "Reefer" ? 0.05 + (i % 5) * 0.01
+        : 0.02 + (i % 4) * 0.005
+      const savedAmount = Math.round(totalCost * discountPct * 100) / 100
+      const optimalPrice = pricePerGallon * 0.97
+      const variance = Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
+      const alert = variance < -15
 
-  // Guarantee many "needs attention" examples: out-of-network purchases with a recommended in-network option
-  const stationBrand = STATION_BRANDS[i % STATION_BRANDS.length]
-  const inNetwork = (IN_NETWORK_BRANDS as readonly string[]).includes(stationBrand)
-  const hasBetterOption = i < 45 && !inNetwork
-  const betterOptionStation = IN_NETWORK_BRANDS[i % IN_NETWORK_BRANDS.length]
-  const differentStation = betterOptionStation !== stationBrand
-  // Deterministic savings > $1 so "needs attention" is always shown for these
-  const potentialSavings = hasBetterOption && differentStation ? 5 + (i % 25) : 0
-  const discount = 0.05 + (i % 4) * 0.008
-  const betterPrice = hasBetterOption
-    ? Math.round((pricePerGallon * (1 - discount)) * 100) / 100
-    : pricePerGallon
-  const distanceMiles = hasBetterOption ? 2 + (i % 12) : 0
-  const betterLat = coords.lat + (i % 3) * 0.08 - 0.08
-  const betterLng = coords.lng + (i % 2) * 0.1 - 0.05
+      const date = new Date(anchor)
+      date.setDate(date.getDate() - daysAgo)
+      date.setHours(6 + ((i + j) % 14), ((i + j) % 4) * 15, 0, 0)
 
-  const txn: FuelTransaction = {
-    id: `txn-${i + 1}`,
-    dateTime: date.toISOString(),
-    driverName: DRIVER_NAMES[i % 45],
-    truckId: `T${String((i % 45) + 1).padStart(3, "0")}`,
-    location,
-    stationBrand,
-    fuelType,
-    gallons,
-    pricePerGallon,
-    totalCost,
-    savedAmount,
-    variance,
-    alert,
-    lat: coords.lat,
-    lng: coords.lng,
-    inNetwork,
-  }
-  if (hasBetterOption && differentStation && potentialSavings > 0) {
-    txn.betterOption = {
-      stationName: betterOptionStation,
-      location: `${location} (nearby)`,
-      lat: betterLat,
-      lng: betterLng,
-      pricePerGallon: betterPrice,
-      distanceMiles,
-      potentialSavings,
+      const stationBrand = STATION_BRANDS[i % STATION_BRANDS.length]
+      const inNetwork = (IN_NETWORK_BRANDS as readonly string[]).includes(stationBrand)
+      const hasBetterOption = i < 200 && !inNetwork
+      const betterOptionStation = IN_NETWORK_BRANDS[i % IN_NETWORK_BRANDS.length]
+      const differentStation = betterOptionStation !== stationBrand
+      const potentialSavings = hasBetterOption && differentStation ? 5 + (i % 25) : 0
+      const discount = 0.05 + (i % 4) * 0.008
+      const betterPrice = hasBetterOption
+        ? Math.round((pricePerGallon * (1 - discount)) * 100) / 100
+        : pricePerGallon
+      const distanceMiles = hasBetterOption ? 2 + (i % 12) : 0
+      const betterLat = coords.lat + (i % 3) * 0.08 - 0.08
+      const betterLng = coords.lng + (i % 2) * 0.1 - 0.05
+
+      const txn: FuelTransaction = {
+        id: `txn-${i + 1}`,
+        dateTime: date.toISOString(),
+        driverName: DRIVER_NAMES[i % 45],
+        truckId: `T${String((i % 45) + 1).padStart(3, "0")}`,
+        location,
+        stationBrand,
+        fuelType,
+        gallons,
+        pricePerGallon,
+        totalCost,
+        savedAmount,
+        variance,
+        alert,
+        lat: coords.lat,
+        lng: coords.lng,
+        inNetwork,
+      }
+      if (hasBetterOption && differentStation && potentialSavings > 0) {
+        txn.betterOption = {
+          stationName: betterOptionStation,
+          location: `${location} (nearby)`,
+          lat: betterLat,
+          lng: betterLng,
+          pricePerGallon: betterPrice,
+          distanceMiles,
+          potentialSavings,
+        }
+      }
+      list.push(txn)
+      i++
     }
   }
-  return txn
-}).sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+  return list.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+}
+
+export const fuelTransactions: FuelTransaction[] = buildFuelTransactions()
 
 /** Transactions in the current trip window for T001, T002, T003 at seed trip stop locations. Merge with fuelTransactions on Trips page so "matching refuels" show. */
 export function getSeedTripTransactions(): FuelTransaction[] {
