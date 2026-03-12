@@ -9,7 +9,15 @@ import {
   STATION_BRANDS,
 } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
-import { FuelTransactionTable } from "@/components/fuel-transaction-table"
+import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
+
+const FuelTransactionTable = dynamic(
+  () =>
+    import("@/components/fuel-transaction-table").then((m) => ({
+      default: m.FuelTransactionTable,
+    })),
+  { ssr: false, loading: () => <div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">Loading table…</div> }
+)
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"

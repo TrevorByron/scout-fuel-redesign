@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { type DateRange } from "react-day-picker"
 import {
   dashboardKpis,
@@ -11,7 +12,14 @@ import {
 } from "@/lib/mock-data"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
-import { FuelTransactionTable } from "@/components/fuel-transaction-table"
+
+const FuelTransactionTable = dynamic(
+  () =>
+    import("@/components/fuel-transaction-table").then((m) => ({
+      default: m.FuelTransactionTable,
+    })),
+  { ssr: false, loading: () => <div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">Loading table…</div> }
+)
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"

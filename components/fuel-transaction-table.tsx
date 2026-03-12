@@ -20,16 +20,9 @@ import { Map, MapMarker, MarkerContent, MarkerLabel, MapRoute, useMap } from "@/
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
+import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
 
-const SAVINGS_THRESHOLD = 1
-
-export function getEfficiencyStatus(t: FuelTransaction): "efficient" | "needs_attention" {
-  const hasMeaningfulBetterOption =
-    t.betterOption != null && t.betterOption.potentialSavings > SAVINGS_THRESHOLD
-  const outOfNetworkWithRecommendation = !t.inNetwork && hasMeaningfulBetterOption
-  if (t.alert || outOfNetworkWithRecommendation) return "needs_attention"
-  return "efficient"
-}
+export { getEfficiencyStatus }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {

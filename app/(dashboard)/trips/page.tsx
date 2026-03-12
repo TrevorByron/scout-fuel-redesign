@@ -123,9 +123,9 @@ export default function TripsPage() {
                       type="button"
                       onClick={() => setSelectedId(trip.id)}
                       className={cn(
-                        "w-full text-left rounded-lg border p-3 transition-colors flex items-center gap-3",
+                        "w-full text-left rounded-lg border p-3 transition-colors flex items-center gap-3 bg-card text-card-foreground shadow-sm",
                         isSelected
-                          ? "border-primary bg-primary/5"
+                          ? "border-primary ring-1 ring-primary/20"
                           : "border-border hover:bg-muted/50"
                       )}
                     >
