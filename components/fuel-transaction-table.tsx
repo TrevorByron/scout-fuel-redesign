@@ -117,7 +117,7 @@ export function BetterOptionDetails({
             zoom={10}
             styles={{
               light: "https://tiles.openfreemap.org/styles/bright",
-              dark: "https://tiles.openfreemap.org/styles/bright",
+              dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
             }}
           >
             <FitTwoPoints

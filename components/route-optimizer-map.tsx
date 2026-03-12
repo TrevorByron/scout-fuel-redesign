@@ -126,7 +126,7 @@ export function RouteOptimizerMap({
         zoom={DEFAULT_ZOOM}
         styles={{
           light: "https://tiles.openfreemap.org/styles/bright",
-          dark: "https://tiles.openfreemap.org/styles/bright",
+          dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
         }}
       >
         {originCoords && !destinationCoords && (
