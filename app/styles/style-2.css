@@ -42,14 +42,14 @@ html[data-style="2"] {
   --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: Intel One Mono, ui-monospace, monospace;
-  --radius: 0.5rem;
+  --radius: 0.6rem;
   --shadow-x: 0.5px;
   --shadow-y: 1px;
   --shadow-blur: 8px;
   --shadow-spread: -1.5px;
   --shadow-opacity: 0.14;
   --shadow-color: #1a5f7a;
-  --shadow-2xs: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.07);
+  --shadow-2xs: 0.5px 1px 8px -1.5px hsla(198, 65%, 28%, 0.07);
   --shadow-xs: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.07);
   --shadow-sm: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 1px 2px -2.5px hsl(198 65% 28% / 0.14);
   --shadow: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 1px 2px -2.5px hsl(198 65% 28% / 0.14);
@@ -80,6 +80,15 @@ html[data-style="2"] [data-slot="input-group"] {
 
 html[data-style="2"] [data-slot="textarea"] {
   min-height: 40px;
+}
+
+/* Style 2: subtle gradient on dashboard KPI cards (size=sm), primary tint */
+html[data-style="2"] [data-slot="card"][data-size="sm"] {
+  background: linear-gradient(
+    180deg,
+    var(--card) 0%,
+    color-mix(in oklch, var(--card) 96%, var(--primary)) 100%
+  );
 }
 
 html[data-style="2"] [data-slot="popover-trigger"] {

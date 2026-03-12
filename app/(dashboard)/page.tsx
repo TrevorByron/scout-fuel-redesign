@@ -9,7 +9,7 @@ import {
   fuelPriceHistory,
   type FuelPricePoint,
 } from "@/lib/mock-data"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { FuelTransactionTable } from "@/components/fuel-transaction-table"
 import { Button } from "@/components/ui/button"
@@ -81,13 +81,11 @@ function FuelPriceTrendsCard() {
   const todayAnchor = filtered.find((d) => d.price !== null && d.forecast !== null)?.date
 
   return (
-    <Card className="@container/card md:col-span-2">
+    <Card className="@container/card flex min-h-0 min-w-0 flex-col">
       <CardHeader className="pb-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle>Fuel Price Trends</CardTitle>
-            <CardDescription>Avg diesel price per gallon</CardDescription>
-          </div>
+        <CardTitle>Fuel Price Trends</CardTitle>
+        <CardDescription>Avg diesel price per gallon</CardDescription>
+        <CardAction>
           <ToggleGroup
             variant="outline"
             size="sm"
@@ -100,8 +98,10 @@ function FuelPriceTrendsCard() {
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-        </div>
-        <div className="flex items-center gap-4 pt-1 text-xs text-muted-foreground">
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col px-2 pb-4 sm:px-6">
+        <div className="flex items-center gap-4 pb-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-px w-5 bg-[var(--color-price)]" style={{ "--color-price": "var(--chart-1)" } as React.CSSProperties} />
             Actual
@@ -116,8 +116,6 @@ function FuelPriceTrendsCard() {
             Forecast
           </span>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col px-2 pb-4 sm:px-6">
         <ChartContainer config={fuelPriceChartConfig} className="min-h-0 flex-1 w-full aspect-[2/1] @sm:aspect-[3/1] @lg:aspect-[4/1]">
           <AreaChart data={filtered} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
             <defs>
@@ -363,7 +361,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
-            <div className="text-xl font-bold tabular-nums">
+            <div className="text-2xl font-bold tabular-nums">
               {kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
@@ -389,7 +387,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Avg Cost / Gallon</CardTitle>
-            <div className="text-xl font-bold tabular-nums">
+            <div className="text-2xl font-bold tabular-nums">
               ${kpis.avgCostAll.toFixed(3)}
             </div>
           </CardHeader>
@@ -413,7 +411,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Avg Savings / Gallon</CardTitle>
-            <div className="text-xl font-bold tabular-nums">
+            <div className="text-2xl font-bold tabular-nums">
               ${kpis.avgSavingsAll.toFixed(3)}
             </div>
           </CardHeader>
@@ -437,7 +435,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
-            <div className="text-xl font-bold tabular-nums text-green-600 dark:text-green-500">
+            <div className="text-2xl font-bold tabular-nums text-green-600 dark:text-green-500">
               ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
@@ -463,7 +461,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
-            <div className="text-xl font-bold tabular-nums">
+            <div className="text-2xl font-bold tabular-nums">
               ${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
@@ -486,16 +484,16 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Main grid */}
-      <div className="grid gap-4 px-4 md:grid-cols-2 lg:px-6">
+      {/* Main grid: 2 cols from md up so two cards sit side-by-side on larger screens */}
+      <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:px-6">
         {/* Gallons by chain */}
-        <Card className="md:col-span-2">
+        <Card className="flex min-h-0 min-w-0 flex-col">
           <CardHeader>
             <CardTitle>Gallons by Chain</CardTitle>
             <CardDescription>Total gallons purchased per station brand</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <CardContent className="min-h-0 flex-1">
+            <div className="flex min-h-0 flex-col gap-6 sm:flex-row sm:items-center">
               <ChartContainer
                 config={chainChartData.config}
                 className="mx-auto aspect-square h-[220px] shrink-0"
@@ -569,6 +567,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Fuel price trends */}
+        <FuelPriceTrendsCard />
+
         {/* Transactions that need attention */}
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between gap-2">
@@ -600,9 +601,6 @@ export default function DashboardPage() {
             />
           </CardContent>
         </Card>
-
-        {/* Fuel price trends */}
-        <FuelPriceTrendsCard />
       </div>
     </div>
   )

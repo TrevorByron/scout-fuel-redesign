@@ -244,6 +244,10 @@ export function DriverInsightsMap({
         center={[centerLng, centerLat]}
         zoom={6}
         popupPortalToBody
+        styles={{
+          light: "https://tiles.openfreemap.org/styles/bright",
+          dark: "https://tiles.openfreemap.org/styles/bright",
+        }}
       >
         <FitBounds transactions={transactions} />
         <MapControls showCompass showZoom position="top-right" />

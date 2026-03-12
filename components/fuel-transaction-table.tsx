@@ -111,7 +111,15 @@ export function BetterOptionDetails({
     <div className="flex flex-col min-w-[380px] text-xs">
       <div className="relative h-[240px] w-full overflow-hidden rounded-t-md border-b border-border">
         {mounted ? (
-          <Map className="h-full w-full" center={[midLng, midLat]} zoom={10}>
+          <Map
+            className="h-full w-full"
+            center={[midLng, midLat]}
+            zoom={10}
+            styles={{
+              light: "https://tiles.openfreemap.org/styles/bright",
+              dark: "https://tiles.openfreemap.org/styles/bright",
+            }}
+          >
             <FitTwoPoints
               lat1={transaction.lat}
               lng1={transaction.lng}

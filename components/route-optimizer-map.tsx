@@ -124,6 +124,10 @@ export function RouteOptimizerMap({
         className="h-full w-full rounded-none"
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
+        styles={{
+          light: "https://tiles.openfreemap.org/styles/bright",
+          dark: "https://tiles.openfreemap.org/styles/bright",
+        }}
       >
         {originCoords && !destinationCoords && (
           <FitSinglePoint coords={originCoords} />

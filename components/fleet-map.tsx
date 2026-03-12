@@ -81,6 +81,10 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
         className="h-full w-full rounded-lg"
         center={[centerLng, centerLat]}
         zoom={5}
+        styles={{
+          light: "https://tiles.openfreemap.org/styles/bright",
+          dark: "https://tiles.openfreemap.org/styles/bright",
+        }}
       >
         <FitBounds trucks={trucks} />
         {trucks.map((truck) => (
