@@ -108,10 +108,6 @@ export function BetterOptionDetails({
             className="h-full w-full"
             center={[midLng, midLat]}
             zoom={10}
-            styles={{
-              light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-              dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-            }}
           >
             <FitTwoPoints
               lat1={transaction.lat}

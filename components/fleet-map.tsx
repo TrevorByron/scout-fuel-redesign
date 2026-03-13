@@ -81,10 +81,6 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
         className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
         zoom={5}
-        styles={{
-          light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-          dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-        }}
       >
         <FitBounds trucks={trucks} />
         {trucks.map((truck) => (

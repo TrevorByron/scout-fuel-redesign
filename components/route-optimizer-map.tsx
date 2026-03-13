@@ -124,10 +124,6 @@ export function RouteOptimizerMap({
         className="h-full w-full min-h-[160px] rounded-none"
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
-        styles={{
-          light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-          dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-        }}
       >
         {originCoords && !destinationCoords && (
           <FitSinglePoint coords={originCoords} />

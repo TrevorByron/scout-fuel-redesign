@@ -244,10 +244,6 @@ export function DriverInsightsMap({
         center={[centerLng, centerLat]}
         zoom={6}
         popupPortalToBody
-        styles={{
-          light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-          dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-        }}
       >
         <FitBounds transactions={transactions} />
         <MapControls showCompass showZoom position="top-right" />
