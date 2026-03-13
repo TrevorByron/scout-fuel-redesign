@@ -113,7 +113,7 @@ html[data-style="4"] [data-slot="sidebar-inset"] {
 }
 
 html[data-style="4"].dark [data-slot="sidebar-inset"] {
-  background: rgba(6, 29, 38,0.3) !important; background: 
+  background: rgba(6, 29, 38, 0.3) !important;
   backdrop-filter: blur(10px);
 }
 
