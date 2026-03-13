@@ -578,6 +578,19 @@ export const alertsList: AlertItem[] = [
   },
 ]
 
+/** Mock data for FleetScoreCard: week label, target, and 3-month compliance trend. */
+export const fleetScoreCardMock = {
+  weekDate: "Oct 21",
+  previousGrade: "C",
+  targetGrade: "B+",
+  targetDate: "Nov 1",
+  trendData: [
+    { month: "Aug", value: 58 },
+    { month: "Sep", value: 62 },
+    { month: "Oct", value: 67 },
+  ] as { month: string; value: number }[],
+}
+
 export const driverDetails: Record<string, DriverDetail> = {
   D001: {
     driverId: "D001",

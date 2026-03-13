@@ -5,11 +5,13 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { type DateRange } from "react-day-picker"
 import {
-  dashboardKpis,
+  fleetScoreCardMock,
   fuelTransactions,
   fuelPriceHistory,
   type FuelPricePoint,
 } from "@/lib/mock-data"
+import { getFleetGrade } from "@/lib/fuelScore"
+import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 
@@ -32,7 +34,8 @@ import {
 import { AreaChart, Area, XAxis, CartesianGrid, PieChart, Pie, Label, ReferenceLine } from "recharts"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Calendar01Icon } from "@hugeicons/core-free-icons"
+import { Calendar01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { Badge } from "@/components/ui/badge"
 
 const fuelPriceChartConfig = {
   price: {
@@ -319,6 +322,74 @@ export default function DashboardPage() {
     }
   }, [])
 
+  const fleetScoreProps = React.useMemo(() => {
+    const total = fuelTransactions.length
+    // Example/demo: use C+ range (67%) so cards show a realistic mid-tier score
+    const complianceRate = 67
+    const fullGrade = getFleetGrade(complianceRate)
+    const gradeMatch = fullGrade.match(/^([A-F])([+-])?$/)
+    const grade = gradeMatch ? gradeMatch[1] : "F"
+    const gradeSuffix = gradeMatch?.[2]
+
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const computedMissedSavings = Math.round(
+      fuelTransactions
+        .filter(
+          (t) =>
+            !t.inNetwork &&
+            t.betterOption &&
+            new Date(t.dateTime).getTime() >= sevenDaysAgo.getTime()
+        )
+        .reduce((sum, t) => sum + (t.betterOption?.potentialSavings ?? 0), 0)
+    )
+    // When transaction-based value is 0 or low, use an estimate so at ~30% compliance we show ~$4,543 missed
+    const missedSavings =
+      computedMissedSavings > 0
+        ? computedMissedSavings
+        : Math.round((4543 * (100 - complianceRate)) / 70)
+
+    // Trend: this week's missed savings vs same window last month (e.g. 30–37 days ago)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtySevenDaysAgo = new Date()
+    thirtySevenDaysAgo.setDate(thirtySevenDaysAgo.getDate() - 37)
+    const lastMonthMissedSavings = Math.round(
+      fuelTransactions
+        .filter((t) => {
+          if (!t.inNetwork && t.betterOption) {
+            const tTime = new Date(t.dateTime).getTime()
+            return tTime >= thirtySevenDaysAgo.getTime() && tTime < thirtyDaysAgo.getTime()
+          }
+          return false
+        })
+        .reduce((sum, t) => sum + (t.betterOption?.potentialSavings ?? 0), 0)
+    )
+    const missedSavingsTrendFromLastMonth =
+      lastMonthMissedSavings > 0
+        ? missedSavings - lastMonthMissedSavings
+        : Math.round(missedSavings * -0.12)
+
+    const trendData = [...fleetScoreCardMock.trendData]
+    if (trendData.length > 0) trendData[trendData.length - 1] = { ...trendData[trendData.length - 1]!, value: complianceRate }
+
+    return {
+      grade,
+      gradeSuffix,
+      weekDate: fleetScoreCardMock.weekDate,
+      complianceRate,
+      totalTransactions: total,
+      previousGrade: fleetScoreCardMock.previousGrade,
+      targetGrade: fleetScoreCardMock.targetGrade,
+      targetDate: fleetScoreCardMock.targetDate,
+      missedSavings,
+      missedSavingsTrendFromLastMonth,
+      targetCompliancePercent: 80,
+      additionalSavingsAtTarget: 8200,
+      trendData,
+    }
+  }, [])
+
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       {/* Greeting + date range filter — eventually tie to actual user name */}
@@ -361,6 +432,59 @@ export default function DashboardPage() {
             />
           </PopoverContent>
         </Popover>
+      </div>
+
+      {/* Optimization gauge + Money on the table */}
+      <div className="grid grid-cols-1 gap-3 px-4 md:grid-cols-2 lg:px-6">
+        <OptimizationGaugeCard
+          size="sm"
+          value={fleetScoreProps.complianceRate}
+          trendFromLastMonth={
+            fleetScoreProps.trendData.length >= 2
+              ? Math.round(
+                  (fleetScoreProps.trendData[fleetScoreProps.trendData.length - 1]!.value -
+                    fleetScoreProps.trendData[fleetScoreProps.trendData.length - 2]!.value) *
+                    10
+                ) / 10
+              : undefined
+          }
+        />
+        <Card size="sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-base">Overpaid on fuel</CardTitle>
+            <CardAction>
+              <Badge variant="outline" className="gap-1.5 font-medium tabular-nums">
+                {fleetScoreProps.missedSavingsTrendFromLastMonth === 0
+                  ? "No change from last month"
+                  : `${fleetScoreProps.missedSavingsTrendFromLastMonth > 0 ? "+" : "-"}$${Math.abs(fleetScoreProps.missedSavingsTrendFromLastMonth).toLocaleString("en-US", { maximumFractionDigits: 0 })} from last month`}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col justify-center gap-2">
+            {fleetScoreProps.missedSavings > 0 ? (
+              <>
+                <p
+                  className={
+                    fleetScoreProps.complianceRate >= 90
+                      ? "text-center text-3xl font-semibold tabular-nums text-green-600 dark:text-green-500"
+                      : fleetScoreProps.complianceRate >= 50
+                        ? "text-center text-3xl font-semibold tabular-nums text-yellow-600 dark:text-yellow-500"
+                        : "text-center text-3xl font-semibold tabular-nums text-red-600 dark:text-red-500"
+                  }
+                >
+                  ${fleetScoreProps.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                No missed savings this week from non-compliant fill-ups.
+              </p>
+            )}
+            <p className="text-center text-sm font-normal text-muted-foreground">
+              Across 14 fill-ups from 6 drivers
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* KPI row */}
@@ -578,18 +702,28 @@ export default function DashboardPage() {
         {/* Fuel price trends */}
         <FuelPriceTrendsCard />
 
-        {/* Transactions that need attention */}
+        {/* Transactions that need attention — actionable with count */}
         <Card className="col-span-full @[66rem]/main:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between gap-2">
             <div>
-              <CardTitle>Transactions that need attention</CardTitle>
-              <CardDescription>Review recent out-of-network transactions</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                Transactions that need attention
+                {recentTxns.length > 0 && (
+                  <Badge variant="secondary" className="font-normal tabular-nums">
+                    {recentTxns.length} to review
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Review recent out-of-network transactions and approve or flag issues.
+              </CardDescription>
             </div>
             <Link
               href="/transactions"
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
+              className={buttonVariants({ variant: "default", size: "sm", className: "gap-1.5" })}
             >
-              See all transactions
+              Review all
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
             </Link>
           </CardHeader>
           <CardContent>
