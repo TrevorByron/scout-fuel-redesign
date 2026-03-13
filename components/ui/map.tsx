@@ -245,7 +245,11 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
         }
       }, 100);
     };
-    const loadHandler = () => setIsLoaded(true);
+    const loadHandler = () => {
+      setIsLoaded(true);
+      // Ensure canvas size matches container (e.g. when container got dimensions after mount)
+      requestAnimationFrame(() => map.resize());
+    };
 
     // Viewport change handler - skip if triggered by internal update
     const handleMove = () => {
@@ -253,9 +257,15 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       onViewportChangeRef.current?.(getViewport(map));
     };
 
+    const errorHandler = (e: { error?: Error }) => {
+      console.warn("[Map] style/load error:", e?.error ?? e);
+    };
+
     map.on("load", loadHandler);
     map.on("styledata", styleDataHandler);
     map.on("move", handleMove);
+    map.on("error", errorHandler);
+    map.on("style.error", errorHandler);
     setMapInstance(map);
 
     return () => {
@@ -263,6 +273,8 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       map.off("load", loadHandler);
       map.off("styledata", styleDataHandler);
       map.off("move", handleMove);
+      map.off("error", errorHandler);
+      map.off("style.error", errorHandler);
       map.remove();
       setIsLoaded(false);
       setIsStyleLoaded(false);

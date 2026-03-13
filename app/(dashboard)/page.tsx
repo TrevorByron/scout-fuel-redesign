@@ -369,7 +369,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
-            <div className="text-2xl font-bold tabular-nums">
+            <div className="text-3xl font-bold tabular-nums">
               {kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
@@ -395,7 +395,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Avg Cost / Gallon</CardTitle>
-            <div className="text-2xl font-bold tabular-nums">
+            <div className="text-3xl font-bold tabular-nums">
               ${kpis.avgCostAll.toFixed(3)}
             </div>
           </CardHeader>
@@ -419,7 +419,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Avg Savings / Gallon</CardTitle>
-            <div className="text-2xl font-bold tabular-nums">
+            <div className="text-3xl font-bold tabular-nums">
               ${kpis.avgSavingsAll.toFixed(3)}
             </div>
           </CardHeader>
@@ -443,7 +443,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
-            <div className="text-2xl font-bold tabular-nums text-green-600 dark:text-green-500">
+            <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
               ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>
@@ -469,7 +469,7 @@ export default function DashboardPage() {
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
-            <div className="text-2xl font-bold tabular-nums">
+            <div className="text-3xl font-bold tabular-nums">
               ${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </div>
           </CardHeader>

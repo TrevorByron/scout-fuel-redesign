@@ -301,18 +301,32 @@ function RouteOptimizerPageContent() {
 
   return (
     <div
-      className="relative flex flex-col-reverse flex-1 min-h-0 gap-0 overflow-y-auto p-0 md:overflow-visible md:flex-row"
+      className="relative flex flex-col flex-1 min-h-0 gap-0 overflow-y-auto p-0 md:overflow-visible md:flex-row"
       style={{
         height: "100%",
         maxHeight: "calc(100dvh - var(--header-height, 3rem))",
       }}
     >
-      {/* Left panel: form 1/3 */}
+      {/* Map: on mobile, scrolls with form; on desktop, right column */}
+      <div className="flex h-[26vh] min-h-[160px] shrink-0 flex-col pl-0 md:order-2 md:h-auto md:min-h-0 md:flex-1 md:pl-0">
+        <div className="h-full min-h-0 w-full">
+          <RouteOptimizerMapDynamic
+            originCoords={originCoords}
+            destinationCoords={destinationCoords}
+            routeCoordinates={routeCoordinates}
+            routeLoading={routeLoading}
+            showOptimizingOverlay={isOptimizing}
+            fuelStopCoords={fuelStopCoords}
+          />
+        </div>
+      </div>
+
+      {/* Left panel: form 1/3; on mobile, scrolls with map */}
       <aside
-        className="flex min-h-0 w-full min-w-0 flex-1 flex-col border-r-0 border-border bg-background md:max-w-md md:w-1/3 md:flex-shrink-0 md:border-r"
+        className="flex min-h-0 w-full min-w-0 flex-1 flex-col border-r-0 border-border md:order-1 md:max-w-md md:w-1/3 md:flex-shrink-0 md:border-r"
         aria-label="Route details"
       >
-        <div className="flex flex-col gap-4 overflow-y-auto p-4">
+        <div className="flex flex-col gap-4 p-4 md:min-h-0 md:overflow-y-auto">
           {calculated ? (
             <div className="space-y-4">
               <Button
@@ -385,7 +399,7 @@ function RouteOptimizerPageContent() {
             </div>
           ) : (
           <FieldGroup className="gap-4">
-            <h2 className="text-lg font-semibold">Optimize fuel purchases</h2>
+            <h2 className="hidden text-lg font-semibold md:block">Optimize fuel purchases</h2>
             <p className="text-xs font-medium text-muted-foreground">
               Trip location information
             </p>
@@ -650,20 +664,6 @@ function RouteOptimizerPageContent() {
           )}
         </div>
       </aside>
-
-      {/* Right panel: map ~3/4 (on mobile: on top, fixed height) */}
-      <div className="flex h-[26vh] min-h-[160px] shrink-0 flex-col pl-0 md:h-auto md:min-h-0 md:flex-1 md:pl-0">
-        <div className="h-full min-h-0 w-full">
-          <RouteOptimizerMapDynamic
-            originCoords={originCoords}
-            destinationCoords={destinationCoords}
-            routeCoordinates={routeCoordinates}
-            routeLoading={routeLoading}
-            showOptimizingOverlay={isOptimizing}
-            fuelStopCoords={fuelStopCoords}
-          />
-        </div>
-      </div>
     </div>
   )
 }

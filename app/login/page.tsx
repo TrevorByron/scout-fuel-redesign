@@ -22,7 +22,7 @@ export default function LoginPage() {
       <div className="flex flex-col gap-6 p-4 sm:p-6 md:p-8">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="#" className="flex items-center gap-2 font-medium">
-            {style === "2" ? (
+            {style === "2" || style === "4" ? (
               <Image
                 src="/full-logo.svg"
                 alt="Scout Fuel"

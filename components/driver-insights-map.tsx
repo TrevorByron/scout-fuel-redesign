@@ -240,12 +240,12 @@ export function DriverInsightsMap({
   return (
     <div className="h-full min-h-0 w-full rounded-lg border border-border">
       <Map
-        className="h-full w-full rounded-lg"
+        className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
         zoom={6}
         popupPortalToBody
         styles={{
-          light: "https://tiles.openfreemap.org/styles/bright",
+          light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
           dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
         }}
       >

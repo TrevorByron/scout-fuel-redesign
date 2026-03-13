@@ -1,0 +1,364 @@
+/* Style 4 – Same as Style 2 (blue/cyan palette). Swatch used by the style switcher. */
+:root {
+  --swatch-4: oklch(0.6810 0.1370 232.9);
+}
+
+html[data-style="4"] {
+  --background: oklch(1.0000 0 0);
+  --foreground: oklch(0.22 0.02 233);
+  --card: oklch(1.0000 0 0);
+  --card-foreground: oklch(0.22 0.02 233);
+  --popover: oklch(1.0000 0 0);
+  --popover-foreground: oklch(0.22 0.02 233);
+  --primary: oklch(0.6810 0.1370 232.9);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.92 0.02 233);
+  --secondary-foreground: oklch(0.22 0.02 233);
+  --muted: oklch(0.9650 0.0080 233);
+  --muted-foreground: oklch(0.45 0.03 233);
+  --accent: oklch(0.94 0.025 210);
+  --accent-foreground: oklch(0.22 0.02 233);
+  --destructive: oklch(0.5770 0.2450 27.3250);
+  --destructive-foreground: oklch(1.0000 0 0);
+  --border: oklch(0.88 0.018 233);
+  --input: oklch(0.92 0.012 233);
+  --ring: oklch(0.6810 0.1370 232.9);
+  --chart-1: oklch(0.6810 0.1370 232.9);
+  --chart-2: oklch(0.76 0.115 196.5);
+  --chart-3: oklch(0.79 0.092 176.4);
+  --chart-4: oklch(0.86 0.128 155.8);
+  --chart-5: oklch(0.89 0.158 125.2);
+  --sidebar: oklch(1.0000 0 0);
+  --sidebar-foreground: oklch(0.22 0.02 233);
+  --sidebar-primary: oklch(1.0000 0 0);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.50 0.06 210);
+  --sidebar-accent-foreground: oklch(0.9851 0 0);
+  --sidebar-border: oklch(0.88 0.018 233);
+  --sidebar-ring: oklch(0.6810 0.1370 232.9);
+  --success: oklch(0.4532 0.1101 122.1507);
+  --warning: oklch(0.75 0.15 85);
+  --font-sans: var(--font-nunito), ui-sans-serif, sans-serif, system-ui;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: Intel One Mono, ui-monospace, monospace;
+  --radius: .8rem;
+  --shadow-x: 0.5px;
+  --shadow-y: 1px;
+  --shadow-blur: 8px;
+  --shadow-spread: -1.5px;
+  --shadow-opacity: 0.14;
+  --shadow-color: #1a5f7a;
+  --shadow-2xs: 0.5px 1px 8px -1.5px hsla(198, 65%, 28%, 0.07);
+  --shadow-xs: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.07);
+  --shadow-sm: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 1px 2px -2.5px hsl(198 65% 28% / 0.14);
+  --shadow: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 1px 2px -2.5px hsl(198 65% 28% / 0.14);
+  --shadow-md: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 2px 4px -2.5px hsl(198 65% 28% / 0.14);
+  --shadow-lg: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 4px 6px -2.5px hsl(198 65% 28% / 0.14);
+  --shadow-xl: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.14), 0.5px 8px 10px -2.5px hsl(198 65% 28% / 0.14);
+  --shadow-2xl: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.35);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+/* Style 4: sidebar wrapper (inset variant) – Framer-style gradient blobs using theme colors */
+html[data-style="4"] [data-slot="sidebar-wrapper"]:has([data-variant="inset"]) {
+  position: relative;
+  background-color: oklch(0.98 0.005 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 18%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 22%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 16%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 14%, transparent) 0%, transparent 55%);
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  isolation: isolate;
+}
+
+/* Dark mode: same blob gradient with dark base */
+html[data-style="4"].dark [data-slot="sidebar-wrapper"]:has([data-variant="inset"]) {
+  background-color: oklch(0.14 0.02 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 25%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 28%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 22%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 20%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 18%, transparent) 0%, transparent 55%);
+}
+
+/* Style 4: no solid bg on sidebar panel so wrapper gradient shows through */
+html[data-style="4"] [data-slot="sidebar-inner"] {
+  background: transparent;
+}
+
+/* Style 4: selected sidebar menu item – white bg, primary blue text */
+html[data-style="4"] [data-slot="sidebar-menu-button"][data-active],
+html[data-style="4"] [data-sidebar="menu-button"][data-active] {
+  background: white;
+  color: var(--primary);
+}
+
+/* Style 4: sidebar menu item hover – white 30% opacity, keep default text color */
+html[data-style="4"] [data-slot="sidebar-menu-button"]:hover:not([data-active]),
+html[data-style="4"] [data-sidebar="menu-button"]:hover:not([data-active]) {
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--sidebar-foreground);
+}
+
+/* Style 4: main content area – 30% white (light) / 30% black (dark) + backdrop blur */
+html[data-style="4"] [data-slot="sidebar-inset"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+html[data-style="4"].dark [data-slot="sidebar-inset"] {
+  background: rgba(6, 29, 38,0.3) !important; background: 
+  backdrop-filter: blur(10px);
+}
+
+/* Style 4: glass cards */
+html[data-style="4"] [data-slot="card"] {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 8px 32px rgba(6, 29, 38, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 60px 30px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: clip;
+}
+
+html[data-style="4"] [data-slot="card"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  pointer-events: none;
+}
+
+html[data-style="4"] [data-slot="card"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+  pointer-events: none;
+}
+
+/* Style 4: glass cards – dark mode (inverted) */
+html[data-style="4"].dark [data-slot="card"] {
+  background: rgba(6, 29, 38, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 8px 32px rgba(6, 29, 38, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 60px 30px rgba(6, 29, 38, 0.1);
+}
+
+html[data-style="4"].dark [data-slot="card"]::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+}
+
+html[data-style="4"].dark [data-slot="card"]::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25),
+    transparent,
+    rgba(255, 255, 255, 0.08)
+  );
+}
+
+/* Style 4: accordion – same glass treatment as cards */
+html[data-style="4"] [data-slot="accordion"] {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 60px 30px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-style="4"] [data-slot="accordion"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  pointer-events: none;
+}
+
+html[data-style="4"] [data-slot="accordion"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+  pointer-events: none;
+}
+
+html[data-style="4"] [data-slot="accordion-item"] {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+html[data-style="4"].dark [data-slot="accordion"] {
+  background: rgba(6, 29, 38, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 8px 32px rgba(6, 29, 38, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 60px 30px rgba(6, 29, 38, 0.1);
+}
+
+html[data-style="4"].dark [data-slot="accordion"]::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+}
+
+html[data-style="4"].dark [data-slot="accordion"]::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25),
+    transparent,
+    rgba(255, 255, 255, 0.08)
+  );
+}
+
+html[data-style="4"].dark [data-slot="accordion-item"] {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Style 4: same chunky form controls as Style 1 (min-height 40px) */
+html[data-style="4"] [data-slot="button"] {
+  min-height: 40px;
+}
+
+html[data-style="4"] [data-slot="input"] {
+  min-height: 40px;
+}
+
+html[data-style="4"] [data-slot="select-trigger"] {
+  min-height: 40px;
+}
+
+html[data-style="4"] [data-slot="input-group"] {
+  min-height: 40px;
+}
+
+html[data-style="4"] [data-slot="textarea"] {
+  min-height: 40px;
+}
+
+html[data-style="4"] [data-slot="popover-trigger"] {
+  min-height: 40px;
+}
+
+/* Sheet footer primary action (Apply filters) — same height as buttons */
+html[data-style="4"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+  min-height: 40px;
+}
+
+html[data-style="4"].dark {
+  --background: oklch(0.14 0.02 233);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.18 0.02 233);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.20 0.02 233);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.72 0.12 232.9);
+  --primary-foreground: oklch(0.14 0 0);
+  --secondary: oklch(0.28 0.02 233);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.28 0.02 233);
+  --muted-foreground: oklch(0.70 0 0);
+  --accent: oklch(0.38 0.05 210);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.6459 0.1661 14.8585);
+  --destructive-foreground: oklch(0.9851 0 0);
+  --border: oklch(0.32 0.02 233);
+  --input: oklch(0.22 0.02 233);
+  --ring: oklch(0.72 0.12 232.9);
+  --chart-1: oklch(0.72 0.12 232.9);
+  --chart-2: oklch(0.76 0.115 196.5);
+  --chart-3: oklch(0.79 0.092 176.4);
+  --chart-4: oklch(0.86 0.128 155.8);
+  --chart-5: oklch(0.89 0.158 125.2);
+  --sidebar: oklch(0.18 0.02 233);
+  --sidebar-foreground: oklch(0.9851 0 0);
+  --sidebar-primary: oklch(0.72 0.12 232.9);
+  --sidebar-primary-foreground: oklch(0.14 0 0);
+  --sidebar-accent: oklch(0.28 0.02 233);
+  --sidebar-accent-foreground: oklch(0.9851 0 0);
+  --sidebar-border: oklch(0.32 0.02 233);
+  --sidebar-ring: oklch(0.72 0.12 232.9);
+  --success: oklch(0.5512 0.1351 142.4953);
+  --warning: oklch(0.75 0.15 85);
+  --font-sans: var(--font-nunito), ui-sans-serif, sans-serif, system-ui;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: Intel One Mono, ui-monospace, monospace;
+  --radius: 1rem;
+  --shadow-x: 0.5px;
+  --shadow-y: 1px;
+  --shadow-blur: 8px;
+  --shadow-spread: -1.5px;
+  --shadow-opacity: 0.14;
+  --shadow-color: #000000;
+  --shadow-2xs: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.07);
+  --shadow-xs: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.07);
+  --shadow-sm: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 1px 2px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 1px 2px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-md: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 2px 4px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-lg: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 4px 6px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 8px 10px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-2xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.35);
+}

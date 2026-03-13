@@ -27,9 +27,9 @@ Change any variable (e.g. `--primary`, `--radius`, `--font-sans`) in the block f
 
 ## Adding or renaming templates
 
-To add a fourth style or rename “Style 1/2/3”:
+To add another style or rename “Style 1/2/3”:
 
-1. Add a new file (e.g. `style-4.css`) with the same structure: `:root { --swatch-4: ... }`, `html[data-style="4"] { ... }`, `html[data-style="4"].dark { ... }`.
+1. Add a new file (e.g. `style-N.css`) with the same structure: `:root { --swatch-N: ... }`, `html[data-style="N"] { ... }`, `html[data-style="N"].dark { ... }`.
 2. Import it in `app/globals.css`.
-3. Update `components/style-provider.tsx` so `StyleId` and the storage logic allow `"4"`.
-4. Update `components/style-switcher.tsx` to add a fourth button and use `var(--swatch-4)` for its swatch.
+3. Update `components/style-provider.tsx` so `StyleId` and the storage logic allow the new id (e.g. `"4"`).
+4. Update `components/style-switcher.tsx` to add a new button and use `var(--swatch-N)` for its swatch.

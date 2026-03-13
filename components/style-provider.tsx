@@ -10,7 +10,7 @@ import {
 
 const STORAGE_KEY = "style-template";
 
-export type StyleId = "1" | "2" | "3";
+export type StyleId = "1" | "2" | "3" | "4";
 
 type StyleContextValue = {
   style: StyleId;
@@ -22,7 +22,7 @@ const StyleContext = createContext<StyleContextValue | null>(null);
 function readStoredStyle(): StyleId {
   if (typeof window === "undefined") return "1";
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "1" || stored === "2" || stored === "3") return stored;
+  if (stored === "1" || stored === "2" || stored === "3" || stored === "4") return stored;
   return "1";
 }
 

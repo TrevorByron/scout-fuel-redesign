@@ -121,11 +121,11 @@ export function RouteOptimizerMap({
       aria-label="Route map"
     >
       <Map
-        className="h-full w-full rounded-none"
+        className="h-full w-full min-h-[160px] rounded-none"
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
         styles={{
-          light: "https://tiles.openfreemap.org/styles/bright",
+          light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
           dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
         }}
       >

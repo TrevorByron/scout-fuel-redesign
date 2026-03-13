@@ -1,7 +1,7 @@
 // For adding custom fonts with other frameworks, see:
 // https://tailwindcss.com/docs/font-family
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono, Nunito } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -19,6 +19,11 @@ const fontGeistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
+const fontNunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+});
+
 export const metadata: Metadata = {
   title: "FuelCommand",
   description: "Fleet fuel management dashboard",
@@ -31,10 +36,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fontSans.variable} ${fontGeistMono.variable} font-sans antialiased`}>
+      <body className={`${fontSans.variable} ${fontGeistMono.variable} ${fontNunito.variable} font-sans antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem("style-template");if(s==="1"||s==="2"||s==="3")document.documentElement.setAttribute("data-style",s);})();`,
+            __html: `(function(){var s=localStorage.getItem("style-template");if(s==="1"||s==="2"||s==="3"||s==="4")document.documentElement.setAttribute("data-style",s);})();`,
           }}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
