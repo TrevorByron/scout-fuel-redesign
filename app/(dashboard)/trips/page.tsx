@@ -126,10 +126,11 @@ export default function TripsPage() {
                       type="button"
                       data-slot="card"
                       onClick={() => setSelectedId(trip.id)}
+                      aria-pressed={isSelected}
                       className={cn(
                         "w-full text-left rounded-lg border p-3 transition-colors flex items-center gap-3 bg-card text-card-foreground shadow-sm",
                         isSelected
-                          ? "border-primary ring-1 ring-primary/20"
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/30 shadow-sm"
                           : "border-border hover:bg-muted/50"
                       )}
                     >
@@ -171,7 +172,7 @@ export default function TripsPage() {
           (() => {
             const detailStatus = getTripStatus(selectedTrip);
             return (
-          <div className="space-y-6 max-w-2xl">
+          <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold truncate">
                 {selectedTrip.name ?? `${selectedTrip.origin} → ${selectedTrip.destination}`}

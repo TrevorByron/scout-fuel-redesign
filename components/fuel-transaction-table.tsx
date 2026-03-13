@@ -109,7 +109,7 @@ export function BetterOptionDetails({
             center={[midLng, midLat]}
             zoom={10}
             styles={{
-              light: "https://tiles.openfreemap.org/styles/bright",
+              light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
               dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
             }}
           >
