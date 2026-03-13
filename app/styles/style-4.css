@@ -57,8 +57,8 @@ html[data-style="4"] {
   --spacing: 0.25rem;
 }
 
-/* Style 4: sidebar wrapper (inset variant) – Framer-style gradient blobs using theme colors */
-html[data-style="4"] [data-slot="sidebar-wrapper"]:has([data-variant="inset"]) {
+/* Style 4: sidebar wrapper – Framer-style gradient blobs (desktop + mobile) */
+html[data-style="4"] [data-slot="sidebar-wrapper"] {
   position: relative;
   background-color: oklch(0.98 0.005 233);
   background-image:
@@ -74,7 +74,7 @@ html[data-style="4"] [data-slot="sidebar-wrapper"]:has([data-variant="inset"]) {
 }
 
 /* Dark mode: same blob gradient with dark base */
-html[data-style="4"].dark [data-slot="sidebar-wrapper"]:has([data-variant="inset"]) {
+html[data-style="4"].dark [data-slot="sidebar-wrapper"] {
   background-color: oklch(0.14 0.02 233);
   background-image:
     radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 25%, transparent) 0%, transparent 60%),
