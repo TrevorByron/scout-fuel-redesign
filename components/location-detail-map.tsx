@@ -10,6 +10,10 @@ import {
   MapControls,
   useMap,
 } from "@/components/ui/map"
+import {
+  ActualVsOptimizedCard,
+  type LocationComparison,
+} from "@/components/actual-vs-optimized-card"
 
 export type RepresentativeBetterOption = {
   stationName: string
@@ -17,6 +21,8 @@ export type RepresentativeBetterOption = {
   lat: number
   lng: number
 }
+
+export type { LocationComparison }
 
 type LocationDetailMapProps = {
   /** This location's display name (chain + city). */
@@ -28,6 +34,8 @@ type LocationDetailMapProps = {
   avgMissedSavingsPerBadStop: number
   /** Most frequent better option from transactions, or null. */
   representativeBetterOption: RepresentativeBetterOption | null
+  /** Representative actual vs optimized comparison for the overlay, or null. */
+  comparison?: LocationComparison | null
 }
 
 function FitBounds({
@@ -71,6 +79,7 @@ export function LocationDetailMap({
   locationLng,
   avgMissedSavingsPerBadStop,
   representativeBetterOption,
+  comparison,
 }: LocationDetailMapProps) {
   const [mounted, setMounted] = React.useState(false)
   const [routeCoords, setRouteCoords] = React.useState<[number, number][] | null>(
@@ -143,7 +152,7 @@ export function LocationDetailMap({
       : `${locationDisplayName}`
 
   return (
-    <div className="h-full min-h-0 w-full rounded-lg border border-border">
+    <div className="relative h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
@@ -195,6 +204,13 @@ export function LocationDetailMap({
           </MapMarker>
         )}
       </Map>
+      {comparison && (
+        <ActualVsOptimizedCard
+          variant="comparison"
+          comparison={comparison}
+          position="bottom"
+        />
+      )}
     </div>
   )
 }

@@ -1,16 +1,21 @@
 "use client"
 
 import * as React from "react"
-import { createPortal } from "react-dom"
 import {
   Map,
   MapClusterLayer,
   MapControls,
+  MapMarker,
+  MarkerContent,
+  MarkerLabel,
+  MapRoute,
   useMap,
 } from "@/components/ui/map"
 import type { FuelTransaction } from "@/lib/mock-data"
-import { BetterOptionDetails } from "@/components/fuel-transaction-table"
-import { X } from "lucide-react"
+import {
+  ActualVsOptimizedCard,
+  transactionToComparison,
+} from "@/components/actual-vs-optimized-card"
 import { cn } from "@/lib/utils"
 
 function getWaste(t: FuelTransaction): number {
@@ -41,7 +46,7 @@ function transactionsToGeoJSON(transactions: FuelTransaction[]) {
   }
 }
 
-function FitBounds({ transactions }: { transactions: FuelTransaction[] }) {
+function FitBoundsAll({ transactions }: { transactions: FuelTransaction[] }) {
   const { map, isLoaded } = useMap()
 
   React.useEffect(() => {
@@ -70,105 +75,61 @@ function FitBounds({ transactions }: { transactions: FuelTransaction[] }) {
   return null
 }
 
-/** Renders popup content in a portal when a clustered point is clicked. Must be used inside Map. */
-function ClusterPointPopup({
+function FitBoundsFocused({
   transaction,
-  onClose,
 }: {
-  transaction: FuelTransaction | null
-  onClose: () => void
+  transaction: FuelTransaction
 }) {
   const { map, isLoaded } = useMap()
-  const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null)
-  const offset = 16
-
-  const updatePosition = React.useCallback(() => {
-    if (!map || !transaction) return
-    const point = map.project([transaction.lng, transaction.lat])
-    const rect = map.getContainer().getBoundingClientRect()
-    setPosition({
-      x: rect.left + point.x,
-      y: rect.top + point.y + offset,
-    })
-  }, [map, transaction])
 
   React.useEffect(() => {
-    if (!isLoaded || !map || !transaction) {
-      setPosition(null)
-      return
+    if (!isLoaded || !map) return
+
+    const opt = transaction.betterOption
+    const lngs = opt ? [transaction.lng, opt.lng] : [transaction.lng]
+    const lats = opt ? [transaction.lat, opt.lat] : [transaction.lat]
+    const minLng = Math.min(...lngs)
+    const maxLng = Math.max(...lngs)
+    const minLat = Math.min(...lats)
+    const maxLat = Math.max(...lats)
+
+    map.fitBounds(
+      [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ],
+      { padding: 80, maxZoom: 12 }
+    )
+  }, [map, isLoaded, transaction])
+
+  return null
+}
+
+/** When focused, clicking the map background (no feature under cursor) clears selection. */
+function MapClickDeselect({
+  isFocused,
+  onDeselect,
+}: {
+  isFocused: boolean
+  onDeselect: () => void
+}) {
+  const { map, isLoaded } = useMap()
+
+  React.useEffect(() => {
+    if (!isLoaded || !map || !isFocused) return
+
+    const handleClick = (e: { point: { x: number; y: number } }) => {
+      const features = map.queryRenderedFeatures(e.point)
+      if (features.length === 0) onDeselect()
     }
-    updatePosition()
-    map.on("move", updatePosition)
-    map.on("moveend", updatePosition)
-    window.addEventListener("scroll", updatePosition, true)
+
+    map.on("click", handleClick)
     return () => {
-      map.off("move", updatePosition)
-      map.off("moveend", updatePosition)
-      window.removeEventListener("scroll", updatePosition, true)
+      map.off("click", handleClick)
     }
-  }, [isLoaded, map, transaction, updatePosition])
+  }, [map, isLoaded, isFocused, onDeselect])
 
-  if (!transaction || !position) return null
-
-  const waste = getWaste(transaction)
-  const popupContent = (
-    <div
-      className={cn(
-        "relative rounded-md border bg-popover p-3 text-popover-foreground shadow-md text-xs"
-      )}
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-1 right-1 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        aria-label="Close popup"
-      >
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </button>
-      {waste > 0 && transaction.betterOption ? (
-        <BetterOptionDetails
-          option={transaction.betterOption}
-          transaction={transaction}
-        />
-      ) : (
-        <div className="min-w-[200px]">
-          <div className="font-medium">
-            {new Date(transaction.dateTime).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </div>
-          <div className="mt-1 text-muted-foreground">
-            {transaction.location} · {transaction.stationBrand}
-          </div>
-          <div className="mt-1">
-            {transaction.gallons} gal · $
-            {transaction.pricePerGallon.toFixed(2)}/gal · $
-            {transaction.totalCost.toFixed(2)}
-          </div>
-          <div className="mt-1 text-[var(--success)]">Optimal</div>
-        </div>
-      )}
-    </div>
-  )
-
-  return createPortal(
-    <div
-      className="fixed z-[10001]"
-      style={{
-        left: position.x,
-        top: position.y,
-        transform: "translate(-50%, 0)",
-      }}
-    >
-      {popupContent}
-    </div>,
-    document.body
-  )
+  return null
 }
 
 type DriverInsightsMapProps = {
@@ -199,10 +160,62 @@ export function DriverInsightsMap({
     setPopupTransaction(t ?? null)
   }, [selectedTransactionId, transactions])
 
+  const isFocused = popupTransaction != null
+
   const geoData = React.useMemo(
-    () => transactionsToGeoJSON(transactions),
-    [transactions]
+    () =>
+      transactionsToGeoJSON(
+        isFocused && popupTransaction
+          ? [popupTransaction]
+          : transactions
+      ),
+    [transactions, isFocused, popupTransaction]
   )
+
+  const [routeCoords, setRouteCoords] = React.useState<
+    [number, number][] | null
+  >(null)
+
+  React.useEffect(() => {
+    if (!popupTransaction?.betterOption) {
+      setRouteCoords(null)
+      return
+    }
+    const opt = popupTransaction.betterOption
+    const ac = new AbortController()
+    setRouteCoords([
+      [popupTransaction.lng, popupTransaction.lat],
+      [opt.lng, opt.lat],
+    ])
+    fetch(
+      `https://router.project-osrm.org/route/v1/driving/${popupTransaction.lng},${popupTransaction.lat};${opt.lng},${opt.lat}?overview=full&geometries=geojson`,
+      { signal: ac.signal }
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        const coords = data.routes?.[0]?.geometry?.coordinates as
+          | [number, number][]
+          | undefined
+        if (!coords || coords.length < 2) return
+        const first = coords[0]
+        const last = coords[coords.length - 1]
+        const tol = 2
+        const nearStart =
+          Math.abs(first[0] - popupTransaction.lng) < tol &&
+          Math.abs(first[1] - popupTransaction.lat) < tol
+        const nearEnd =
+          Math.abs(last[0] - opt.lng) < tol &&
+          Math.abs(last[1] - opt.lat) < tol
+        if (nearStart && nearEnd) setRouteCoords(coords)
+      })
+      .catch(() => {})
+    return () => ac.abort()
+  }, [
+    popupTransaction?.id,
+    popupTransaction?.lng,
+    popupTransaction?.lat,
+    popupTransaction?.betterOption,
+  ])
 
   const handlePointClick = React.useCallback(
     (
@@ -211,17 +224,20 @@ export function DriverInsightsMap({
     ) => {
       const id = feature.properties?.id
       if (!id) return
+      if (id === selectedTransactionId) {
+        onSelectTransaction(null)
+        return
+      }
       const t = transactions.find((x) => x.id === id)
       if (t) {
         onSelectTransaction(t)
         setPopupTransaction(t)
       }
     },
-    [transactions, onSelectTransaction]
+    [transactions, selectedTransactionId, onSelectTransaction]
   )
 
-  const handleClosePopup = React.useCallback(() => {
-    setPopupTransaction(null)
+  const handleDeselect = React.useCallback(() => {
     onSelectTransaction(null)
   }, [onSelectTransaction])
 
@@ -247,26 +263,92 @@ export function DriverInsightsMap({
     transactions.reduce((a, t) => a + t.lat, 0) / transactions.length
 
   return (
-    <div className="h-full min-h-0 w-full rounded-lg border border-border">
+    <div className="relative h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
         zoom={6}
         popupPortalToBody
       >
-        <FitBounds transactions={transactions} />
+        {isFocused && popupTransaction ? (
+          <FitBoundsFocused transaction={popupTransaction} />
+        ) : (
+          <FitBoundsAll transactions={transactions} />
+        )}
         <MapControls showCompass showZoom position="top-right" />
-        <MapClusterLayer
-          data={geoData}
-          cluster={false}
-          pointColorProperty="color"
-          onPointClick={handlePointClick}
-        />
-        <ClusterPointPopup
-          transaction={popupTransaction}
-          onClose={handleClosePopup}
-        />
+        {!isFocused && (
+          <MapClusterLayer
+            data={geoData}
+            cluster={false}
+            pointColorProperty="color"
+            onPointClick={handlePointClick}
+          />
+        )}
+        {isFocused && popupTransaction && (
+          <>
+            <MapClickDeselect isFocused onDeselect={handleDeselect} />
+            {popupTransaction.betterOption && routeCoords && routeCoords.length >= 2 && (
+              <MapRoute
+                coordinates={routeCoords}
+                color="#6366f1"
+                width={3}
+                opacity={0.85}
+              />
+            )}
+            <MapMarker
+              longitude={popupTransaction.lng}
+              latitude={popupTransaction.lat}
+              onClick={() => handleDeselect()}
+            >
+              <MarkerContent>
+                <div
+                  className={cn(
+                    "size-4 rounded-full ring-2 ring-background shadow-md",
+                    getWaste(popupTransaction) > 0 ? "bg-destructive" : "bg-[#22c55e]"
+                  )}
+                />
+              </MarkerContent>
+              <MarkerLabel position="bottom">
+                <span className="rounded bg-background/90 px-1.5 py-0.5 text-[var(--text-2xs)] font-medium shadow-sm border border-border">
+                  {popupTransaction.stationBrand} · {popupTransaction.location}
+                </span>
+              </MarkerLabel>
+            </MapMarker>
+            {popupTransaction.betterOption && (
+              <MapMarker
+                longitude={popupTransaction.betterOption.lng}
+                latitude={popupTransaction.betterOption.lat}
+              >
+                <MarkerContent>
+                  <div
+                    className="size-4 rounded-full ring-2 ring-background shadow-md"
+                    style={{ backgroundColor: "var(--chart-2)" }}
+                  />
+                </MarkerContent>
+                <MarkerLabel position="bottom">
+                  <span className="rounded bg-background/90 px-1.5 py-0.5 text-[var(--text-2xs)] font-medium shadow-sm border border-border">
+                    {popupTransaction.betterOption.stationName} — better option
+                  </span>
+                </MarkerLabel>
+              </MapMarker>
+            )}
+          </>
+        )}
       </Map>
+      {isFocused && popupTransaction &&
+        (popupTransaction.betterOption ? (
+          <ActualVsOptimizedCard
+            variant="comparison"
+            comparison={transactionToComparison(popupTransaction)!}
+            position="bottom-left"
+          />
+        ) : (
+          <ActualVsOptimizedCard
+            variant="optimal"
+            transaction={popupTransaction}
+            position="bottom-left"
+          />
+        ))}
     </div>
   )
 }
