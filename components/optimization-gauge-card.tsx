@@ -115,7 +115,7 @@ export function OptimizationGaugeCard({
               pointer={{
                 type: "needle",
                 length: 0.8,
-                width: 4,
+                width: 8,
                 color: "var(--gauge-pointer)",
                 baseColor: "var(--gauge-pointer)",
               }}
