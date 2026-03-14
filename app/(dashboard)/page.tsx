@@ -12,11 +12,12 @@ import {
   type FuelTransaction,
 } from "@/lib/mock-data"
 import { getFleetGrade } from "@/lib/fuelScore"
+import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
 import { buttonVariants } from "@/components/ui/button"
 
 const FuelTransactionTable = dynamic(
@@ -347,7 +348,7 @@ function getOverpaidAmount(t: FuelTransaction): number {
 
 export default function DashboardPage() {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
-    getPresetRange(30)
+    () => getThisWeekRange()
   )
 
   const filteredByDateTransactions = React.useMemo(() => {
@@ -360,6 +361,23 @@ export default function DashboardPage() {
     [filteredByDateTransactions]
   )
   const recentTxns = React.useMemo(() => attentionTxns.slice(0, 10), [attentionTxns])
+
+  /** Drivers needing attention = below 60% compliance in period (same definition as Driver Insights). Top 5 by missed savings. */
+  const driversInNeedOfAttention = React.useMemo(() => {
+    const week = getThisWeekRange()
+    const range = dateRange?.from
+      ? { from: dateRange.from, to: dateRange.to ?? dateRange.from }
+      : week
+    return getDriversNeedingAttention(fuelTransactions, {
+      from: range.from ?? week.from!,
+      to: range.to ?? range.from ?? week.to,
+    }).slice(0, 5)
+  }, [dateRange])
+
+  const periodLabel =
+    rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "month") ? "month" : "period"
+  const periodBadgeLabel =
+    periodLabel === "today" ? "today" : periodLabel === "week" ? "this week" : periodLabel === "month" ? "this month" : "this period"
 
   const kpis = React.useMemo(() => {
     const byType = (type: "Diesel" | "Reefer" | "DEF") =>
@@ -522,7 +540,7 @@ export default function DashboardPage() {
           </Tabs>
           <Popover>
             <PopoverTrigger
-              render={<Button variant="outline" className="h-9 gap-2 text-sm font-normal" />}
+              render={<Button variant="outline" className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex" />}
             >
               <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="size-4 text-muted-foreground" />
               {formatRangeLabel(dateRange)}
@@ -554,31 +572,31 @@ export default function DashboardPage() {
       </div>
 
       {/* Optimization gauge + Money on the table */}
-      <div className="grid grid-cols-1 gap-3 px-4 md:grid-cols-2 lg:px-6">
+      <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:px-6">
         <OptimizationGaugeCard
           size="sm"
           value={fleetScoreProps.complianceRate}
           trendFromLastMonth={fleetScoreProps.optimizationTrend}
           trendLabel={fleetScoreProps.trendLabel}
         />
-        <Card size="sm">
-          <CardHeader className="pb-1">
+        <Card size="sm" className="py-2">
+          <CardHeader className="pb-0">
             <div className="flex items-center gap-1.5">
-              <CardTitle className="text-base">Overpaid on fuel</CardTitle>
+              <CardTitle className="text-base">Missed Savings</CardTitle>
               <Tooltip>
                 <TooltipTrigger
                   render={
                     <button
                       type="button"
                       className="inline-flex shrink-0 rounded text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      aria-label="What is overpaid on fuel?"
+                      aria-label="What is missed savings?"
                     >
                       <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" strokeWidth={2} />
                     </button>
                   }
                 />
                 <TooltipContent side="top">
-                  Money that could have been saved at a more optimal fill-up
+                  Money that could have been saved with better fill-up choices
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -590,7 +608,7 @@ export default function DashboardPage() {
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-center gap-2">
+          <CardContent className="flex flex-1 flex-col justify-center gap-1 pt-0">
             {fleetScoreProps.missedSavings > 0 || fleetScoreProps.overpaidFillUpCount > 0 ? (
               <>
                 <p
@@ -610,7 +628,7 @@ export default function DashboardPage() {
                 No missed savings in this period; all fill-ups were at or better than optimal.
               </p>
             )}
-            <p className="text-center text-sm font-normal text-muted-foreground">
+            <p className="text-center text-xs font-normal text-muted-foreground">
               Across {fleetScoreProps.overpaidFillUpCount} fill-up{fleetScoreProps.overpaidFillUpCount === 1 ? "" : "s"} from {fleetScoreProps.overpaidDriverCount} driver{fleetScoreProps.overpaidDriverCount === 1 ? "" : "s"}
             </p>
           </CardContent>
@@ -618,7 +636,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-2 lg:grid-cols-5 lg:px-6">
+      <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:grid-cols-5 lg:px-6">
         {/* Gallons */}
         <Card size="sm">
           <CardHeader className="pb-1">
@@ -829,8 +847,61 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Fuel price trends */}
-        <FuelPriceTrendsCard />
+        {/* Drivers in need of attention — same slot as old Fuel Price Trends card */}
+        <Card className="flex min-h-0 min-w-0 flex-col">
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <CardTitle>Drivers in need of attention this {periodLabel}</CardTitle>
+            <Link
+              href="/drivers"
+              className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
+            >
+              View all
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {driversInNeedOfAttention.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No drivers in need of attention in this period.
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {driversInNeedOfAttention.map((driver, index) => (
+                  <Link
+                    key={driver.driverName}
+                    href={`/drivers/${driverNameToSlug(driver.driverName)}`}
+                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="tabular-nums text-muted-foreground w-5 shrink-0">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">{driver.driverName}</span>
+                          {driver.badStops > 0 && (
+                            <Badge variant="destructive" className="text-[10px] font-normal">
+                              {driver.badStops} bad stop{driver.badStops !== 1 ? "s" : ""} {periodBadgeLabel}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
+                        -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      </span>
+                      <span
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                        aria-hidden
+                      >
+                        <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Transactions that need attention — actionable with count */}
         <Card className="col-span-full @[66rem]/main:col-span-2">

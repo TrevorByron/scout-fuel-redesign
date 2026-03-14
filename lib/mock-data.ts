@@ -16,6 +16,11 @@ export const STATION_BRANDS = [
 /** Station brands that are in the fleet's preferred network. Used for in-network vs out-of-network reporting. */
 export const IN_NETWORK_BRANDS = ["TA/Petro", "Pilot Flying J", "Love's"] as const
 
+/** Out-of-network brands (all others). Used to assign compliance by driver tier. */
+const OUT_OF_NETWORK_BRANDS = STATION_BRANDS.filter(
+  (b) => !(IN_NETWORK_BRANDS as readonly string[]).includes(b)
+) as readonly string[]
+
 export type InNetworkBrand = (typeof IN_NETWORK_BRANDS)[number]
 
 export const TRUCK_STATUSES = [
@@ -127,6 +132,9 @@ export interface PricingSummaryRow {
   discount: number
 }
 
+/** Fleet has 16 drivers; use first 16 for transactions and trucks. */
+const NUM_FLEET_DRIVERS = 16
+
 const DRIVER_NAMES = [
   "Mike Johnson",
   "Sarah Williams",
@@ -144,35 +152,6 @@ const DRIVER_NAMES = [
   "Jessica Moore",
   "Charles Jackson",
   "Karen White",
-  "Thomas Harris",
-  "Nancy Martin",
-  "Daniel Thompson",
-  "Betty Garcia",
-  "Matthew Martinez",
-  "Margaret Robinson",
-  "Anthony Clark",
-  "Dorothy Lewis",
-  "Mark Lee",
-  "Sandra Walker",
-  "Donald Hall",
-  "Ashley Allen",
-  "Paul Young",
-  "Kimberly King",
-  "Steven Wright",
-  "Donna Scott",
-  "Edward Green",
-  "Carol Adams",
-  "Brian Baker",
-  "Michelle Nelson",
-  "George Carter",
-  "Emily Mitchell",
-  "Kenneth Perez",
-  "Helen Roberts",
-  "Joshua Turner",
-  "Deborah Phillips",
-  "Kevin Campbell",
-  "Laura Parker",
-  "Jason Evans",
 ]
 
 const LOCATIONS = [
@@ -213,7 +192,7 @@ const LOCATION_COORDINATES: Record<string, { lat: number; lng: number }> = {
 
 const LOCATION_COORDS_LIST = LOCATIONS.map((name) => LOCATION_COORDINATES[name]!)
 
-export const trucks: Truck[] = Array.from({ length: 45 }, (_, i) => {
+export const trucks: Truck[] = Array.from({ length: NUM_FLEET_DRIVERS }, (_, i) => {
   const statuses: TruckStatus[] = [
     "On Route",
     "On Route",
@@ -248,10 +227,24 @@ const FUEL_TYPE_SEQUENCE: FuelType[] = [
 ]
 const FUEL_TYPES: FuelType[] = ["Diesel", "Reefer", "DEF"]
 
+/** Average transactions per driver per day. */
+const TRANSACTIONS_PER_DRIVER_PER_DAY = 3
+
+/**
+ * Compliance by driver: a few fully compliant, most high, five needing attention.
+ * driverIndex 0–2: 100% in-network (fully compliant)
+ * driverIndex 3–10: ~88% in-network (good)
+ * driverIndex 11–15: ~18% in-network (needing attention — below 60%)
+ */
+function getComplianceTier(driverIndex: number): { inNetworkPct: number; alwaysInNetwork: boolean } {
+  if (driverIndex <= 2) return { inNetworkPct: 100, alwaysInNetwork: true }
+  if (driverIndex <= 10) return { inNetworkPct: 88, alwaysInNetwork: false }
+  return { inNetworkPct: 18, alwaysInNetwork: false }
+}
+
 /**
  * Build fuel transactions from today's date going back 365 days.
- * Anchor is always start of today (midnight); only past and today are generated, never future dates.
- * More transactions per day for recent days (today and this week) so dashboards stay full.
+ * Fleet has 16 drivers; each driver has 3 transactions per day.
  */
 function buildFuelTransactions(): FuelTransaction[] {
   const now = new Date()
@@ -262,11 +255,11 @@ function buildFuelTransactions(): FuelTransaction[] {
     const date = new Date(anchor)
     date.setDate(date.getDate() - daysAgo)
     if (date.getTime() > now.getTime()) continue
-    const count = daysAgo === 0 ? 5 : 3 + (daysAgo % 2)
-    for (let j = 0; j < count; j++) {
+    for (let driverIndex = 0; driverIndex < NUM_FLEET_DRIVERS; driverIndex++) {
+      for (let k = 0; k < TRANSACTIONS_PER_DRIVER_PER_DAY; k++) {
       const location = LOCATIONS[i % LOCATIONS.length]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
-      const fuelType = j < FUEL_TYPES.length ? FUEL_TYPES[j] : FUEL_TYPE_SEQUENCE[i % 10]
+      const fuelType = k < FUEL_TYPES.length ? FUEL_TYPES[k] : FUEL_TYPE_SEQUENCE[i % 10]
       const gallons = Math.round((80 + (i % 121)) * 10) / 10
       const pricePerGallon = Math.round((380 + (i % 100)) * 100) / 10000
       const totalCost = Math.round(gallons * pricePerGallon * 100) / 100
@@ -276,18 +269,30 @@ function buildFuelTransactions(): FuelTransaction[] {
         : 0.08 + (i % 4) * 0.01
       const savedAmount = Math.round(gallons * savingsPerGallon * 100) / 100
       const optimalPrice = pricePerGallon * 0.97
-      const variance = Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
+      /** One in four transactions has no overpaid amount so some drivers show $0 missed savings. */
+      const noOverpaid = i % 4 === 0
+      const variance = noOverpaid
+        ? 0
+        : Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
       const alert = variance < -15
 
       const txnDate = new Date(date)
-      txnDate.setHours(6 + ((i + j) % 14), ((i + j) % 4) * 15, 0, 0)
+      txnDate.setHours(6 + ((i + k) % 14), ((i + k) % 4) * 15, 0, 0)
 
-      const stationBrand = STATION_BRANDS[i % STATION_BRANDS.length]
-      const inNetwork = (IN_NETWORK_BRANDS as readonly string[]).includes(stationBrand)
-      const hasBetterOption = i < 200 && !inNetwork
+      /** Driver-based compliance: fully compliant, high, or outlier. Deterministic roll per txn. */
+      const tier = getComplianceTier(driverIndex)
+      const roll = (i * 13 + daysAgo * 17 + k * 7) % 100
+      const inNetwork = tier.alwaysInNetwork || roll < tier.inNetworkPct
+      const stationBrand = inNetwork
+        ? IN_NETWORK_BRANDS[(i + daysAgo + k) % IN_NETWORK_BRANDS.length]
+        : OUT_OF_NETWORK_BRANDS[(i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
+      const hasBetterOption = !noOverpaid && !inNetwork
       const betterOptionStation = IN_NETWORK_BRANDS[i % IN_NETWORK_BRANDS.length]
       const differentStation = betterOptionStation !== stationBrand
-      const potentialSavings = hasBetterOption && differentStation ? 8 + (i % 38) : 0
+      // Scale potential savings by non-compliance so low-compliance drivers have notably higher missed savings
+      const baseSavings = hasBetterOption && differentStation ? 8 + (i % 38) : 0
+      const complianceMultiplier = tier.alwaysInNetwork ? 0 : (100 - tier.inNetworkPct) / 100
+      const potentialSavings = Math.round(baseSavings * complianceMultiplier)
       const discount = 0.05 + (i % 4) * 0.008
       const betterPrice = hasBetterOption
         ? Math.round((pricePerGallon * (1 - discount)) * 100) / 100
@@ -299,8 +304,8 @@ function buildFuelTransactions(): FuelTransaction[] {
       const txn: FuelTransaction = {
         id: `txn-${i + 1}`,
         dateTime: txnDate.toISOString(),
-        driverName: DRIVER_NAMES[i % 45],
-        truckId: `T${String((i % 45) + 1).padStart(3, "0")}`,
+        driverName: DRIVER_NAMES[driverIndex],
+        truckId: `T${String(driverIndex + 1).padStart(3, "0")}`,
         location,
         stationBrand,
         fuelType,
@@ -327,6 +332,7 @@ function buildFuelTransactions(): FuelTransaction[] {
       }
       list.push(txn)
       i++
+      }
     }
   }
   return list.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())

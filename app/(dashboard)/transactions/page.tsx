@@ -519,7 +519,7 @@ export default function TransactionsPage() {
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <h2 className="text-lg font-semibold">Fuel Transactions</h2>
+        <h2 className="text-lg font-semibold">Fuel Data</h2>
         <p className="text-xs text-muted-foreground">
           Filter and review recent fuel transactions
         </p>
@@ -668,7 +668,7 @@ export default function TransactionsPage() {
         <div className="flex flex-col gap-2 border-b px-4 pt-0 pb-4 lg:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1">
-              <h3 className="text-sm font-medium">All fuel transactions</h3>
+              <h3 className="text-sm font-medium">Fuel data by station</h3>
               {hasActiveFilters && (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>{activeFilterCount} filters applied</span>

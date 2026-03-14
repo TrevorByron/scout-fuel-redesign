@@ -1279,24 +1279,32 @@ type MapClusterLayerProps<
 > = {
   /** GeoJSON FeatureCollection data or URL to fetch GeoJSON from */
   data: string | GeoJSON.FeatureCollection<GeoJSON.Point, P>;
-  /** Maximum zoom level to cluster points on (default: 14) */
+  /** When false, all points are shown as individual pins with no clustering (default: true) */
+  cluster?: boolean;
+  /** Maximum zoom level to cluster points on (default: 14). Ignored when cluster is false. */
   clusterMaxZoom?: number;
-  /** Radius of each cluster when clustering points in pixels (default: 50) */
+  /** Radius of each cluster when clustering points in pixels (default: 50). Ignored when cluster is false. */
   clusterRadius?: number;
   /** Colors for cluster circles: [small, medium, large] based on point count (default: ["#22c55e", "#eab308", "#ef4444"]) */
   clusterColors?: [string, string, string];
   /** Point count thresholds for color/size steps: [medium, large] (default: [100, 750]) */
   clusterThresholds?: [number, number];
-  /** Color for unclustered individual points (default: "#3b82f6"). Ignored when pointColorProperty is set. */
+  /** Color for unclustered individual points (default: "#3b82f6"). Ignored when pointColorProperty or pointColorStep is set. */
   pointColor?: string;
   /** When set, unclustered points use this feature property for circle color (e.g. "color" for green/red per point) */
   pointColorProperty?: string;
+  /** When set, unclustered points use a step expression: [threshold, color][] with defaultColor for values below first threshold. E.g. { property: "compliancePct", defaultColor: "#ef4444", stops: [[50, "#eab308"], [90, "#22c55e"]] } */
+  pointColorStep?: {
+    property: string;
+    defaultColor: string;
+    stops: [number, string][];
+  };
   /** Callback when an unclustered point is clicked */
   onPointClick?: (
     feature: GeoJSON.Feature<GeoJSON.Point, P>,
     coordinates: [number, number]
   ) => void;
-  /** Callback when a cluster is clicked. If not provided, zooms into the cluster */
+  /** Callback when a cluster is clicked. If not provided, zooms into the cluster. Ignored when cluster is false. */
   onClusterClick?: (
     clusterId: number,
     coordinates: [number, number],
@@ -1308,12 +1316,14 @@ function MapClusterLayer<
   P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties
 >({
   data,
+  cluster = true,
   clusterMaxZoom = 14,
   clusterRadius = 50,
   clusterColors = ["#22c55e", "#eab308", "#ef4444"],
   clusterThresholds = [100, 750],
   pointColor = "#3b82f6",
   pointColorProperty,
+  pointColorStep,
   onPointClick,
   onClusterClick,
 }: MapClusterLayerProps<P>) {
@@ -1324,83 +1334,104 @@ function MapClusterLayer<
   const clusterCountLayerId = `cluster-count-${id}`;
   const unclusteredLayerId = `unclustered-point-${id}`;
 
+  const circleColorExpression = useMemo((): string | unknown[] => {
+    if (pointColorStep) {
+      const flat: (number | string)[] = [pointColorStep.defaultColor];
+      for (const [threshold, color] of pointColorStep.stops) {
+        flat.push(threshold, color);
+      }
+      // Ensure numeric comparison: coalesce(to-number(prop), 0) so string/missing → red
+      const input = [
+        "coalesce",
+        ["to-number", ["get", pointColorStep.property]],
+        0,
+      ];
+      return ["step", input, ...flat];
+    }
+    if (pointColorProperty) {
+      return ["get", pointColorProperty];
+    }
+    return pointColor;
+  }, [pointColorProperty, pointColor, pointColorStep]);
+
   const stylePropsRef = useRef({
     clusterColors,
     clusterThresholds,
     pointColor,
     pointColorProperty,
+    pointColorStep,
   });
 
   // Add source and layers on mount
   useEffect(() => {
     if (!isLoaded || !map) return;
 
-    // Add clustered GeoJSON source
+    // Add GeoJSON source (clustered or plain)
     map.addSource(sourceId, {
       type: "geojson",
       data,
-      cluster: true,
-      clusterMaxZoom,
-      clusterRadius,
+      ...(cluster
+        ? { cluster: true, clusterMaxZoom, clusterRadius }
+        : {}),
     });
 
-    // Add cluster circles layer
-    map.addLayer({
-      id: clusterLayerId,
-      type: "circle",
-      source: sourceId,
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": [
-          "step",
-          ["get", "point_count"],
-          clusterColors[0],
-          clusterThresholds[0],
-          clusterColors[1],
-          clusterThresholds[1],
-          clusterColors[2],
-        ],
-        "circle-radius": [
-          "step",
-          ["get", "point_count"],
-          20,
-          clusterThresholds[0],
-          30,
-          clusterThresholds[1],
-          40,
-        ],
-        "circle-stroke-width": 1,
-        "circle-stroke-color": "#fff",
-        "circle-opacity": 0.85,
-      },
-    });
+    if (cluster) {
+      // Add cluster circles layer
+      map.addLayer({
+        id: clusterLayerId,
+        type: "circle",
+        source: sourceId,
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": [
+            "step",
+            ["get", "point_count"],
+            clusterColors[0],
+            clusterThresholds[0],
+            clusterColors[1],
+            clusterThresholds[1],
+            clusterColors[2],
+          ],
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            20,
+            clusterThresholds[0],
+            30,
+            clusterThresholds[1],
+            40,
+          ],
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#fff",
+          "circle-opacity": 0.85,
+        },
+      });
 
-    // Add cluster count text layer
-    map.addLayer({
-      id: clusterCountLayerId,
-      type: "symbol",
-      source: sourceId,
-      filter: ["has", "point_count"],
-      layout: {
-        "text-field": "{point_count_abbreviated}",
-        "text-font": ["Open Sans"],
-        "text-size": 12,
-      },
-      paint: {
-        "text-color": "#fff",
-      },
-    });
+      // Add cluster count text layer
+      map.addLayer({
+        id: clusterCountLayerId,
+        type: "symbol",
+        source: sourceId,
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": "{point_count_abbreviated}",
+          "text-font": ["Open Sans"],
+          "text-size": 12,
+        },
+        paint: {
+          "text-color": "#fff",
+        },
+      });
+    }
 
-    // Add unclustered point layer
+    // Add point layer: unclustered only when clustering, or all points when cluster=false
     map.addLayer({
       id: unclusteredLayerId,
       type: "circle",
       source: sourceId,
-      filter: ["!", ["has", "point_count"]],
+      ...(cluster ? { filter: ["!", ["has", "point_count"]] } : {}),
       paint: {
-        "circle-color": pointColorProperty
-          ? ["get", pointColorProperty]
-          : pointColor,
+        "circle-color": circleColorExpression as MapLibreGL.ExpressionSpecification,
         "circle-radius": 8,
         "circle-stroke-width": 2,
         "circle-stroke-color": "#fff",
@@ -1409,18 +1440,20 @@ function MapClusterLayer<
 
     return () => {
       try {
-        if (map.getLayer(clusterCountLayerId))
-          map.removeLayer(clusterCountLayerId);
+        if (cluster) {
+          if (map.getLayer(clusterCountLayerId))
+            map.removeLayer(clusterCountLayerId);
+          if (map.getLayer(clusterLayerId)) map.removeLayer(clusterLayerId);
+        }
         if (map.getLayer(unclusteredLayerId))
           map.removeLayer(unclusteredLayerId);
-        if (map.getLayer(clusterLayerId)) map.removeLayer(clusterLayerId);
         if (map.getSource(sourceId)) map.removeSource(sourceId);
       } catch {
         // ignore
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, map, sourceId]);
+  }, [isLoaded, map, sourceId, cluster, data]);
 
   // Update source data when data prop changes (only for non-URL data)
   useEffect(() => {
@@ -1441,8 +1474,8 @@ function MapClusterLayer<
       prev.clusterColors !== clusterColors ||
       prev.clusterThresholds !== clusterThresholds;
 
-    // Update cluster layer colors and sizes
-    if (map.getLayer(clusterLayerId) && colorsChanged) {
+    // Update cluster layer colors and sizes (only when clustering is enabled)
+    if (cluster && map.getLayer(clusterLayerId) && colorsChanged) {
       map.setPaintProperty(clusterLayerId, "circle-color", [
         "step",
         ["get", "point_count"],
@@ -1465,15 +1498,29 @@ function MapClusterLayer<
 
     // Update unclustered point layer color
     if (map.getLayer(unclusteredLayerId)) {
-      if (pointColorProperty) {
-        if (prev.pointColorProperty !== pointColorProperty) {
-          map.setPaintProperty(unclusteredLayerId, "circle-color", [
-            "get",
-            pointColorProperty,
-          ]);
-        }
-      } else if (prev.pointColor !== pointColor) {
-        map.setPaintProperty(unclusteredLayerId, "circle-color", pointColor);
+      const exprChanged =
+        prev.pointColorProperty !== pointColorProperty ||
+        prev.pointColor !== pointColor ||
+        prev.pointColorStep !== pointColorStep;
+      if (exprChanged) {
+        const nextExpr =
+          pointColorStep ?
+            (() => {
+              const flat: (number | string)[] = [pointColorStep.defaultColor];
+              for (const [threshold, color] of pointColorStep.stops) {
+                flat.push(threshold, color);
+              }
+              const input = [
+                "coalesce",
+                ["to-number", ["get", pointColorStep.property]],
+                0,
+              ];
+              return ["step", input, ...flat];
+            })()
+          : pointColorProperty
+            ? ["get", pointColorProperty]
+            : pointColor;
+        map.setPaintProperty(unclusteredLayerId, "circle-color", nextExpr);
       }
     }
 
@@ -1482,23 +1529,26 @@ function MapClusterLayer<
       clusterThresholds,
       pointColor,
       pointColorProperty,
+      pointColorStep,
     };
   }, [
     isLoaded,
     map,
+    cluster,
     clusterLayerId,
     unclusteredLayerId,
     clusterColors,
     clusterThresholds,
     pointColor,
     pointColorProperty,
+    pointColorStep,
   ]);
 
   // Handle click events
   useEffect(() => {
     if (!isLoaded || !map) return;
 
-    // Cluster click handler - zoom into cluster
+    // Cluster click handler - zoom into cluster (only when clustering)
     const handleClusterClick = async (
       e: MapLibreGL.MapMouseEvent & {
         features?: MapLibreGL.MapGeoJSONFeature[];
@@ -1570,24 +1620,29 @@ function MapClusterLayer<
       map.getCanvas().style.cursor = "";
     };
 
-    map.on("click", clusterLayerId, handleClusterClick);
     map.on("click", unclusteredLayerId, handlePointClick);
-    map.on("mouseenter", clusterLayerId, handleMouseEnterCluster);
-    map.on("mouseleave", clusterLayerId, handleMouseLeaveCluster);
     map.on("mouseenter", unclusteredLayerId, handleMouseEnterPoint);
     map.on("mouseleave", unclusteredLayerId, handleMouseLeavePoint);
+    if (cluster) {
+      map.on("click", clusterLayerId, handleClusterClick);
+      map.on("mouseenter", clusterLayerId, handleMouseEnterCluster);
+      map.on("mouseleave", clusterLayerId, handleMouseLeaveCluster);
+    }
 
     return () => {
-      map.off("click", clusterLayerId, handleClusterClick);
       map.off("click", unclusteredLayerId, handlePointClick);
-      map.off("mouseenter", clusterLayerId, handleMouseEnterCluster);
-      map.off("mouseleave", clusterLayerId, handleMouseLeaveCluster);
       map.off("mouseenter", unclusteredLayerId, handleMouseEnterPoint);
       map.off("mouseleave", unclusteredLayerId, handleMouseLeavePoint);
+      if (cluster) {
+        map.off("click", clusterLayerId, handleClusterClick);
+        map.off("mouseenter", clusterLayerId, handleMouseEnterCluster);
+        map.off("mouseleave", clusterLayerId, handleMouseLeaveCluster);
+      }
     };
   }, [
     isLoaded,
     map,
+    cluster,
     clusterLayerId,
     unclusteredLayerId,
     sourceId,

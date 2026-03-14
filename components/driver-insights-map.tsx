@@ -190,6 +190,15 @@ export function DriverInsightsMap({
     setMounted(true)
   }, [])
 
+  React.useEffect(() => {
+    if (selectedTransactionId == null) {
+      setPopupTransaction(null)
+      return
+    }
+    const t = transactions.find((x) => x.id === selectedTransactionId)
+    setPopupTransaction(t ?? null)
+  }, [selectedTransactionId, transactions])
+
   const geoData = React.useMemo(
     () => transactionsToGeoJSON(transactions),
     [transactions]
@@ -249,10 +258,7 @@ export function DriverInsightsMap({
         <MapControls showCompass showZoom position="top-right" />
         <MapClusterLayer
           data={geoData}
-          clusterMaxZoom={14}
-          clusterRadius={50}
-          clusterColors={["#22c55e", "#eab308", "#ef4444"]}
-          clusterThresholds={[3, 10]}
+          cluster={false}
           pointColorProperty="color"
           onPointClick={handlePointClick}
         />

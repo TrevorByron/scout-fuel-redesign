@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/fleet": "Live Fleet Map",
-  "/transactions": "Fuel Transactions",
+  "/transactions": "Fuel Data",
   "/pricing-summary": "Pricing Summary",
   "/drivers": "Driver Insights",
   "/route-optimizer": "Optimizer",

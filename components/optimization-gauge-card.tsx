@@ -49,25 +49,27 @@ export function OptimizationGaugeCard({
   const pct = clamp(value)
   const pctRounded = Math.round(pct)
 
+  const isCompact = size === "sm"
+
   return (
-    <Card size={size}>
-      <CardHeader className="pb-1">
+    <Card size={size} className={cn(isCompact && "gap-2 py-2")}>
+      <CardHeader className={cn("pb-1", isCompact && "pb-0")}>
         <div className="flex items-center gap-1.5">
-          <CardTitle className="text-base">Fleet optimization</CardTitle>
+          <CardTitle className="text-base">Fleet Compliance</CardTitle>
           <Tooltip>
             <TooltipTrigger
               render={
                 <button
                   type="button"
                   className="inline-flex shrink-0 rounded text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="What is fleet optimization?"
+                  aria-label="What is fleet compliance?"
                 >
                   <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" strokeWidth={2} />
                 </button>
               }
             />
             <TooltipContent side="top">
-              Percentage of fill-ups at optimized locations
+              Percentage of fill-ups that meet compliance at chosen locations
             </TooltipContent>
           </Tooltip>
         </div>
@@ -86,10 +88,10 @@ export function OptimizationGaugeCard({
         )}
         <CardDescription aria-hidden className="hidden" />
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col items-center justify-center pt-0">
-        <figure className="-mt-1 mx-auto flex w-full min-w-0 max-w-[340px] flex-col items-center" aria-labelledby="optimization-gauge-label">
+      <CardContent className={cn("flex flex-1 flex-col items-center justify-center pt-0", isCompact && "pt-0")}>
+        <figure className={cn("mx-auto flex w-full min-w-0 flex-col items-center", isCompact ? "-mt-0.5" : "-mt-1")} aria-labelledby="optimization-gauge-label">
           <div
-            className="min-w-0 w-full max-w-[340px] h-fit pb-0 [&_.semicircle-gauge]:pb-0 [&_.semicircle-gauge]:overflow-visible [&_.semicircle-gauge_circle]:fill-[var(--gauge-pointer)]"
+            className="min-w-0 w-full h-fit pb-0 [&_.semicircle-gauge]:pb-0 [&_.semicircle-gauge]:overflow-visible [&_.semicircle-gauge_circle]:fill-[var(--gauge-pointer)]"
             aria-hidden
           >
             <GaugeComponent
@@ -113,7 +115,6 @@ export function OptimizationGaugeCard({
               pointer={{
                 type: "needle",
                 length: 0.8,
-                width: 4,
                 color: "var(--gauge-pointer)",
                 baseColor: "var(--gauge-pointer)",
               }}
@@ -126,17 +127,18 @@ export function OptimizationGaugeCard({
               }}
             />
           </div>
-          <figcaption id="optimization-gauge-label" className="mt-1 flex flex-col items-center gap-0.5">
+          <figcaption id="optimization-gauge-label" className={cn("flex flex-col items-center gap-0.5", isCompact ? "mt-0.5" : "mt-1")}>
             <span
               className={cn(
-                "text-center text-2xl font-bold tabular-nums",
+                "text-center font-bold tabular-nums",
+                isCompact ? "text-xl" : "text-2xl",
                 gaugeSegmentColorClass(pct)
               )}
             >
               {pctRounded}%
             </span>
             <span className="text-center text-sm font-normal text-muted-foreground">
-              optimization score
+              Compliance score
             </span>
           </figcaption>
         </figure>
