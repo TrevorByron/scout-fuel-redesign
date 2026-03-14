@@ -69,7 +69,7 @@ export function OptimizationGaugeCard({
               }
             />
             <TooltipContent side="top">
-              Percentage of fill-ups that meet compliance at chosen locations
+              Compliance rate at chosen locations
             </TooltipContent>
           </Tooltip>
         </div>

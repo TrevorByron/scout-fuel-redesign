@@ -449,7 +449,7 @@ function RouteOptimizerPageContent() {
                             )}
                           </div>
                           {originGeocodeError && origin.trim() && (
-                            <p className="mt-1 text-xs text-destructive">Could not find location</p>
+                            <p className="mt-1 text-xs text-destructive">Could not find location. Check the address or try a different search.</p>
                           )}
                         </Field>
                         {waypoints.map((_, i) => (
@@ -495,7 +495,7 @@ function RouteOptimizerPageContent() {
                             )}
                           </div>
                           {destinationGeocodeError && destination.trim() && (
-                            <p className="mt-1 text-xs text-destructive">Could not find location</p>
+                            <p className="mt-1 text-xs text-destructive">Could not find location. Check the address or try a different search.</p>
                           )}
                         </Field>
                       </div>

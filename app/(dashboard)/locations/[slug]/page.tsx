@@ -252,6 +252,31 @@ export default function LocationDetailPage() {
     [dateFilteredTransactions]
   )
 
+  const representativeComparison = React.useMemo(() => {
+    if (!representativeBetterOption) return null
+    const key = (opt: { stationName: string; location: string }) =>
+      `${opt.stationName}\u001f${opt.location}`
+    const targetKey = key(representativeBetterOption)
+    const t = dateFilteredTransactions.find(
+      (t) => t.betterOption && key(t.betterOption) === targetKey
+    )
+    if (!t?.betterOption) return null
+    const opt = t.betterOption
+    const optimizedTotal = Math.round(t.gallons * opt.pricePerGallon * 100) / 100
+    return {
+      actualChain: t.stationBrand,
+      actualLocation: t.location,
+      actualCpg: t.pricePerGallon,
+      actualTotal: t.totalCost,
+      optimizedChain: opt.stationName,
+      optimizedLocation: opt.location,
+      optimizedCpg: opt.pricePerGallon,
+      optimizedTotal,
+      savings: opt.potentialSavings,
+      distanceMiles: opt.distanceMiles,
+    }
+  }, [representativeBetterOption, dateFilteredTransactions])
+
   const locationCenter = React.useMemo(() => {
     const first = dateFilteredTransactions[0]
     return first
@@ -503,6 +528,7 @@ export default function LocationDetailPage() {
           locationLng={locationCenter.lng}
           avgMissedSavingsPerBadStop={summaryStats.avgMissedSavingsPerBadStop}
           representativeBetterOption={representativeBetterOption}
+          comparison={representativeComparison}
         />
       </div>
 
@@ -516,9 +542,12 @@ export default function LocationDetailPage() {
         </CardHeader>
         <CardContent>
           {driversAtLocation.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No drivers used this location in the selected range.
-            </p>
+            <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
+              <p className="font-medium text-foreground">No drivers at this location</p>
+              <p className="text-sm text-muted-foreground">
+                Change the date range to see drivers.
+              </p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -574,6 +603,7 @@ export default function LocationDetailPage() {
             transactions={dateFilteredTransactions}
             maxRows={100}
             hideDriverColumn={false}
+            emptyTitle="No transactions in this range"
             emptyDescription="Change the date range to see transactions."
             groupByStation={false}
           />

@@ -23,7 +23,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -40,6 +39,24 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ArrowDown, ArrowUp } from "lucide-react"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { PieChart, Pie, Cell, Label as RechartsLabel } from "recharts"
+
+const LOCATION_KEY_SEP = "\u001f"
+const CHAIN_CHART_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-6)",
+  "hsl(var(--muted-foreground))",
+]
 
 const LocationInsightsMap = dynamic(
   () =>
@@ -126,6 +143,16 @@ type LocationListSortColumn = "name" | "totalGallons" | "transactions" | "missed
 type NeedsAttentionFilter = "all" | "yes" | "no"
 type CardFilter = "all" | "fully_compliant" | "needs_attention" | "overpaid"
 
+/** Parse "Chain City, ST" → { city, state }. */
+function getCityStateFromDisplayName(displayName: string): { city: string; state: string } {
+  const i = displayName.indexOf(" ")
+  const locationPart = i >= 0 ? displayName.slice(i + 1).trim() : ""
+  const comma = locationPart.indexOf(",")
+  const city = comma >= 0 ? locationPart.slice(0, comma).trim() : locationPart
+  const state = comma >= 0 ? locationPart.slice(comma + 1).trim() : ""
+  return { city, state }
+}
+
 const SORT_BY_LABELS: Record<string, string> = {
   "name-asc": "Name A–Z",
   "name-desc": "Name Z–A",
@@ -150,7 +177,8 @@ export default function LocationInsightsPage() {
     column: LocationListSortColumn
     direction: "asc" | "desc"
   }>({ column: "missedSavings", direction: "desc" })
-  const [locationNameFilter, setLocationNameFilter] = React.useState("")
+  const [stateFilter, setStateFilter] = React.useState("")
+  const [cityFilter, setCityFilter] = React.useState("")
   const [needsAttentionFilter, setNeedsAttentionFilter] = React.useState<NeedsAttentionFilter>("all")
   const [cardFilter, setCardFilter] = React.useState<CardFilter>("all")
 
@@ -166,50 +194,50 @@ export default function LocationInsightsPage() {
     const total = locationListStats.length
     if (total === 0) {
       return {
-        fleetAvgScore: 0,
-        trendPts: 0,
+        totalGallons: 0,
         locationsNeedingAttention: 0,
         totalOverpaid: 0,
         badStopsCount: 0,
         fullyCompliantCount: 0,
       }
     }
-    const totalTxns = locationListStats.reduce((s, l) => s + l.transactionCount, 0)
-    const inNetworkTxns = locationListStats.reduce(
-      (s, l) => s + Math.round((l.compliancePct / 100) * l.transactionCount),
-      0
-    )
-    const fleetAvgScore = totalTxns > 0 ? Math.round((inNetworkTxns / totalTxns) * 100) : 0
+    const totalGallons = locationListStats.reduce((s, l) => s + l.totalGallons, 0)
     const totalOverpaid = locationListStats.reduce((s, l) => s + l.missedSavings, 0)
     const badStopsCount = locationListStats.reduce((s, l) => s + l.badStopsCount, 0)
     const locationsNeedingAttention = locationListStats.filter((l) => l.needsAttention).length
     const fullyCompliantCount = locationListStats.filter((l) => l.compliancePct === 100).length
-    const prevFrom = dateFrom && dateTo ? new Date(dateFrom.getTime() - (dateTo.getTime() - dateFrom.getTime() + 86400000)) : null
-    const prevTo = dateFrom ? new Date(dateFrom.getTime() - 86400000) : null
-    const prevRange = prevFrom && prevTo ? { from: prevFrom, to: prevTo } : null
-    const prevStats = prevRange ? getLocationListStats(prevRange) : []
-    const prevTotalTxns = prevStats.reduce((s, l) => s + l.transactionCount, 0)
-    const prevInNetwork = prevStats.reduce(
-      (s, l) => s + Math.round((l.compliancePct / 100) * l.transactionCount),
-      0
-    )
-    const prevScore = prevTotalTxns > 0 ? Math.round((prevInNetwork / prevTotalTxns) * 100) : 0
-    const trendPts = fleetAvgScore - prevScore
     return {
-      fleetAvgScore,
-      trendPts,
+      totalGallons,
       locationsNeedingAttention,
       totalOverpaid,
       badStopsCount,
       fullyCompliantCount,
     }
-  }, [locationListStats, dateFrom, dateTo])
+  }, [locationListStats])
+
+  const { uniqueStates, uniqueCities } = React.useMemo(() => {
+    const states = new Set<string>()
+    const cities = new Set<string>()
+    for (const loc of locationListStats) {
+      const { city, state } = getCityStateFromDisplayName(loc.displayName)
+      if (state) states.add(state)
+      if (city) cities.add(city)
+    }
+    return {
+      uniqueStates: [...states].sort(),
+      uniqueCities: [...cities].sort(),
+    }
+  }, [locationListStats])
 
   const filteredAndSorted = React.useMemo(() => {
     let list = locationListStats.filter((loc) => {
-      if (locationNameFilter.trim()) {
-        const q = locationNameFilter.trim().toLowerCase()
-        if (!loc.displayName.toLowerCase().includes(q)) return false
+      if (stateFilter) {
+        const { state } = getCityStateFromDisplayName(loc.displayName)
+        if (state !== stateFilter) return false
+      }
+      if (cityFilter) {
+        const { city } = getCityStateFromDisplayName(loc.displayName)
+        if (city !== cityFilter) return false
       }
       if (needsAttentionFilter === "yes" && !loc.needsAttention) return false
       if (needsAttentionFilter === "no" && loc.needsAttention) return false
@@ -244,7 +272,7 @@ export default function LocationInsightsPage() {
       return direction === "asc" ? cmp : -cmp
     })
     return list
-  }, [locationListStats, locationNameFilter, needsAttentionFilter, cardFilter, sort])
+  }, [locationListStats, stateFilter, cityFilter, needsAttentionFilter, cardFilter, sort])
 
   const sortSelectValue = `${sort.column}-${sort.direction}`
 
@@ -272,9 +300,49 @@ export default function LocationInsightsPage() {
         lat: loc.lat,
         lng: loc.lng,
         compliancePct: loc.compliancePct,
+        missedSavings: loc.missedSavings,
       })),
     [filteredAndSorted]
   )
+
+  const chainChartData = React.useMemo(() => {
+    const byChain = new Map<string, number>()
+    for (const loc of locationListStats) {
+      const i = loc.locationKey.indexOf(LOCATION_KEY_SEP)
+      const brand = i >= 0 ? loc.locationKey.slice(0, i) : loc.displayName
+      byChain.set(brand, (byChain.get(brand) ?? 0) + loc.totalGallons)
+    }
+    const sorted = [...byChain.entries()].sort((a, b) => b[1] - a[1])
+    const top = sorted.slice(0, 6)
+    const otherGallons = sorted.slice(6).reduce((s, [, v]) => s + v, 0)
+    const data = [
+      ...top.map(([label, gallons], i) => ({
+        brand: label.toLowerCase().replace(/[^a-z0-9]/g, ""),
+        label,
+        gallons: Math.round(gallons * 10) / 10,
+        fill: CHAIN_CHART_COLORS[i] ?? CHAIN_CHART_COLORS[CHAIN_CHART_COLORS.length - 1],
+      })),
+      ...(otherGallons > 0
+        ? [
+            {
+              brand: "other",
+              label: "Other",
+              gallons: Math.round(otherGallons * 10) / 10,
+              fill: CHAIN_CHART_COLORS[CHAIN_CHART_COLORS.length - 1],
+            },
+          ]
+        : []),
+    ]
+    const config: ChartConfig = {
+      gallons: { label: "Gallons" },
+      ...Object.fromEntries(data.map((d) => [d.brand, { label: d.label, color: d.fill }])),
+    }
+    return {
+      data,
+      config,
+      total: data.reduce((s, d) => s + d.gallons, 0),
+    }
+  }, [locationListStats])
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
@@ -358,14 +426,16 @@ export default function LocationInsightsPage() {
           >
             <Card size="sm" className="cursor-pointer">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Average Fleet Score</CardTitle>
-                <div className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-500">
-                  {summaryStats.fleetAvgScore}%
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Gallons</CardTitle>
+                <div className="text-3xl font-bold tabular-nums text-foreground">
+                  {summaryStats.totalGallons.toLocaleString("en-US", {
+                    maximumFractionDigits: 1,
+                  })}
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  {summaryStats.trendPts >= 0 ? "↑" : "↓"} {Math.abs(summaryStats.trendPts)} pts vs last period
+                  Purchased at all locations this period
                 </p>
               </CardContent>
             </Card>
@@ -431,20 +501,44 @@ export default function LocationInsightsPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:items-end">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:items-end">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="location-name-filter" className="text-xs font-medium text-muted-foreground">
-              Filter
+            <Label htmlFor="state-filter" className="text-xs font-medium text-muted-foreground">
+              State
             </Label>
-            <Input
-              id="location-name-filter"
-              placeholder="By location"
-              value={locationNameFilter}
-              onChange={(e) => setLocationNameFilter(e.target.value)}
-              className="h-9 w-full"
-            />
+            <Select value={stateFilter || "All states"} onValueChange={(v) => setStateFilter(v === "All states" ? "" : v)}>
+              <SelectTrigger id="state-filter" className="h-9 w-full">
+                <SelectValue placeholder="All states" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All states">All states</SelectItem>
+                {uniqueStates.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex flex-col gap-2 sm:col-start-2 lg:col-start-3 xl:col-start-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="city-filter" className="text-xs font-medium text-muted-foreground">
+              City
+            </Label>
+            <Select value={cityFilter || "All cities"} onValueChange={(v) => setCityFilter(v === "All cities" ? "" : v)}>
+              <SelectTrigger id="city-filter" className="h-9 w-full">
+                <SelectValue placeholder="All cities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All cities">All cities</SelectItem>
+                {uniqueCities.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
             <Label className="text-xs font-medium text-muted-foreground">Sort by</Label>
             <Select value={sortSelectValue} onValueChange={handleSortSelectChange}>
               <SelectTrigger className="h-9 w-full">
@@ -470,8 +564,113 @@ export default function LocationInsightsPage() {
           </div>
         </div>
 
-        <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border">
-          <LocationInsightsMap locations={mapItems} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border">
+            <LocationInsightsMap locations={mapItems} />
+          </div>
+          <Card className="flex flex-col min-h-0 lg:min-h-[40vh]">
+            <CardHeader className="shrink-0">
+              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Network chains
+              </CardTitle>
+              <CardDescription className="sr-only">
+                Gallons purchased per station brand in the selected period
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 flex flex-col gap-4">
+              {chainChartData.total === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
+                  <p className="font-medium text-foreground">No gallons</p>
+                  <p className="text-sm text-muted-foreground">
+                    No fuel data in the selected period.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <ChartContainer
+                    config={chainChartData.config}
+                    className="mx-auto aspect-square h-[200px] shrink-0"
+                  >
+                    <PieChart>
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent
+                            nameKey="label"
+                            labelFormatter={(_value, payload) =>
+                              payload?.[0]?.payload?.label ?? ""
+                            }
+                            formatter={(v) => `${Number(v).toLocaleString("en-US")} gal`}
+                          />
+                        }
+                      />
+                      <Pie
+                        data={chainChartData.data}
+                        dataKey="gallons"
+                        nameKey="label"
+                        innerRadius={56}
+                        strokeWidth={2}
+                      >
+                        {chainChartData.data.map((entry) => (
+                          <Cell key={entry.brand} fill={entry.fill} />
+                        ))}
+                        <RechartsLabel
+                          content={({ viewBox }) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                              return (
+                                <text
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                >
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    className="fill-foreground text-lg font-bold"
+                                  >
+                                    {chainChartData.total.toLocaleString("en-US", {
+                                      maximumFractionDigits: 1,
+                                    })}
+                                  </tspan>
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={(viewBox.cy ?? 0) + 18}
+                                    className="fill-muted-foreground text-xs"
+                                  >
+                                    gallons
+                                  </tspan>
+                                </text>
+                              )
+                            }
+                          }}
+                        />
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    {chainChartData.data.map((item) => (
+                      <div
+                        key={item.brand}
+                        className="flex items-center gap-2 min-w-0"
+                      >
+                        <div
+                          className="size-2.5 shrink-0 rounded-sm"
+                          style={{ background: item.fill }}
+                        />
+                        <span className="truncate text-muted-foreground">
+                          {item.label}
+                        </span>
+                        <span className="ml-auto shrink-0 tabular-nums text-foreground">
+                          ({item.gallons.toLocaleString("en-US", { maximumFractionDigits: 1 })})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="mt-2">
@@ -483,9 +682,25 @@ export default function LocationInsightsPage() {
           </CardHeader>
           <CardContent>
             {filteredAndSorted.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No locations match the filters.
-              </p>
+              <div className="flex flex-col items-center justify-center gap-1 py-12 text-center">
+                <p className="font-medium text-foreground">No locations found</p>
+                <p className="text-sm text-muted-foreground">
+                  No locations match the filters. Try a broader date range or clear filters.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    setStateFilter("")
+                    setCityFilter("")
+                    setNeedsAttentionFilter("all")
+                    setCardFilter("all")
+                  }}
+                >
+                  Clear filters
+                </Button>
+              </div>
             ) : (
               <Table>
                 <TableHeader>

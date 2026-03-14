@@ -596,7 +596,7 @@ export default function DashboardPage() {
                   }
                 />
                 <TooltipContent side="top">
-                  Money that could have been saved with better fill-up choices
+                  Potential savings with better fill-up choices
                 </TooltipContent>
               </Tooltip>
             </div>

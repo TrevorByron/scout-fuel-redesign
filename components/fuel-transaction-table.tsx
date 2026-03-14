@@ -283,8 +283,8 @@ export function BetterOptionDetails({
           </div>
         </div>
         <div className="mt-1.5 flex justify-between gap-4 border-t border-border pt-1.5 text-[var(--text-2xs)] font-medium text-chart-2">
-          <span>Optimized Savings</span>
-          <span>{transaction.variance >= 0 ? "+" : ""}${transaction.variance.toFixed(2)}</span>
+          <span>Could have saved</span>
+          <span>${option.potentialSavings.toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -381,7 +381,7 @@ function TransactionRow({
                 variant="secondary"
                 className="cursor-pointer font-mono tabular-nums text-[var(--text-2xs)] border-destructive/30 bg-destructive/10 text-destructive"
               >
-                {t.variance >= 0 ? "+" : ""}${t.variance.toFixed(2)}
+                ${t.betterOption.potentialSavings.toFixed(2)}
               </Badge>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-auto p-0">

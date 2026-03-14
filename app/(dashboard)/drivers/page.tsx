@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { type DateRange } from "react-day-picker"
 import { fuelTransactions } from "@/lib/mock-data"
-import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
+import { driverNameToSlug } from "@/lib/driver-utils"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
 
@@ -185,14 +185,17 @@ export default function DriversPage() {
       list.push(t)
       byDriver.set(t.driverName, list)
     }
-    const rangeForAttention = dateFrom && dateTo ? { from: dateFrom, to: dateTo } : undefined
-    const driversNeedingAttention = rangeForAttention
-      ? getDriversNeedingAttention(fuelTransactions, rangeForAttention).length
-      : 0
-    const fullyCompliantCount = [...byDriver.entries()].filter(([, txns]) => {
-      if (txns.length === 0) return false
-      return txns.every((t) => t.inNetwork)
-    }).length
+    // Use same gallon-based compliance as driverListStats so KPI count matches filtered list
+    let driversNeedingAttention = 0
+    let fullyCompliantCount = 0
+    for (const [, txns] of byDriver.entries()) {
+      if (txns.length === 0) continue
+      const totalGallons = txns.reduce((s, t) => s + t.gallons, 0)
+      const inNetworkGallons = txns.filter((t) => t.inNetwork).reduce((s, t) => s + t.gallons, 0)
+      const pct = totalGallons > 0 ? Math.round((inNetworkGallons / totalGallons) * 100) : 0
+      if (pct < 60) driversNeedingAttention += 1
+      if (pct >= 100) fullyCompliantCount += 1
+    }
     const prevFrom = dateFrom && dateTo ? new Date(dateFrom.getTime() - (dateTo.getTime() - dateFrom.getTime() + 86400000)) : null
     const prevTo = dateFrom ? new Date(dateFrom.getTime() - 86400000) : null
     const prevRange = prevFrom && prevTo ? { from: prevFrom, to: prevTo } : null

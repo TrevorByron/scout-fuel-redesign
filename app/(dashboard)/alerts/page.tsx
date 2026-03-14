@@ -73,7 +73,7 @@ export default function AlertsPage() {
               <div className="flex shrink-0 gap-2">
                 <Button size="sm">Approve</Button>
                 <Button size="sm" variant="outline">
-                  Dismiss
+                  Cancel
                 </Button>
                 <Button size="sm" variant="ghost">
                   View Details

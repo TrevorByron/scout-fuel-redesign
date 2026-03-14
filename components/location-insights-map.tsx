@@ -15,6 +15,20 @@ export type LocationMapItem = {
   lat: number
   lng: number
   compliancePct: number
+  missedSavings: number
+}
+
+const COMPLIANCE_COLORS = {
+  red: "#ef4444",
+  yellow: "#eab308",
+  green: "#22c55e",
+} as const
+
+/** Red only when compliance is low and there is a better option (missed savings). */
+function complianceToColor(pct: number, missedSavings: number): string {
+  if (pct < 50 && missedSavings > 0) return COMPLIANCE_COLORS.red
+  if (pct < 90) return COMPLIANCE_COLORS.yellow
+  return COMPLIANCE_COLORS.green
 }
 
 function locationsToGeoJSON(locations: LocationMapItem[]) {
@@ -30,6 +44,7 @@ function locationsToGeoJSON(locations: LocationMapItem[]) {
         slug: loc.slug,
         displayName: loc.displayName,
         compliancePct: loc.compliancePct,
+        color: complianceToColor(loc.compliancePct, loc.missedSavings),
       },
     })),
   }
@@ -73,18 +88,6 @@ export function LocationInsightsMap({ locations }: LocationInsightsMapProps) {
   const geoData = React.useMemo(
     () => locationsToGeoJSON(locations),
     [locations]
-  )
-
-  const pointColorStep = React.useMemo(
-    () => ({
-      property: "compliancePct" as const,
-      defaultColor: "#ef4444",
-      stops: [
-        [50, "#eab308"],
-        [90, "#22c55e"],
-      ] as [number, string][],
-    }),
-    []
   )
 
   const handlePointClick = React.useCallback(
@@ -135,7 +138,7 @@ export function LocationInsightsMap({ locations }: LocationInsightsMapProps) {
         <MapClusterLayer
           data={geoData}
           cluster={false}
-          pointColorStep={pointColorStep}
+          pointColorProperty="color"
           onPointClick={handlePointClick}
         />
       </Map>

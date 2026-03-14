@@ -199,7 +199,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
             loading: `Saving ${row.original.header}`,
             success: "Done",
-            error: "Error",
+            error: "Couldn't save. Check your connection and try again.",
           })
         }}
       >
@@ -224,7 +224,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
             loading: `Saving ${row.original.header}`,
             success: "Done",
-            error: "Error",
+            error: "Couldn't save. Check your connection and try again.",
           })
         }}
       >
@@ -324,10 +324,12 @@ export function DataTable({
   data: initialData,
   emptyTitle = "No results",
   emptyDescription = "Try changing filters or search.",
+  emptyAction,
 }: {
   data: z.infer<typeof schema>[]
   emptyTitle?: React.ReactNode
   emptyDescription?: React.ReactNode
+  emptyAction?: React.ReactNode
 }) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -462,7 +464,7 @@ export function DataTable({
           </DropdownMenu>
           <Button variant="outline" size="sm">
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-            <span className="hidden lg:inline">Add Section</span>
+            <span className="hidden lg:inline">Create Section</span>
           </Button>
         </div>
       </div>
@@ -520,6 +522,7 @@ export function DataTable({
                         <p className="text-muted-foreground text-sm">
                           {emptyDescription}
                         </p>
+                        {emptyAction ? <div className="mt-2">{emptyAction}</div> : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -855,7 +858,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
           </form>
         </div>
         <DrawerFooter>
-          <Button>Submit</Button>
+          <Button>Save</Button>
           <DrawerClose asChild>
             <Button variant="outline">Close</Button>
           </DrawerClose>

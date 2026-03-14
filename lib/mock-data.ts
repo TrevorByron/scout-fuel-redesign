@@ -154,40 +154,165 @@ const DRIVER_NAMES = [
   "Karen White",
 ]
 
+/** All 50 states + DC and major US cities so the map shows nationwide coverage. */
 const LOCATIONS = [
   "Phoenix, AZ",
-  "Albuquerque, NM",
-  "Dallas, TX",
-  "Denver, CO",
-  "Oklahoma City, OK",
-  "Amarillo, TX",
-  "El Paso, TX",
   "Tucson, AZ",
+  "Los Angeles, CA",
+  "San Diego, CA",
+  "San Francisco, CA",
+  "San Jose, CA",
+  "Denver, CO",
+  "Albuquerque, NM",
   "Las Vegas, NV",
+  "Reno, NV",
   "Salt Lake City, UT",
+  "Seattle, WA",
+  "Portland, OR",
+  "Boise, ID",
+  "Billings, MT",
+  "Cheyenne, WY",
+  "Dallas, TX",
+  "Houston, TX",
+  "San Antonio, TX",
+  "Austin, TX",
+  "El Paso, TX",
+  "Fort Worth, TX",
+  "Amarillo, TX",
+  "Oklahoma City, OK",
+  "Tulsa, OK",
   "Kansas City, MO",
   "St. Louis, MO",
+  "Wichita, KS",
+  "Omaha, NE",
+  "Lincoln, NE",
+  "Des Moines, IA",
+  "Sioux Falls, SD",
+  "Fargo, ND",
+  "Minneapolis, MN",
   "Chicago, IL",
   "Indianapolis, IN",
+  "Milwaukee, WI",
+  "Detroit, MI",
+  "Cleveland, OH",
+  "Columbus, OH",
+  "Cincinnati, OH",
+  "Louisville, KY",
   "Nashville, TN",
+  "Memphis, TN",
+  "Birmingham, AL",
+  "Jackson, MS",
+  "Little Rock, AR",
+  "New Orleans, LA",
+  "Baton Rouge, LA",
+  "Atlanta, GA",
+  "Charlotte, NC",
+  "Raleigh, NC",
+  "Charleston, SC",
+  "Columbia, SC",
+  "Jacksonville, FL",
+  "Miami, FL",
+  "Orlando, FL",
+  "Tampa, FL",
+  "Savannah, GA",
+  "Richmond, VA",
+  "Norfolk, VA",
+  "Washington, DC",
+  "Baltimore, MD",
+  "Wilmington, DE",
+  "Philadelphia, PA",
+  "Pittsburgh, PA",
+  "Newark, NJ",
+  "New York, NY",
+  "Buffalo, NY",
+  "Albany, NY",
+  "Hartford, CT",
+  "Boston, MA",
+  "Providence, RI",
+  "Manchester, NH",
+  "Burlington, VT",
+  "Portland, ME",
+  "Charleston, WV",
 ]
 
 const LOCATION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Phoenix, AZ": { lat: 33.4484, lng: -112.074 },
-  "Albuquerque, NM": { lat: 35.0844, lng: -106.6504 },
-  "Dallas, TX": { lat: 32.7767, lng: -96.797 },
-  "Denver, CO": { lat: 39.7392, lng: -104.9903 },
-  "Oklahoma City, OK": { lat: 35.4676, lng: -97.5164 },
-  "Amarillo, TX": { lat: 35.222, lng: -101.8313 },
-  "El Paso, TX": { lat: 31.7619, lng: -106.485 },
   "Tucson, AZ": { lat: 32.2226, lng: -110.9747 },
+  "Los Angeles, CA": { lat: 34.0522, lng: -118.2437 },
+  "San Diego, CA": { lat: 32.7157, lng: -117.1611 },
+  "San Francisco, CA": { lat: 37.7749, lng: -122.4194 },
+  "San Jose, CA": { lat: 37.3382, lng: -121.8863 },
+  "Denver, CO": { lat: 39.7392, lng: -104.9903 },
+  "Albuquerque, NM": { lat: 35.0844, lng: -106.6504 },
   "Las Vegas, NV": { lat: 36.1699, lng: -115.1398 },
+  "Reno, NV": { lat: 39.5296, lng: -119.8138 },
   "Salt Lake City, UT": { lat: 40.7608, lng: -111.891 },
+  "Seattle, WA": { lat: 47.6062, lng: -122.3321 },
+  "Portland, OR": { lat: 45.5152, lng: -122.6784 },
+  "Boise, ID": { lat: 43.615, lng: -116.2023 },
+  "Billings, MT": { lat: 45.7833, lng: -108.5007 },
+  "Cheyenne, WY": { lat: 41.14, lng: -104.8202 },
+  "Dallas, TX": { lat: 32.7767, lng: -96.797 },
+  "Houston, TX": { lat: 29.7604, lng: -95.3698 },
+  "San Antonio, TX": { lat: 29.4241, lng: -98.4936 },
+  "Austin, TX": { lat: 30.2672, lng: -97.7431 },
+  "El Paso, TX": { lat: 31.7619, lng: -106.485 },
+  "Fort Worth, TX": { lat: 32.7555, lng: -97.3308 },
+  "Amarillo, TX": { lat: 35.222, lng: -101.8313 },
+  "Oklahoma City, OK": { lat: 35.4676, lng: -97.5164 },
+  "Tulsa, OK": { lat: 36.1539, lng: -95.9928 },
   "Kansas City, MO": { lat: 39.0997, lng: -94.5786 },
   "St. Louis, MO": { lat: 38.627, lng: -90.1994 },
+  "Wichita, KS": { lat: 37.6872, lng: -97.3301 },
+  "Omaha, NE": { lat: 41.2565, lng: -95.9345 },
+  "Lincoln, NE": { lat: 40.8258, lng: -96.6852 },
+  "Des Moines, IA": { lat: 41.5868, lng: -93.625 },
+  "Sioux Falls, SD": { lat: 43.5446, lng: -96.7313 },
+  "Fargo, ND": { lat: 46.8772, lng: -96.7898 },
+  "Minneapolis, MN": { lat: 44.9778, lng: -93.265 },
   "Chicago, IL": { lat: 41.8781, lng: -87.6298 },
   "Indianapolis, IN": { lat: 39.7684, lng: -86.1581 },
+  "Milwaukee, WI": { lat: 43.0389, lng: -87.9065 },
+  "Detroit, MI": { lat: 42.3314, lng: -83.0458 },
+  "Cleveland, OH": { lat: 41.4993, lng: -81.6944 },
+  "Columbus, OH": { lat: 39.9612, lng: -82.9988 },
+  "Cincinnati, OH": { lat: 39.1031, lng: -84.512 },
+  "Louisville, KY": { lat: 38.2527, lng: -85.7585 },
   "Nashville, TN": { lat: 36.1627, lng: -86.7816 },
+  "Memphis, TN": { lat: 35.1495, lng: -90.049 },
+  "Birmingham, AL": { lat: 33.5207, lng: -86.8025 },
+  "Jackson, MS": { lat: 32.2988, lng: -90.1848 },
+  "Little Rock, AR": { lat: 34.7465, lng: -92.2896 },
+  "New Orleans, LA": { lat: 29.9511, lng: -90.0715 },
+  "Baton Rouge, LA": { lat: 30.4515, lng: -91.1871 },
+  "Atlanta, GA": { lat: 33.749, lng: -84.388 },
+  "Charlotte, NC": { lat: 35.2271, lng: -80.8431 },
+  "Raleigh, NC": { lat: 35.7796, lng: -78.6382 },
+  "Charleston, SC": { lat: 32.7765, lng: -79.9311 },
+  "Columbia, SC": { lat: 34.0007, lng: -81.0348 },
+  "Jacksonville, FL": { lat: 30.3322, lng: -81.6557 },
+  "Miami, FL": { lat: 25.7617, lng: -80.1918 },
+  "Orlando, FL": { lat: 28.5383, lng: -81.3792 },
+  "Tampa, FL": { lat: 27.9506, lng: -82.4572 },
+  "Savannah, GA": { lat: 32.0809, lng: -81.0912 },
+  "Richmond, VA": { lat: 37.5407, lng: -77.436 },
+  "Norfolk, VA": { lat: 36.8508, lng: -76.2859 },
+  "Washington, DC": { lat: 38.9072, lng: -77.0369 },
+  "Baltimore, MD": { lat: 39.2904, lng: -76.6122 },
+  "Wilmington, DE": { lat: 39.7391, lng: -75.5398 },
+  "Philadelphia, PA": { lat: 39.9526, lng: -75.1652 },
+  "Pittsburgh, PA": { lat: 40.4406, lng: -79.9959 },
+  "Newark, NJ": { lat: 40.7357, lng: -74.1724 },
+  "New York, NY": { lat: 40.7128, lng: -74.006 },
+  "Buffalo, NY": { lat: 42.8864, lng: -78.8784 },
+  "Albany, NY": { lat: 42.6526, lng: -73.7562 },
+  "Hartford, CT": { lat: 41.7658, lng: -72.6734 },
+  "Boston, MA": { lat: 42.3601, lng: -71.0589 },
+  "Providence, RI": { lat: 41.824, lng: -71.4128 },
+  "Manchester, NH": { lat: 42.9956, lng: -71.4548 },
+  "Burlington, VT": { lat: 44.4759, lng: -73.2121 },
+  "Portland, ME": { lat: 43.6591, lng: -70.2568 },
+  "Charleston, WV": { lat: 38.3498, lng: -81.6326 },
 }
 
 const LOCATION_COORDS_LIST = LOCATIONS.map((name) => LOCATION_COORDINATES[name]!)
@@ -243,6 +368,43 @@ function getComplianceTier(driverIndex: number): { inNetworkPct: number; alwaysI
 }
 
 /**
+ * Target in-network % by location index so that for any date range the map shows
+ * all three colors: red (<50%), yellow (50–89%), green (≥90%).
+ * Uses index % 3 to scale to any number of locations: ~1/3 each band.
+ */
+function getLocationComplianceTarget(locationIndex: number): number {
+  const band = locationIndex % 3
+  if (band === 0) return 25
+  if (band === 1) return 65
+  return 95
+}
+
+/**
+ * Deterministic offset (lat, lng) per (stationBrand, location) so each location has distinct
+ * coordinates. Spreads points along N/S or E/W corridors (major highways). Large spread so
+ * dots stay visible at continental zoom and don't overlap.
+ */
+function getLocationCoordOffset(stationBrand: string, location: string): { lat: number; lng: number } {
+  const key = `${stationBrand}|${location}`
+  let h = 0
+  for (let j = 0; j < key.length; j++) h = (h * 31 + key.charCodeAt(j)) >>> 0
+  const h2 = (h * 17) >>> 0
+  const alongNS = (h % 2) === 0
+  const along = (h % 100) / 100
+  const across = (h2 % 100) / 100
+  if (alongNS) {
+    return {
+      lat: along * 0.8 - 0.4,
+      lng: across * 0.2 - 0.1,
+    }
+  }
+  return {
+    lat: across * 0.2 - 0.1,
+    lng: along * 1.0 - 0.5,
+  }
+}
+
+/**
  * Build fuel transactions from today's date going back 365 days.
  * Fleet has 16 drivers; each driver has 3 transactions per day.
  */
@@ -257,7 +419,8 @@ function buildFuelTransactions(): FuelTransaction[] {
     if (date.getTime() > now.getTime()) continue
     for (let driverIndex = 0; driverIndex < NUM_FLEET_DRIVERS; driverIndex++) {
       for (let k = 0; k < TRANSACTIONS_PER_DRIVER_PER_DAY; k++) {
-      const location = LOCATIONS[i % LOCATIONS.length]
+      const locationIndex = i % LOCATIONS.length
+      const location = LOCATIONS[locationIndex]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
       const fuelType = k < FUEL_TYPES.length ? FUEL_TYPES[k] : FUEL_TYPE_SEQUENCE[i % 10]
       const gallons = Math.round((80 + (i % 121)) * 10) / 10
@@ -279,27 +442,29 @@ function buildFuelTransactions(): FuelTransaction[] {
       const txnDate = new Date(date)
       txnDate.setHours(6 + ((i + k) % 14), ((i + k) % 4) * 15, 0, 0)
 
-      /** Driver-based compliance: fully compliant, high, or outlier. Deterministic roll per txn. */
-      const tier = getComplianceTier(driverIndex)
+      /** Location-based compliance band so any date range shows red/yellow/green on the map; roll keeps it deterministic. */
+      const locationTargetPct = getLocationComplianceTarget(locationIndex)
       const roll = (i * 13 + daysAgo * 17 + k * 7) % 100
-      const inNetwork = tier.alwaysInNetwork || roll < tier.inNetworkPct
+      const inNetwork = roll < locationTargetPct
       const stationBrand = inNetwork
         ? IN_NETWORK_BRANDS[(i + daysAgo + k) % IN_NETWORK_BRANDS.length]
         : OUT_OF_NETWORK_BRANDS[(i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
+      const offset = getLocationCoordOffset(stationBrand, location)
+      const lat = coords.lat + offset.lat
+      const lng = coords.lng + offset.lng
       const hasBetterOption = !noOverpaid && !inNetwork
       const betterOptionStation = IN_NETWORK_BRANDS[i % IN_NETWORK_BRANDS.length]
       const differentStation = betterOptionStation !== stationBrand
-      // Scale potential savings by non-compliance so low-compliance drivers have notably higher missed savings
       const baseSavings = hasBetterOption && differentStation ? 8 + (i % 38) : 0
-      const complianceMultiplier = tier.alwaysInNetwork ? 0 : (100 - tier.inNetworkPct) / 100
+      const complianceMultiplier = inNetwork ? 0 : 1
       const potentialSavings = Math.round(baseSavings * complianceMultiplier)
       const discount = 0.05 + (i % 4) * 0.008
       const betterPrice = hasBetterOption
         ? Math.round((pricePerGallon * (1 - discount)) * 100) / 100
         : pricePerGallon
       const distanceMiles = hasBetterOption ? 2 + (i % 12) : 0
-      const betterLat = coords.lat + (i % 3) * 0.08 - 0.08
-      const betterLng = coords.lng + (i % 2) * 0.1 - 0.05
+      const betterLat = lat + (i % 3) * 0.08 - 0.08
+      const betterLng = lng + (i % 2) * 0.1 - 0.05
 
       const txn: FuelTransaction = {
         id: `txn-${i + 1}`,
@@ -315,8 +480,8 @@ function buildFuelTransactions(): FuelTransaction[] {
         savedAmount,
         variance,
         alert,
-        lat: coords.lat,
-        lng: coords.lng,
+        lat,
+        lng,
         inNetwork,
       }
       if (hasBetterOption && differentStation && potentialSavings > 0) {

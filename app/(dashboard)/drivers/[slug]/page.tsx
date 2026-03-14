@@ -525,6 +525,7 @@ export default function DriverDetailPage() {
             transactions={dateFilteredTransactions}
             maxRows={100}
             hideDriverColumn
+            emptyTitle="No transactions in this range"
             emptyDescription="Change the date range to see transactions."
             groupByStation={false}
             selectedTransactionId={selectedTransactionId}

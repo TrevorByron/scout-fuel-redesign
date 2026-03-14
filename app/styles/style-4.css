@@ -96,6 +96,13 @@ html[data-style="4"] [data-sidebar="menu-button"][data-active] {
   color: var(--primary);
 }
 
+/* Style 4: selected sidebar menu item – dark mode: light pill, dark text (not primary) */
+html[data-style="4"].dark [data-slot="sidebar-menu-button"][data-active],
+html[data-style="4"].dark [data-sidebar="menu-button"][data-active] {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--sidebar-primary-foreground);
+}
+
 /* Style 4: sidebar menu item hover – white 30% opacity, keep default text color */
 html[data-style="4"] [data-slot="sidebar-menu-button"]:hover:not([data-active]),
 html[data-style="4"] [data-sidebar="menu-button"]:hover:not([data-active]) {

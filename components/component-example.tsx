@@ -405,7 +405,7 @@ function FormExample() {
                   <FieldLabel htmlFor="small-form-name">Name</FieldLabel>
                   <Input
                     id="small-form-name"
-                    placeholder="Enter your name"
+                    placeholder="Jane Doe"
                     required
                   />
                 </Field>
@@ -438,7 +438,10 @@ function FormExample() {
                     required
                   />
                   <ComboboxContent>
-                    <ComboboxEmpty>No frameworks found.</ComboboxEmpty>
+                    <ComboboxEmpty>
+                      <span className="font-medium text-foreground">No frameworks found</span>
+                      <span className="block text-muted-foreground text-xs mt-0.5">Try a different search.</span>
+                    </ComboboxEmpty>
                     <ComboboxList>
                       {(item) => (
                         <ComboboxItem key={item} value={item}>
@@ -453,11 +456,11 @@ function FormExample() {
                 <FieldLabel htmlFor="small-form-comments">Comments</FieldLabel>
                 <Textarea
                   id="small-form-comments"
-                  placeholder="Add any additional comments"
+                  placeholder="Tell us more"
                 />
               </Field>
               <Field orientation="horizontal">
-                <Button type="submit">Submit</Button>
+                <Button type="submit">Save</Button>
                 <Button variant="outline" type="button">
                   Cancel
                 </Button>

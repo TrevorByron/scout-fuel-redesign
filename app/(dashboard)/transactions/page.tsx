@@ -834,7 +834,8 @@ export default function TransactionsPage() {
           <FuelTransactionTable
             transactions={filtered}
             maxRows={50}
-            emptyDescription="No transactions match your filters. Try a broader date range or different filters."
+            emptyTitle="No transactions match your filters"
+            emptyDescription="Try a broader date range or different filters."
           />
         </CardContent>
       </Card>
