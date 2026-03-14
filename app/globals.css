@@ -138,6 +138,11 @@
     --chart-4: var(--color-chart-4);
     --chart-5: var(--color-chart-5);
   }
+  /* Fleet optimization gauge: needle + pivot so production matches dev (avoids purge) */
+  .semicircle-gauge .pointer path,
+  .semicircle-gauge .pointer circle {
+    fill: var(--gauge-pointer);
+  }
   .maplibregl-popup-content {
     @apply bg-transparent! shadow-none! p-0! rounded-none!;
   }
