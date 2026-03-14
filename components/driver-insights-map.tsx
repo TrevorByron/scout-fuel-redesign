@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import type MapLibreGL from "maplibre-gl"
 import {
   Map,
   MapClusterLayer,
@@ -118,7 +119,7 @@ function MapClickDeselect({
   React.useEffect(() => {
     if (!isLoaded || !map || !isFocused) return
 
-    const handleClick = (e: { point: { x: number; y: number } }) => {
+    const handleClick = (e: MapLibreGL.MapMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point)
       if (features.length === 0) onDeselect()
     }

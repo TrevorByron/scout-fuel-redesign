@@ -506,7 +506,7 @@ export default function LocationInsightsPage() {
             <Label htmlFor="state-filter" className="text-xs font-medium text-muted-foreground">
               State
             </Label>
-            <Select value={stateFilter || "All states"} onValueChange={(v) => setStateFilter(v === "All states" ? "" : v)}>
+            <Select value={stateFilter || "All states"} onValueChange={(v) => setStateFilter(v === "All states" ? "" : (v ?? ""))}>
               <SelectTrigger id="state-filter" className="h-9 w-full">
                 <SelectValue placeholder="All states" />
               </SelectTrigger>
@@ -524,7 +524,7 @@ export default function LocationInsightsPage() {
             <Label htmlFor="city-filter" className="text-xs font-medium text-muted-foreground">
               City
             </Label>
-            <Select value={cityFilter || "All cities"} onValueChange={(v) => setCityFilter(v === "All cities" ? "" : v)}>
+            <Select value={cityFilter || "All cities"} onValueChange={(v) => setCityFilter(v === "All cities" ? "" : (v ?? ""))}>
               <SelectTrigger id="city-filter" className="h-9 w-full">
                 <SelectValue placeholder="All cities" />
               </SelectTrigger>

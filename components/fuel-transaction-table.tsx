@@ -381,7 +381,7 @@ function TransactionRow({
                 variant="secondary"
                 className="cursor-pointer font-mono tabular-nums text-[var(--text-2xs)] border-destructive/30 bg-destructive/10 text-destructive"
               >
-                ${t.betterOption.potentialSavings.toFixed(2)}
+                ${(t.betterOption?.potentialSavings ?? 0).toFixed(2)}
               </Badge>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-auto p-0">
