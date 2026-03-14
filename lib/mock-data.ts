@@ -247,15 +247,21 @@ const FUEL_TYPE_SEQUENCE: FuelType[] = [
   "Diesel", "Diesel", "Reefer", "Reefer", "DEF",
 ]
 
-/** Build fuel transactions with at least one transaction every day for the past 365 days. */
+/**
+ * Build fuel transactions from today's date going back 365 days.
+ * Anchor is always start of today (midnight); only past and today are generated, never future dates.
+ * More transactions per day for recent days (today and this week) so dashboards stay full.
+ */
 function buildFuelTransactions(): FuelTransaction[] {
   const now = new Date()
   const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const list: FuelTransaction[] = []
   let i = 0
   for (let daysAgo = 0; daysAgo <= 365; daysAgo++) {
-    // 1–3 transactions per day; ensure today (daysAgo 0) always has several so "Today" view is full
-    const count = daysAgo === 0 ? 3 : 1 + (daysAgo % 3)
+    const date = new Date(anchor)
+    date.setDate(date.getDate() - daysAgo)
+    if (date.getTime() > now.getTime()) continue
+    const count = daysAgo === 0 ? 5 : 3 + (daysAgo % 2)
     for (let j = 0; j < count; j++) {
       const location = LOCATIONS[i % LOCATIONS.length]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
@@ -272,9 +278,8 @@ function buildFuelTransactions(): FuelTransaction[] {
       const variance = Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
       const alert = variance < -15
 
-      const date = new Date(anchor)
-      date.setDate(date.getDate() - daysAgo)
-      date.setHours(6 + ((i + j) % 14), ((i + j) % 4) * 15, 0, 0)
+      const txnDate = new Date(date)
+      txnDate.setHours(6 + ((i + j) % 14), ((i + j) % 4) * 15, 0, 0)
 
       const stationBrand = STATION_BRANDS[i % STATION_BRANDS.length]
       const inNetwork = (IN_NETWORK_BRANDS as readonly string[]).includes(stationBrand)
@@ -292,7 +297,7 @@ function buildFuelTransactions(): FuelTransaction[] {
 
       const txn: FuelTransaction = {
         id: `txn-${i + 1}`,
-        dateTime: date.toISOString(),
+        dateTime: txnDate.toISOString(),
         driverName: DRIVER_NAMES[i % 45],
         truckId: `T${String((i % 45) + 1).padStart(3, "0")}`,
         location,
