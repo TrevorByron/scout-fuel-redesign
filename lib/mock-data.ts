@@ -249,12 +249,13 @@ const FUEL_TYPE_SEQUENCE: FuelType[] = [
 
 /** Build fuel transactions with at least one transaction every day for the past 365 days. */
 function buildFuelTransactions(): FuelTransaction[] {
-  const anchor = new Date(2026, 2, 6) // March 6, 2026 — match TODAY_DATE in spending chart
+  const now = new Date()
+  const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const list: FuelTransaction[] = []
   let i = 0
   for (let daysAgo = 0; daysAgo <= 365; daysAgo++) {
-    // 1–3 transactions per day so every day has activity and charts look full
-    const count = 1 + (daysAgo % 3)
+    // 1–3 transactions per day; ensure today (daysAgo 0) always has several so "Today" view is full
+    const count = daysAgo === 0 ? 3 : 1 + (daysAgo % 3)
     for (let j = 0; j < count; j++) {
       const location = LOCATIONS[i % LOCATIONS.length]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }

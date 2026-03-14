@@ -9,6 +9,7 @@ import {
   fuelTransactions,
   fuelPriceHistory,
   type FuelPricePoint,
+  type FuelTransaction,
 } from "@/lib/mock-data"
 import { getFleetGrade } from "@/lib/fuelScore"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
@@ -206,9 +207,9 @@ function brandKey(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "")
 }
 
-function buildChainData() {
+function buildChainData(transactions: FuelTransaction[]) {
   const map = new Map<string, number>()
-  for (const t of fuelTransactions) {
+  for (const t of transactions) {
     map.set(t.stationBrand, (map.get(t.stationBrand) ?? 0) + t.gallons)
   }
   const sorted = [...map.entries()].sort((a, b) => b[1] - a[1])
@@ -232,8 +233,6 @@ function buildChainData() {
   return { data, config, total: data.reduce((s, d) => s + d.gallons, 0) }
 }
 
-const chainChartData = buildChainData()
-
 const PRESETS = [
   { label: "Last 7 days", days: 7 },
   { label: "Last 30 days", days: 30 },
@@ -247,6 +246,25 @@ function getPresetRange(days: number): DateRange {
   return { from, to }
 }
 
+function getTodayRange(): DateRange {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return { from: startOfToday, to: startOfToday }
+}
+
+function getThisWeekRange(): DateRange {
+  const to = new Date()
+  const from = new Date(to)
+  from.setDate(to.getDate() - to.getDay())
+  return { from, to }
+}
+
+function getThisMonthRange(): DateRange {
+  const to = new Date()
+  const from = new Date(to.getFullYear(), to.getMonth(), 1)
+  return { from, to }
+}
+
 function formatRangeLabel(range: DateRange | undefined): string {
   if (!range?.from) return "Pick a date range"
   const fmt = (d: Date) =>
@@ -255,31 +273,98 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
+function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
+  if (!range?.from) return false
+  const fromStr = range.from.toDateString()
+  const toStr = (range.to ?? range.from).toDateString()
+  if (preset === "today") {
+    const todayStr = new Date().toDateString()
+    return fromStr === todayStr && toStr === todayStr
+  }
+  if (preset === "week") {
+    const week = getThisWeekRange()
+    return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
+  }
+  if (preset === "month") {
+    const month = getThisMonthRange()
+    return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
+  }
+  return false
+}
+
+/** Comparison period label and range for trend badges. Reflects the selected date range above. */
+function getComparisonPeriod(dateRange: DateRange | undefined): { label: string; range: DateRange } | null {
+  if (!dateRange?.from) return null
+  const to = dateRange.to ?? dateRange.from
+  if (rangeMatches(dateRange, "today")) {
+    const yesterday = new Date(to)
+    yesterday.setDate(yesterday.getDate() - 1)
+    return { label: "yesterday", range: { from: yesterday, to: yesterday } }
+  }
+  if (rangeMatches(dateRange, "week")) {
+    const weekEnd = new Date(to)
+    weekEnd.setDate(weekEnd.getDate() + 1)
+    const prevWeekEnd = new Date(weekEnd)
+    prevWeekEnd.setDate(prevWeekEnd.getDate() - 7)
+    const prevWeekStart = new Date(prevWeekEnd)
+    prevWeekStart.setDate(prevWeekStart.getDate() - 6)
+    return { label: "last week", range: { from: prevWeekStart, to: prevWeekEnd } }
+  }
+  if (rangeMatches(dateRange, "month")) {
+    const prevMonthEnd = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), 0)
+    const prevMonthStart = new Date(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), 1)
+    return { label: "last month", range: { from: prevMonthStart, to: prevMonthEnd } }
+  }
+  const fromMs = dateRange.from.getTime()
+  const toMs = to.getTime()
+  const spanMs = toMs - fromMs + 86400000
+  const prevTo = new Date(fromMs - 86400000)
+  const prevFrom = new Date(prevTo.getTime() - spanMs + 86400000)
+  return { label: "previous period", range: { from: prevFrom, to: prevTo } }
+}
+
+function isInDateRange(t: FuelTransaction, range: DateRange | undefined): boolean {
+  if (!range?.from) return true
+  const tDate = new Date(t.dateTime).getTime()
+  if (tDate < range.from.getTime()) return false
+  const toEnd = range.to ? range.to.getTime() + 86400000 : range.from.getTime() + 86400000
+  if (tDate > toEnd) return false
+  return true
+}
+
+/** Amount overpaid: could have gotten same fuel for less. Uses betterOption.potentialSavings when available (better location on route), else |variance|. */
+function getOverpaidAmount(t: FuelTransaction): number {
+  if (t.betterOption?.potentialSavings != null && t.betterOption.potentialSavings > 0) {
+    return t.betterOption.potentialSavings
+  }
+  if (t.variance < 0) return Math.abs(t.variance)
+  return 0
+}
+
 export default function DashboardPage() {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
     getPresetRange(30)
   )
 
-  const recentTxns = React.useMemo(() => {
-    return fuelTransactions
-      .filter((t) => {
-        if (t.inNetwork) return false
-        const tDate = new Date(t.dateTime).getTime()
-        if (dateRange?.from && tDate < dateRange.from.getTime()) return false
-        if (dateRange?.to && tDate > dateRange.to.getTime() + 86400000) return false
-        return true
-      })
-      .slice(0, 10)
+  const filteredByDateTransactions = React.useMemo(() => {
+    return fuelTransactions.filter((t) => isInDateRange(t, dateRange))
   }, [dateRange])
+
+  /** Transactions in range where they could have paid less (better location or optimal price). Same pool as Overpaid card. */
+  const attentionTxns = React.useMemo(
+    () => filteredByDateTransactions.filter((t) => getOverpaidAmount(t) > 0),
+    [filteredByDateTransactions]
+  )
+  const recentTxns = React.useMemo(() => attentionTxns.slice(0, 10), [attentionTxns])
 
   const kpis = React.useMemo(() => {
     const byType = (type: "Diesel" | "Reefer" | "DEF") =>
-      fuelTransactions.filter((t) => t.fuelType === type)
+      filteredByDateTransactions.filter((t) => t.fuelType === type)
 
-    const avgCost = (txns: typeof fuelTransactions) =>
+    const avgCost = (txns: FuelTransaction[]) =>
       txns.length ? txns.reduce((s, t) => s + t.pricePerGallon, 0) / txns.length : 0
 
-    const avgSavingsPerGal = (txns: typeof fuelTransactions) =>
+    const avgSavingsPerGal = (txns: FuelTransaction[]) =>
       txns.length
         ? txns.reduce((s, t) => s + t.savedAmount / t.gallons, 0) / txns.length
         : 0
@@ -289,86 +374,82 @@ export default function DashboardPage() {
     const defTxns = byType("DEF")
 
     return {
-      totalGallons: fuelTransactions.reduce((s, t) => s + t.gallons, 0),
+      totalGallons: filteredByDateTransactions.reduce((s, t) => s + t.gallons, 0),
       gallonsByType: {
         Diesel: dieselTxns.reduce((s, t) => s + t.gallons, 0),
         Reefer: reeferTxns.reduce((s, t) => s + t.gallons, 0),
         DEF: defTxns.reduce((s, t) => s + t.gallons, 0),
       },
-      avgCostAll: avgCost(fuelTransactions),
+      avgCostAll: avgCost(filteredByDateTransactions),
       avgCostByType: {
         Diesel: avgCost(dieselTxns),
         Reefer: avgCost(reeferTxns),
         DEF: avgCost(defTxns),
       },
-      avgSavingsAll: avgSavingsPerGal(fuelTransactions),
+      avgSavingsAll: avgSavingsPerGal(filteredByDateTransactions),
       avgSavingsByType: {
         Diesel: avgSavingsPerGal(dieselTxns),
         Reefer: avgSavingsPerGal(reeferTxns),
         DEF: avgSavingsPerGal(defTxns),
       },
-      totalSavings: fuelTransactions.reduce((s, t) => s + t.savedAmount, 0),
+      totalSavings: filteredByDateTransactions.reduce((s, t) => s + t.savedAmount, 0),
       savingsByType: {
         Diesel: dieselTxns.reduce((s, t) => s + t.savedAmount, 0),
         Reefer: reeferTxns.reduce((s, t) => s + t.savedAmount, 0),
         DEF: defTxns.reduce((s, t) => s + t.savedAmount, 0),
       },
-      totalSpent: fuelTransactions.reduce((s, t) => s + t.totalCost, 0),
+      totalSpent: filteredByDateTransactions.reduce((s, t) => s + t.totalCost, 0),
       spentByType: {
         Diesel: dieselTxns.reduce((s, t) => s + t.totalCost, 0),
         Reefer: reeferTxns.reduce((s, t) => s + t.totalCost, 0),
         DEF: defTxns.reduce((s, t) => s + t.totalCost, 0),
       },
     }
-  }, [])
+  }, [filteredByDateTransactions])
+
+  const chainChartData = React.useMemo(
+    () => buildChainData(filteredByDateTransactions),
+    [filteredByDateTransactions]
+  )
 
   const fleetScoreProps = React.useMemo(() => {
-    const total = fuelTransactions.length
-    // Example/demo: use C+ range (67%) so cards show a realistic mid-tier score
-    const complianceRate = 67
+    const total = filteredByDateTransactions.length
+    // Optimization score: TBD formula to include in-network vs out-of-network AND better location on route within tank range
+    const inNetworkCount = filteredByDateTransactions.filter((t) => t.inNetwork).length
+    const complianceRate =
+      total > 0 ? Math.round((inNetworkCount / total) * 100) : 0
     const fullGrade = getFleetGrade(complianceRate)
     const gradeMatch = fullGrade.match(/^([A-F])([+-])?$/)
     const grade = gradeMatch ? gradeMatch[1] : "F"
     const gradeSuffix = gradeMatch?.[2]
 
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const computedMissedSavings = Math.round(
-      fuelTransactions
-        .filter(
-          (t) =>
-            !t.inNetwork &&
-            t.betterOption &&
-            new Date(t.dateTime).getTime() >= sevenDaysAgo.getTime()
-        )
-        .reduce((sum, t) => sum + (t.betterOption?.potentialSavings ?? 0), 0)
-    )
-    // When transaction-based value is 0 or low, use an estimate so at ~30% compliance we show ~$4,543 missed
-    const missedSavings =
-      computedMissedSavings > 0
-        ? computedMissedSavings
-        : Math.round((4543 * (100 - complianceRate)) / 70)
+    /** Same as attentionTxns: could have paid less (betterOption or variance). Overpaid $ = sum of getOverpaidAmount(t). */
+    const overpaidTxns = filteredByDateTransactions.filter((t) => getOverpaidAmount(t) > 0)
+    const rawSum = overpaidTxns.reduce((sum, t) => sum + getOverpaidAmount(t), 0)
+    const overpaidFillUpCount = overpaidTxns.length
+    const overpaidDriverCount = new Set(overpaidTxns.map((t) => t.driverName)).size
+    /** When there are overpaid fill-ups, always show at least $1 so we never show "No missed savings" with "Across N fill-ups". */
+    const missedSavings = overpaidFillUpCount > 0 ? Math.max(1, Math.round(rawSum)) : Math.round(rawSum)
 
-    // Trend: this week's missed savings vs same window last month (e.g. 30–37 days ago)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtySevenDaysAgo = new Date()
-    thirtySevenDaysAgo.setDate(thirtySevenDaysAgo.getDate() - 37)
-    const lastMonthMissedSavings = Math.round(
-      fuelTransactions
-        .filter((t) => {
-          if (!t.inNetwork && t.betterOption) {
-            const tTime = new Date(t.dateTime).getTime()
-            return tTime >= thirtySevenDaysAgo.getTime() && tTime < thirtyDaysAgo.getTime()
-          }
-          return false
-        })
-        .reduce((sum, t) => sum + (t.betterOption?.potentialSavings ?? 0), 0)
-    )
-    const missedSavingsTrendFromLastMonth =
-      lastMonthMissedSavings > 0
-        ? missedSavings - lastMonthMissedSavings
-        : Math.round(missedSavings * -0.12)
+    const comparison = getComparisonPeriod(dateRange)
+    const prevOverpaid = comparison
+      ? Math.round(
+          fuelTransactions
+            .filter((t) => isInDateRange(t, comparison.range))
+            .filter((t) => getOverpaidAmount(t) > 0)
+            .reduce((sum, t) => sum + getOverpaidAmount(t), 0)
+        )
+      : 0
+    const trendLabel = comparison ? `from ${comparison.label}` : "from last month"
+    const missedSavingsTrend = comparison ? missedSavings - prevOverpaid : Math.round(missedSavings * -0.12)
+
+    const prevPeriodTxns = comparison
+      ? fuelTransactions.filter((t) => isInDateRange(t, comparison.range))
+      : []
+    const prevInNetwork = prevPeriodTxns.filter((t) => t.inNetwork).length
+    const prevComplianceRate =
+      prevPeriodTxns.length > 0 ? Math.round((prevInNetwork / prevPeriodTxns.length) * 100) : complianceRate
+    const optimizationTrend = comparison ? complianceRate - prevComplianceRate : undefined
 
     const trendData = [...fleetScoreCardMock.trendData]
     if (trendData.length > 0) trendData[trendData.length - 1] = { ...trendData[trendData.length - 1]!, value: complianceRate }
@@ -383,12 +464,16 @@ export default function DashboardPage() {
       targetGrade: fleetScoreCardMock.targetGrade,
       targetDate: fleetScoreCardMock.targetDate,
       missedSavings,
-      missedSavingsTrendFromLastMonth,
+      overpaidFillUpCount,
+      overpaidDriverCount,
+      missedSavingsTrend,
+      trendLabel,
+      optimizationTrend,
       targetCompliancePercent: 80,
       additionalSavingsAtTarget: 8200,
       trendData,
     }
-  }, [])
+  }, [filteredByDateTransactions, dateRange])
 
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -402,36 +487,62 @@ export default function DashboardPage() {
             View fleet activity, fuel spend, and price trends at a glance.
           </p>
         </div>
-        <Popover>
-          <PopoverTrigger
-            render={<Button variant="outline" className="h-9 gap-2 text-sm font-normal" />}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={rangeMatches(dateRange, "today") ? "secondary" : "outline"}
+            size="sm"
+            className="h-9 text-sm font-normal"
+            onClick={() => setDateRange(getTodayRange())}
           >
-            <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="size-4 text-muted-foreground" />
-            {formatRangeLabel(dateRange)}
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <div className="flex gap-1 border-b px-3 py-2">
-              {PRESETS.map((p) => (
-                <Button
-                  key={p.days}
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setDateRange(getPresetRange(p.days))}
-                >
-                  {p.label}
-                </Button>
-              ))}
-            </div>
-            <Calendar
-              mode="range"
-              selected={dateRange}
-              onSelect={setDateRange}
-              numberOfMonths={2}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+            Today
+          </Button>
+          <Button
+            variant={rangeMatches(dateRange, "week") ? "secondary" : "outline"}
+            size="sm"
+            className="h-9 text-sm font-normal"
+            onClick={() => setDateRange(getThisWeekRange())}
+          >
+            This Week
+          </Button>
+          <Button
+            variant={rangeMatches(dateRange, "month") ? "secondary" : "outline"}
+            size="sm"
+            className="h-9 text-sm font-normal"
+            onClick={() => setDateRange(getThisMonthRange())}
+          >
+            This Month
+          </Button>
+          <Popover>
+            <PopoverTrigger
+              render={<Button variant="outline" className="h-9 gap-2 text-sm font-normal" />}
+            >
+              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="size-4 text-muted-foreground" />
+              {formatRangeLabel(dateRange)}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="flex gap-1 border-b px-3 py-2">
+                {PRESETS.map((p) => (
+                  <Button
+                    key={p.days}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setDateRange(getPresetRange(p.days))}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Optimization gauge + Money on the table */}
@@ -439,29 +550,22 @@ export default function DashboardPage() {
         <OptimizationGaugeCard
           size="sm"
           value={fleetScoreProps.complianceRate}
-          trendFromLastMonth={
-            fleetScoreProps.trendData.length >= 2
-              ? Math.round(
-                  (fleetScoreProps.trendData[fleetScoreProps.trendData.length - 1]!.value -
-                    fleetScoreProps.trendData[fleetScoreProps.trendData.length - 2]!.value) *
-                    10
-                ) / 10
-              : undefined
-          }
+          trendFromLastMonth={fleetScoreProps.optimizationTrend}
+          trendLabel={fleetScoreProps.trendLabel}
         />
         <Card size="sm">
           <CardHeader className="pb-1">
             <CardTitle className="text-base">Overpaid on fuel</CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1.5 font-medium tabular-nums">
-                {fleetScoreProps.missedSavingsTrendFromLastMonth === 0
-                  ? "No change from last month"
-                  : `${fleetScoreProps.missedSavingsTrendFromLastMonth > 0 ? "+" : "-"}$${Math.abs(fleetScoreProps.missedSavingsTrendFromLastMonth).toLocaleString("en-US", { maximumFractionDigits: 0 })} from last month`}
+                {fleetScoreProps.missedSavingsTrend === 0
+                  ? `No change ${fleetScoreProps.trendLabel}`
+                  : `${fleetScoreProps.missedSavingsTrend > 0 ? "+" : "-"}$${Math.abs(fleetScoreProps.missedSavingsTrend).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${fleetScoreProps.trendLabel}`}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col justify-center gap-2">
-            {fleetScoreProps.missedSavings > 0 ? (
+            {fleetScoreProps.missedSavings > 0 || fleetScoreProps.overpaidFillUpCount > 0 ? (
               <>
                 <p
                   className={
@@ -477,11 +581,11 @@ export default function DashboardPage() {
               </>
             ) : (
               <p className="text-sm leading-relaxed text-muted-foreground">
-                No missed savings this week from non-compliant fill-ups.
+                No missed savings in this period; all fill-ups were at or better than optimal.
               </p>
             )}
             <p className="text-center text-sm font-normal text-muted-foreground">
-              Across 14 fill-ups from 6 drivers
+              Across {fleetScoreProps.overpaidFillUpCount} fill-up{fleetScoreProps.overpaidFillUpCount === 1 ? "" : "s"} from {fleetScoreProps.overpaidDriverCount} driver{fleetScoreProps.overpaidDriverCount === 1 ? "" : "s"}
             </p>
           </CardContent>
         </Card>
@@ -708,14 +812,14 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 Transactions that need attention
-                {recentTxns.length > 0 && (
+                {attentionTxns.length > 0 && (
                   <Badge variant="secondary" className="font-normal tabular-nums">
-                    {recentTxns.length} to review
+                    {attentionTxns.length} to review
                   </Badge>
                 )}
               </CardTitle>
               <CardDescription>
-                Review recent out-of-network transactions and approve or flag issues.
+                Review transactions where you could have saved by using the optimized location.
               </CardDescription>
             </div>
             <Link
@@ -731,7 +835,7 @@ export default function DashboardPage() {
               transactions={recentTxns}
               maxRows={10}
               emptyTitle="No transactions needing attention"
-              emptyDescription="All recent transactions are in network or efficient."
+              emptyDescription="No savings opportunity in this period; all fill-ups were at or better than optimal."
               emptyAction={
                 <Link
                   href="/transactions"

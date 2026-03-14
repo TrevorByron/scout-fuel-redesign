@@ -15,8 +15,10 @@ const GaugeComponent = dynamic(
 
 export interface OptimizationGaugeCardProps {
   value: number
-  /** Optional trend vs last month (e.g. 12.5 for "+12.5% from last month"). */
+  /** Optional trend vs comparison period (e.g. 12.5 for "+12.5% from last month"). */
   trendFromLastMonth?: number
+  /** Label for the trend, e.g. "from yesterday", "from last week", "from last month". Default "from last month". */
+  trendLabel?: string
   /** Card size: "sm" reduces padding and gap. */
   size?: "default" | "sm"
 }
@@ -40,6 +42,7 @@ function gaugeSegmentColorClass(pct: number): string {
 export function OptimizationGaugeCard({
   value,
   trendFromLastMonth,
+  trendLabel = "from last month",
   size = "default",
 }: OptimizationGaugeCardProps) {
   const pct = clamp(value)
@@ -58,7 +61,7 @@ export function OptimizationGaugeCard({
                 className="size-3"
               />
               {trendFromLastMonth >= 0 ? "+" : ""}
-              {trendFromLastMonth}% from last month
+              {trendFromLastMonth}% {trendLabel}
             </Badge>
           </CardAction>
         )}
