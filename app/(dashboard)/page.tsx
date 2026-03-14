@@ -283,10 +283,12 @@ function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "
   }
   if (preset === "week") {
     const week = getThisWeekRange()
+    if (!week.from || !week.to) return false
     return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
   }
   if (preset === "month") {
     const month = getThisMonthRange()
+    if (!month.from || !month.to) return false
     return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
   }
   return false
