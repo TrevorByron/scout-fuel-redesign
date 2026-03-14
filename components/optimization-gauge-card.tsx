@@ -89,7 +89,7 @@ export function OptimizationGaugeCard({
       <CardContent className="flex flex-1 flex-col items-center justify-center pt-0">
         <figure className="-mt-1 mx-auto flex w-full min-w-0 max-w-[340px] flex-col items-center" aria-labelledby="optimization-gauge-label">
           <div
-            className="min-w-0 w-full max-w-[340px] h-fit pb-0 [&_.semicircle-gauge]:pb-0 [&_.semicircle-gauge]:overflow-visible"
+            className="min-w-0 w-full max-w-[340px] h-fit pb-0 [&_.semicircle-gauge]:pb-0 [&_.semicircle-gauge]:overflow-visible [&_.semicircle-gauge_circle]:fill-[var(--gauge-pointer)]"
             aria-hidden
           >
             <GaugeComponent
@@ -113,7 +113,7 @@ export function OptimizationGaugeCard({
               pointer={{
                 type: "needle",
                 length: 0.8,
-                width: 2,
+                width: 4,
                 color: "var(--gauge-pointer)",
                 baseColor: "var(--gauge-pointer)",
               }}
