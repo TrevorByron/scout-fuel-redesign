@@ -3,9 +3,10 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ChartUpIcon, ChartDownIcon } from "@hugeicons/core-free-icons"
+import { ChartUpIcon, ChartDownIcon, InformationCircleIcon } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 const GaugeComponent = dynamic(
@@ -51,7 +52,25 @@ export function OptimizationGaugeCard({
   return (
     <Card size={size}>
       <CardHeader className="pb-1">
-        <CardTitle className="text-base">Fleet optimization</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-base">Fleet optimization</CardTitle>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  className="inline-flex shrink-0 rounded text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="What is fleet optimization?"
+                >
+                  <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" strokeWidth={2} />
+                </button>
+              }
+            />
+            <TooltipContent side="top">
+              Percentage of fill-ups at optimized locations
+            </TooltipContent>
+          </Tooltip>
+        </div>
         {trendFromLastMonth != null && (
           <CardAction>
             <Badge variant="outline" className="gap-1.5 font-medium tabular-nums">

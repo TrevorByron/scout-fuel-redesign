@@ -246,6 +246,7 @@ const FUEL_TYPE_SEQUENCE: FuelType[] = [
   "Diesel", "Diesel", "Diesel", "Diesel", "Diesel",
   "Diesel", "Diesel", "Reefer", "Reefer", "DEF",
 ]
+const FUEL_TYPES: FuelType[] = ["Diesel", "Reefer", "DEF"]
 
 /**
  * Build fuel transactions from today's date going back 365 days.
@@ -265,15 +266,15 @@ function buildFuelTransactions(): FuelTransaction[] {
     for (let j = 0; j < count; j++) {
       const location = LOCATIONS[i % LOCATIONS.length]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
-      const fuelType = FUEL_TYPE_SEQUENCE[i % 10]
+      const fuelType = j < FUEL_TYPES.length ? FUEL_TYPES[j] : FUEL_TYPE_SEQUENCE[i % 10]
       const gallons = Math.round((80 + (i % 121)) * 10) / 10
-      const pricePerGallon = Math.round((320 + (i % 130)) / 100) / 100
+      const pricePerGallon = Math.round((380 + (i % 100)) * 100) / 10000
       const totalCost = Math.round(gallons * pricePerGallon * 100) / 100
-      const discountPct =
-        fuelType === "Diesel" ? 0.04 + (i % 5) * 0.008
-        : fuelType === "Reefer" ? 0.05 + (i % 5) * 0.01
-        : 0.02 + (i % 4) * 0.005
-      const savedAmount = Math.round(totalCost * discountPct * 100) / 100
+      const savingsPerGallon =
+        fuelType === "Diesel" ? 0.12 + (i % 5) * 0.01
+        : fuelType === "Reefer" ? 0.14 + (i % 5) * 0.01
+        : 0.08 + (i % 4) * 0.01
+      const savedAmount = Math.round(gallons * savingsPerGallon * 100) / 100
       const optimalPrice = pricePerGallon * 0.97
       const variance = Math.round((optimalPrice - pricePerGallon) * gallons * 100) / 100
       const alert = variance < -15
@@ -286,7 +287,7 @@ function buildFuelTransactions(): FuelTransaction[] {
       const hasBetterOption = i < 200 && !inNetwork
       const betterOptionStation = IN_NETWORK_BRANDS[i % IN_NETWORK_BRANDS.length]
       const differentStation = betterOptionStation !== stationBrand
-      const potentialSavings = hasBetterOption && differentStation ? 5 + (i % 25) : 0
+      const potentialSavings = hasBetterOption && differentStation ? 8 + (i % 38) : 0
       const discount = 0.05 + (i % 4) * 0.008
       const betterPrice = hasBetterOption
         ? Math.round((pricePerGallon * (1 - discount)) * 100) / 100

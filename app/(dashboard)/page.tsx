@@ -14,6 +14,9 @@ import {
 import { getFleetGrade } from "@/lib/fuelScore"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { buttonVariants } from "@/components/ui/button"
 
 const FuelTransactionTable = dynamic(
@@ -33,9 +36,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { AreaChart, Area, XAxis, CartesianGrid, PieChart, Pie, Label, ReferenceLine } from "recharts"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { Calendar01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 
 const fuelPriceChartConfig = {
@@ -490,30 +492,34 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant={rangeMatches(dateRange, "today") ? "secondary" : "outline"}
-            size="sm"
-            className="h-9 text-sm font-normal"
-            onClick={() => setDateRange(getTodayRange())}
+          <Tabs
+            value={
+              rangeMatches(dateRange, "today")
+                ? "today"
+                : rangeMatches(dateRange, "week")
+                  ? "week"
+                  : rangeMatches(dateRange, "month")
+                    ? "month"
+                    : "today"
+            }
+            onValueChange={(v) => {
+              if (v === "today") setDateRange(getTodayRange())
+              if (v === "week") setDateRange(getThisWeekRange())
+              if (v === "month") setDateRange(getThisMonthRange())
+            }}
           >
-            Today
-          </Button>
-          <Button
-            variant={rangeMatches(dateRange, "week") ? "secondary" : "outline"}
-            size="sm"
-            className="h-9 text-sm font-normal"
-            onClick={() => setDateRange(getThisWeekRange())}
-          >
-            This Week
-          </Button>
-          <Button
-            variant={rangeMatches(dateRange, "month") ? "secondary" : "outline"}
-            size="sm"
-            className="h-9 text-sm font-normal"
-            onClick={() => setDateRange(getThisMonthRange())}
-          >
-            This Month
-          </Button>
+            <TabsList className="h-10 min-h-10 group-data-horizontal/tabs:h-10 bg-card text-card-foreground">
+              <TabsTrigger value="today" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                Today
+              </TabsTrigger>
+              <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                This Week
+              </TabsTrigger>
+              <TabsTrigger value="month" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                This Month
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Popover>
             <PopoverTrigger
               render={<Button variant="outline" className="h-9 gap-2 text-sm font-normal" />}
@@ -557,7 +563,25 @@ export default function DashboardPage() {
         />
         <Card size="sm">
           <CardHeader className="pb-1">
-            <CardTitle className="text-base">Overpaid on fuel</CardTitle>
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-base">Overpaid on fuel</CardTitle>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      className="inline-flex shrink-0 rounded text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label="What is overpaid on fuel?"
+                    >
+                      <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" strokeWidth={2} />
+                    </button>
+                  }
+                />
+                <TooltipContent side="top">
+                  Money that could have been saved at a more optimal fill-up
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <CardAction>
               <Badge variant="outline" className="gap-1.5 font-medium tabular-nums">
                 {fleetScoreProps.missedSavingsTrend === 0
