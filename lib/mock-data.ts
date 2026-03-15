@@ -405,11 +405,19 @@ function getLocationCoordOffset(stationBrand: string, location: string): { lat: 
 }
 
 /**
- * Build fuel transactions from today's date going back 365 days.
- * Fleet has 16 drivers; each driver has 3 transactions per day.
+ * In-memory cache of transactions by date (YYYY-MM-DD). Ensures we always have
+ * transactions for "today" when the app is used on any calendar day, without
+ * rebuilding on every request.
  */
-function buildFuelTransactions(): FuelTransaction[] {
-  const now = new Date()
+const transactionsByDateCache = new Map<string, FuelTransaction[]>()
+
+/**
+ * Build fuel transactions from the given date going back 365 days.
+ * Fleet has 16 drivers; each driver has 3 transactions per day.
+ * @param asOfDate - "Today" for the range; defaults to current date so every login sees data for that day.
+ */
+function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
+  const now = asOfDate
   const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const list: FuelTransaction[] = []
   let i = 0
@@ -503,9 +511,27 @@ function buildFuelTransactions(): FuelTransaction[] {
   return list.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
 }
 
-export const fuelTransactions: FuelTransaction[] = buildFuelTransactions()
+/**
+ * Returns fuel transactions from the given date back 365 days. Cached by date so
+ * every request on the same calendar day shares one build. Use the default (no arg)
+ * so that whenever someone logs in — including on a future calendar day — there are
+ * always transactions for that day.
+ */
+export function getFuelTransactions(asOfDate?: Date): FuelTransaction[] {
+  const date = asOfDate ?? new Date()
+  const key = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().slice(0, 10)
+  let list = transactionsByDateCache.get(key)
+  if (!list) {
+    list = buildFuelTransactions(date)
+    transactionsByDateCache.set(key, list)
+  }
+  return list
+}
 
-/** Transactions in the current trip window for T001, T002, T003 at seed trip stop locations. Merge with fuelTransactions on Trips page so "matching refuels" show. */
+/** @deprecated Use getFuelTransactions() so data always includes the current day. */
+export const fuelTransactions: FuelTransaction[] = getFuelTransactions()
+
+/** Transactions in the current trip window for T001, T002, T003 at seed trip stop locations. Merge with getFuelTransactions() on Trips page so "matching refuels" show. */
 export function getSeedTripTransactions(): FuelTransaction[] {
   const base = new Date()
   const locations: Array<{ truckId: string; location: string; lat: number; lng: number; stationBrand: string; daysOffset: number; gallons: number; totalCost: number }> = [

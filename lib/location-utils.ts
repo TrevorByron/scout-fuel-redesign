@@ -1,5 +1,5 @@
 import type { FuelTransaction, BetterOption } from "@/lib/mock-data"
-import { fuelTransactions } from "@/lib/mock-data"
+import { getFuelTransactions } from "@/lib/mock-data"
 
 const LOCATION_KEY_SEP = "\u001f"
 
@@ -23,7 +23,7 @@ function parseLocationKey(key: string): [string, string] | null {
 /** All unique locations (chain + city) from transactions, sorted by display name. */
 const ALL_LOCATION_KEYS = (() => {
   const set = new Set<string>()
-  for (const t of fuelTransactions) {
+  for (const t of getFuelTransactions()) {
     set.add(getLocationKey(t.stationBrand, t.location))
   }
   return [...set]
@@ -117,8 +117,8 @@ export function getLocationListStats(
   range: DateRange | undefined
 ): LocationListStats[] {
   const inRange = range
-    ? fuelTransactions.filter((t) => isInDateRange(t, range))
-    : fuelTransactions
+    ? getFuelTransactions().filter((t) => isInDateRange(t, range))
+    : getFuelTransactions()
 
   const byLocation = new Map<
     string,
@@ -197,7 +197,7 @@ export function getLocationSummaryStats(
   thisPeriodRange: DateRange,
   lastPeriodRange: DateRange
 ): LocationSummaryStats {
-  const allAtLocation = fuelTransactions.filter((t) =>
+  const allAtLocation = getFuelTransactions().filter((t) =>
     transactionMatchesLocation(t, locationKey)
   )
   const thisPeriod = allAtLocation.filter((t) => isInDateRange(t, thisPeriodRange))
@@ -263,7 +263,7 @@ export function getDriversAtLocation(
   locationKey: string,
   range: DateRange
 ): DriverAtLocation[] {
-  const inRange = fuelTransactions.filter(
+  const inRange = getFuelTransactions().filter(
     (t) => isInDateRange(t, range) && transactionMatchesLocation(t, locationKey)
   )
 
@@ -313,7 +313,7 @@ export function getLocationComplianceTrend(
   locationKey: string,
   numberOfWeeks = 8
 ): LocationComplianceTrendPoint[] {
-  const atLocation = fuelTransactions.filter((t) =>
+  const atLocation = getFuelTransactions().filter((t) =>
     transactionMatchesLocation(t, locationKey)
   )
   const result: LocationComplianceTrendPoint[] = []

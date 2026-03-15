@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { type DateRange } from "react-day-picker"
-import { fuelTransactions } from "@/lib/mock-data"
+import { getFuelTransactions } from "@/lib/mock-data"
 import { driverNameToSlug } from "@/lib/driver-utils"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
@@ -131,7 +131,7 @@ function complianceScoreBgClass(pct: number): string {
 }
 
 /** All unique drivers in the fleet (from transactions; 16 drivers). */
-const ALL_FLEET_DRIVERS = [...new Set(fuelTransactions.map((t) => t.driverName))].sort()
+const ALL_FLEET_DRIVERS = [...new Set(getFuelTransactions().map((t) => t.driverName))].sort()
 
 type DriverListSortColumn = "name" | "totalGallons" | "transactions" | "missedSavings" | "pct"
 type NeedsAttentionFilter = "all" | "yes" | "no"
@@ -168,7 +168,7 @@ export default function DriversPage() {
   const dateTo = dateRange?.to ?? dateRange?.from
 
   const txnsInRange = React.useMemo(
-    () => fuelTransactions.filter((t) => isInDateRange(t, dateRange)),
+    () => getFuelTransactions().filter((t) => isInDateRange(t, dateRange)),
     [dateRange]
   )
 
@@ -199,7 +199,7 @@ export default function DriversPage() {
     const prevFrom = dateFrom && dateTo ? new Date(dateFrom.getTime() - (dateTo.getTime() - dateFrom.getTime() + 86400000)) : null
     const prevTo = dateFrom ? new Date(dateFrom.getTime() - 86400000) : null
     const prevRange = prevFrom && prevTo ? { from: prevFrom, to: prevTo } : null
-    const prevTxns = prevRange ? fuelTransactions.filter((t) => isInDateRange(t, prevRange)) : []
+    const prevTxns = prevRange ? getFuelTransactions().filter((t) => isInDateRange(t, prevRange)) : []
     const prevTotal = prevTxns.length
     const prevInNetwork = prevTxns.filter((t) => t.inNetwork).length
     const prevScore = prevTotal > 0 ? Math.round((prevInNetwork / prevTotal) * 100) : 0

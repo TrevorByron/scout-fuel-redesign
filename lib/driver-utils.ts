@@ -1,8 +1,8 @@
 import type { FuelTransaction } from "@/lib/mock-data"
-import { fuelTransactions, driverDetails } from "@/lib/mock-data"
+import { getFuelTransactions, driverDetails } from "@/lib/mock-data"
 
 /** All unique driver names from transactions (same source as drivers list page). */
-const FLEET_DRIVER_NAMES = [...new Set(fuelTransactions.map((t) => t.driverName))].sort()
+const FLEET_DRIVER_NAMES = [...new Set(getFuelTransactions().map((t) => t.driverName))].sort()
 
 /** Convert "Karen White" -> "karen-white". */
 export function driverNameToSlug(name: string): string {
@@ -70,7 +70,7 @@ export function getDriverSummaryStats(
   thisWeekRange: DateRange,
   lastWeekRange: DateRange
 ): DriverSummaryStats {
-  const allForDriver = fuelTransactions.filter((t) => t.driverName === driverName)
+  const allForDriver = getFuelTransactions().filter((t) => t.driverName === driverName)
   const thisWeek = allForDriver.filter((t) => isInDateRange(t, thisWeekRange))
   const lastWeek = allForDriver.filter((t) => isInDateRange(t, lastWeekRange))
 
@@ -140,7 +140,7 @@ function getFuelCardLast4(driverName: string): string {
 
 /** Mock profile (unit, fuelCardLast4, corridor, status, badges) for summary block. Uses truckId as unit; corridor/status/badges from driverDetails when present else derived/placeholder. */
 export function getDriverProfile(driverName: string): DriverProfile {
-  const firstTxn = fuelTransactions.find((t) => t.driverName === driverName)
+  const firstTxn = getFuelTransactions().find((t) => t.driverName === driverName)
   const truckId = firstTxn?.truckId ?? "—"
   const unit = truckId !== "—" ? `Unit ${truckId.replace(/^T0?/, "")}` : "—"
   const fuelCardLast4 = getFuelCardLast4(driverName)
@@ -159,7 +159,7 @@ export function getDriverProfile(driverName: string): DriverProfile {
   const badges: string[] =
     detail?.badges ?? []
   if (badges.length === 0) {
-    const allForDriver = fuelTransactions.filter(
+    const allForDriver = getFuelTransactions().filter(
       (t) => t.driverName === driverName
     )
     const thisWeekStart = new Date()
@@ -193,7 +193,7 @@ export function getDriverComplianceTrend(
   driverName: string,
   numberOfWeeks = 12
 ): DriverComplianceTrendPoint[] {
-  const driverTxns = fuelTransactions.filter((t) => t.driverName === driverName)
+  const driverTxns = getFuelTransactions().filter((t) => t.driverName === driverName)
   const result: DriverComplianceTrendPoint[] = []
   const now = new Date()
   const thisWeekStart = new Date(now)

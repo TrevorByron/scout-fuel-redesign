@@ -6,7 +6,7 @@ import dynamic from "next/dynamic"
 import { type DateRange } from "react-day-picker"
 import {
   fleetScoreCardMock,
-  fuelTransactions,
+  getFuelTransactions,
   fuelPriceHistory,
   type FuelPricePoint,
   type FuelTransaction,
@@ -256,9 +256,9 @@ function getTodayRange(): DateRange {
 }
 
 function getThisWeekRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to)
-  from.setDate(to.getDate() - to.getDay())
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
   return { from, to }
 }
 
@@ -287,12 +287,22 @@ function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "
   if (preset === "week") {
     const week = getThisWeekRange()
     if (!week.from || !week.to) return false
-    return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
+    const rangeTo = range.to ?? range.from
+    return (
+      range.from.toDateString() === week.from.toDateString() &&
+      rangeTo.getTime() >= week.from.getTime() &&
+      rangeTo.getTime() <= week.to.getTime()
+    )
   }
   if (preset === "month") {
     const month = getThisMonthRange()
     if (!month.from || !month.to) return false
-    return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
+    const rangeTo = range.to ?? range.from
+    return (
+      range.from.toDateString() === month.from.toDateString() &&
+      rangeTo.getTime() >= month.from.getTime() &&
+      rangeTo.getTime() <= month.to.getTime()
+    )
   }
   return false
 }
@@ -346,13 +356,17 @@ function getOverpaidAmount(t: FuelTransaction): number {
   return 0
 }
 
+type PeriodTabValue = "today" | "week" | "month"
+
 export default function DashboardPage() {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
     () => getThisWeekRange()
   )
+  /** Track which period tab is selected so clicks update UI immediately; null = derive from dateRange (e.g. after calendar pick). */
+  const [periodTab, setPeriodTab] = React.useState<PeriodTabValue | null>("week")
 
   const filteredByDateTransactions = React.useMemo(() => {
-    return fuelTransactions.filter((t) => isInDateRange(t, dateRange))
+    return getFuelTransactions().filter((t) => isInDateRange(t, dateRange))
   }, [dateRange])
 
   /** Transactions in range where they could have paid less (better location or optimal price). Same pool as Overpaid card. */
@@ -368,7 +382,7 @@ export default function DashboardPage() {
     const range = dateRange?.from
       ? { from: dateRange.from, to: dateRange.to ?? dateRange.from }
       : week
-    return getDriversNeedingAttention(fuelTransactions, {
+    return getDriversNeedingAttention(getFuelTransactions(), {
       from: range.from ?? week.from!,
       to: range.to ?? range.from ?? week.to,
     }).slice(0, 5)
@@ -456,7 +470,7 @@ export default function DashboardPage() {
     const comparison = getComparisonPeriod(dateRange)
     const prevOverpaid = comparison
       ? Math.round(
-          fuelTransactions
+          getFuelTransactions()
             .filter((t) => isInDateRange(t, comparison.range))
             .filter((t) => getOverpaidAmount(t) > 0)
             .reduce((sum, t) => sum + getOverpaidAmount(t), 0)
@@ -466,7 +480,7 @@ export default function DashboardPage() {
     const missedSavingsTrend = comparison ? missedSavings - prevOverpaid : Math.round(missedSavings * -0.12)
 
     const prevPeriodTxns = comparison
-      ? fuelTransactions.filter((t) => isInDateRange(t, comparison.range))
+      ? getFuelTransactions().filter((t) => isInDateRange(t, comparison.range))
       : []
     const prevInNetwork = prevPeriodTxns.filter((t) => t.inNetwork).length
     const prevComplianceRate =
@@ -512,18 +526,22 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           <Tabs
             value={
-              rangeMatches(dateRange, "today")
+              periodTab ??
+              (rangeMatches(dateRange, "today")
                 ? "today"
                 : rangeMatches(dateRange, "week")
                   ? "week"
                   : rangeMatches(dateRange, "month")
                     ? "month"
-                    : "today"
+                    : "today")
             }
             onValueChange={(v) => {
-              if (v === "today") setDateRange(getTodayRange())
-              if (v === "week") setDateRange(getThisWeekRange())
-              if (v === "month") setDateRange(getThisMonthRange())
+              const period = String(v) as PeriodTabValue
+              if (period !== "today" && period !== "week" && period !== "month") return
+              setPeriodTab(period)
+              if (period === "today") setDateRange(getTodayRange())
+              else if (period === "week") setDateRange(getThisWeekRange())
+              else setDateRange(getThisMonthRange())
             }}
           >
             <TabsList className="h-10 min-h-10 group-data-horizontal/tabs:h-10 bg-card text-card-foreground">
@@ -553,7 +571,10 @@ export default function DashboardPage() {
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => setDateRange(getPresetRange(p.days))}
+                    onClick={() => {
+                      setPeriodTab(null)
+                      setDateRange(getPresetRange(p.days))
+                    }}
                   >
                     {p.label}
                   </Button>
@@ -562,7 +583,10 @@ export default function DashboardPage() {
               <Calendar
                 mode="range"
                 selected={dateRange}
-                onSelect={setDateRange}
+                onSelect={(range) => {
+                  setPeriodTab(null)
+                  setDateRange(range)
+                }}
                 numberOfMonths={2}
                 initialFocus
               />

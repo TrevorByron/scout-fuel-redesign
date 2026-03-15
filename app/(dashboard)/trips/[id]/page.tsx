@@ -8,7 +8,7 @@ import { format } from "date-fns"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
 import { computeTripProgress } from "@/lib/trips"
-import { fuelTransactions } from "@/lib/mock-data"
+import { getFuelTransactions } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Fuel, ArrowLeft, Pencil, CheckCircle2, AlertCircle } from "lucide-react"
@@ -38,7 +38,7 @@ export default function TripDetailPage() {
   const trip = id ? getTripPlan(id) : null
   const progress = React.useMemo(() => {
     if (!trip) return null
-    return computeTripProgress(trip, fuelTransactions)
+    return computeTripProgress(trip, getFuelTransactions())
   }, [trip])
 
   if (!id || !trip) {

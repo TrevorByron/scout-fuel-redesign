@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { fuelTransactions, STATION_BRANDS } from "@/lib/mock-data"
+import { getFuelTransactions, STATION_BRANDS } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
 
@@ -71,7 +71,7 @@ function brandKey(s: string) {
 
 function buildGallonsByChainData() {
   const map = new Map<string, number>()
-  for (const t of fuelTransactions) {
+  for (const t of getFuelTransactions()) {
     map.set(t.stationBrand, (map.get(t.stationBrand) ?? 0) + t.gallons)
   }
   const sorted = [...map.entries()].sort((a, b) => b[1] - a[1])
@@ -97,7 +97,7 @@ function buildGallonsByChainData() {
 
 function buildGallonsByStateData(): { state: string; gallons: number }[] {
   const map = new Map<string, number>()
-  for (const t of fuelTransactions) {
+  for (const t of getFuelTransactions()) {
     const state = t.location.includes(", ") ? t.location.split(", ")[1] ?? t.location : t.location
     map.set(state, (map.get(state) ?? 0) + t.gallons)
   }
@@ -347,7 +347,7 @@ function getSpendingData(
 function SpendingTrendsCard() {
   const [range, setRange] = React.useState<SpendingRange>("1Y")
   const data = React.useMemo(
-    () => getSpendingData(fuelTransactions, range),
+    () => getSpendingData(getFuelTransactions(), range),
     [range]
   )
 
@@ -440,10 +440,10 @@ function SpendingTrendsCard() {
   )
 }
 
-const driverNames = [...new Set(fuelTransactions.map((t) => t.driverName))].sort()
+const driverNames = [...new Set(getFuelTransactions().map((t) => t.driverName))].sort()
 const stateList = [
   ...new Set(
-    fuelTransactions.map((t) =>
+    getFuelTransactions().map((t) =>
       t.location.includes(", ") ? (t.location.split(", ")[1] ?? t.location) : t.location
     )
   ),
@@ -460,7 +460,7 @@ export default function TransactionsPage() {
   const [dateTo, setDateTo] = React.useState("")
 
   const filtered = React.useMemo(() => {
-    return fuelTransactions.filter((t) => {
+    return getFuelTransactions().filter((t) => {
       if (alertsOnly && !t.alert) return false
       if (driverFilter !== "all" && t.driverName !== driverFilter) return false
       if (stationFilter !== "all" && t.stationBrand !== stationFilter) return false

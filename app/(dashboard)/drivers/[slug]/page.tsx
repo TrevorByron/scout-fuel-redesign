@@ -5,7 +5,7 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useParams, notFound } from "next/navigation"
 import { type DateRange } from "react-day-picker"
-import { fuelTransactions } from "@/lib/mock-data"
+import { getFuelTransactions } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
 import {
   getDriverNameBySlug,
@@ -233,7 +233,7 @@ export default function DriverDetailPage() {
   } satisfies ChartConfig
 
   const driverTransactions = React.useMemo(
-    () => fuelTransactions.filter((t) => t.driverName === driverName),
+    () => getFuelTransactions().filter((t) => t.driverName === driverName),
     [driverName]
   )
 
