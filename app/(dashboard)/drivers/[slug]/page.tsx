@@ -91,6 +91,16 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
+/** True when range is exactly "today" (from and to are the same moment at start of today). Distinguishes Today from This Week on Sunday. */
+function isExactlyTodayRange(range: DateRange | undefined): boolean {
+  if (!range?.from) return false
+  const to = range.to ?? range.from
+  return (
+    to.getTime() === range.from.getTime() &&
+    range.from.toDateString() === new Date().toDateString()
+  )
+}
+
 function getTodayRange(): DateRange {
   const now = new Date()
   const startOfToday = new Date(
@@ -425,13 +435,15 @@ export default function DriverDetailPage() {
         <div className="flex items-center gap-2">
           <Tabs
             value={
-              rangeMatches(dateRange, "week")
-                ? "week"
-                : rangeMatches(dateRange, "today")
-                  ? "today"
-                  : rangeMatches(dateRange, "month")
-                    ? "month"
-                    : "today"
+              isExactlyTodayRange(dateRange)
+                ? "today"
+                : rangeMatches(dateRange, "week")
+                  ? "week"
+                  : rangeMatches(dateRange, "today")
+                    ? "today"
+                    : rangeMatches(dateRange, "month")
+                      ? "month"
+                      : "today"
             }
             onValueChange={(v) => {
               if (v === "today") setDateRange(getTodayRange())

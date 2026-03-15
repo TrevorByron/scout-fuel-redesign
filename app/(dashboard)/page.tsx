@@ -276,6 +276,16 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
+/** True when range is exactly "today" (from and to are the same moment at start of today). Distinguishes Today from This Week on Sunday. */
+function isExactlyTodayRange(range: DateRange | undefined): boolean {
+  if (!range?.from) return false
+  const to = range.to ?? range.from
+  return (
+    to.getTime() === range.from.getTime() &&
+    range.from.toDateString() === new Date().toDateString()
+  )
+}
+
 function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
   if (!range?.from) return false
   const fromStr = range.from.toDateString()
@@ -389,7 +399,7 @@ export default function DashboardPage() {
   }, [dateRange])
 
   const periodLabel =
-    rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "month") ? "month" : "period"
+    isExactlyTodayRange(dateRange) ? "today" : rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "month") ? "month" : "period"
   const periodBadgeLabel =
     periodLabel === "today" ? "today" : periodLabel === "week" ? "this week" : periodLabel === "month" ? "this month" : "this period"
 
@@ -527,13 +537,15 @@ export default function DashboardPage() {
           <Tabs
             value={
               periodTab ??
-              (rangeMatches(dateRange, "week")
-                ? "week"
-                : rangeMatches(dateRange, "today")
-                  ? "today"
-                  : rangeMatches(dateRange, "month")
-                    ? "month"
-                    : "today")
+              (isExactlyTodayRange(dateRange)
+                ? "today"
+                : rangeMatches(dateRange, "week")
+                  ? "week"
+                  : rangeMatches(dateRange, "today")
+                    ? "today"
+                    : rangeMatches(dateRange, "month")
+                      ? "month"
+                      : "today")
             }
             onValueChange={(v) => {
               const period = String(v) as PeriodTabValue
