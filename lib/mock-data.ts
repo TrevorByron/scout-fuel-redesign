@@ -495,7 +495,7 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       if (hasBetterOption && differentStation && potentialSavings > 0) {
         txn.betterOption = {
           stationName: betterOptionStation,
-          location: `${location} (nearby)`,
+          location,
           lat: betterLat,
           lng: betterLng,
           pricePerGallon: betterPrice,

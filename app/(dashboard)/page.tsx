@@ -389,7 +389,7 @@ export default function DashboardPage() {
   }, [dateRange])
 
   const periodLabel =
-    rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "month") ? "month" : "period"
+    rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "month") ? "month" : "period"
   const periodBadgeLabel =
     periodLabel === "today" ? "today" : periodLabel === "week" ? "this week" : periodLabel === "month" ? "this month" : "this period"
 
@@ -527,10 +527,10 @@ export default function DashboardPage() {
           <Tabs
             value={
               periodTab ??
-              (rangeMatches(dateRange, "today")
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
+              (rangeMatches(dateRange, "week")
+                ? "week"
+                : rangeMatches(dateRange, "today")
+                  ? "today"
                   : rangeMatches(dateRange, "month")
                     ? "month"
                     : "today")
@@ -659,10 +659,10 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:grid-cols-5 lg:px-6">
+      {/* KPI row: 2 per row on phone (shrink to fit), 5 cols on lg */}
+      <div className="grid grid-cols-2 gap-2 px-4 sm:gap-4 lg:grid-cols-5 lg:px-6">
         {/* Gallons */}
-        <Card size="sm">
+        <Card size="sm" className="min-w-0">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
             <div className="text-3xl font-bold tabular-nums">
@@ -688,7 +688,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Average Cost */}
-        <Card size="sm">
+        <Card size="sm" className="min-w-0">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Avg Cost / Gallon</CardTitle>
             <div className="text-3xl font-bold tabular-nums">
@@ -712,7 +712,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Average Savings */}
-        <Card size="sm">
+        <Card size="sm" className="min-w-0">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Avg Savings / Gallon</CardTitle>
             <div className="text-3xl font-bold tabular-nums">
@@ -736,7 +736,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Total Savings */}
-        <Card size="sm">
+        <Card size="sm" className="min-w-0">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
             <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
@@ -762,7 +762,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Total Spent */}
-        <Card size="sm">
+        <Card size="sm" className="min-w-0">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
             <div className="text-3xl font-bold tabular-nums">
@@ -790,6 +790,62 @@ export default function DashboardPage() {
 
       {/* Main grid: 2 cols as soon as @container/main has room for two 32.5rem cards (66rem) */}
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2">
+        {/* Drivers in need of attention — same slot as old Fuel Price Trends card */}
+        <Card className="flex min-h-0 min-w-0 flex-col">
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <CardTitle>Drivers in need of attention this {periodLabel}</CardTitle>
+            <Link
+              href="/drivers"
+              className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
+            >
+              View all
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {driversInNeedOfAttention.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No drivers in need of attention in this period.
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {driversInNeedOfAttention.map((driver, index) => (
+                  <Link
+                    key={driver.driverName}
+                    href={`/drivers/${driverNameToSlug(driver.driverName)}`}
+                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="tabular-nums text-muted-foreground w-5 shrink-0">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">{driver.driverName}</span>
+                          {driver.badStops > 0 && (
+                            <Badge variant="destructive" className="text-[10px] font-normal">
+                              {driver.badStops} bad stop{driver.badStops !== 1 ? "s" : ""} {periodBadgeLabel}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
+                        -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      </span>
+                      <span
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                        aria-hidden
+                      >
+                        <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Gallons by chain */}
         <Card className="flex min-h-0 min-w-0 flex-col">
           <CardHeader>
@@ -868,62 +924,6 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Drivers in need of attention — same slot as old Fuel Price Trends card */}
-        <Card className="flex min-h-0 min-w-0 flex-col">
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <CardTitle>Drivers in need of attention this {periodLabel}</CardTitle>
-            <Link
-              href="/drivers"
-              className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
-            >
-              View all
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {driversInNeedOfAttention.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No drivers in need of attention in this period.
-              </p>
-            ) : (
-              <div className="divide-y divide-border">
-                {driversInNeedOfAttention.map((driver, index) => (
-                  <Link
-                    key={driver.driverName}
-                    href={`/drivers/${driverNameToSlug(driver.driverName)}`}
-                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <span className="tabular-nums text-muted-foreground w-5 shrink-0">{index + 1}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-foreground">{driver.driverName}</span>
-                          {driver.badStops > 0 && (
-                            <Badge variant="destructive" className="text-[10px] font-normal">
-                              {driver.badStops} bad stop{driver.badStops !== 1 ? "s" : ""} {periodBadgeLabel}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
-                        -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                      </span>
-                      <span
-                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
-                        aria-hidden
-                      >
-                        <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
 

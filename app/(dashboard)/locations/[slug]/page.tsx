@@ -108,9 +108,9 @@ function getTodayRange(): DateRange {
 }
 
 function getThisWeekRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to)
-  from.setDate(to.getDate() - to.getDay())
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
   return { from, to }
 }
 
@@ -444,10 +444,10 @@ export default function LocationDetailPage() {
         <div className="flex items-center gap-2">
           <Tabs
             value={
-              rangeMatches(dateRange, "today")
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
+              rangeMatches(dateRange, "week")
+                ? "week"
+                : rangeMatches(dateRange, "today")
+                  ? "today"
                   : rangeMatches(dateRange, "month")
                     ? "month"
                     : "today"

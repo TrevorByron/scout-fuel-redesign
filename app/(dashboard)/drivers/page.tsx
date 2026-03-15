@@ -58,9 +58,9 @@ function getTodayRange(): DateRange {
 }
 
 function getThisWeekRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to)
-  from.setDate(to.getDate() - to.getDay())
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
   return { from, to }
 }
 
@@ -310,10 +310,10 @@ export default function DriversPage() {
         <div className="flex items-center gap-2">
           <Tabs
             value={
-              rangeMatches(dateRange, "today")
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
+              rangeMatches(dateRange, "week")
+                ? "week"
+                : rangeMatches(dateRange, "today")
+                  ? "today"
                   : rangeMatches(dateRange, "month")
                     ? "month"
                     : "today"
@@ -370,17 +370,17 @@ export default function DriversPage() {
       </div>
 
       <div className="flex flex-col gap-4 md:gap-6">
-          {/* Summary KPI cards — click to filter driver list below */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Summary KPI cards — click to filter driver list below; 2 per row on phone */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
             {/* 1. All Drivers */}
             <button
               type="button"
               onClick={() => setCardFilter("all")}
-              className={`block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+              className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
               aria-pressed={cardFilter === "all"}
               aria-label="Show all drivers"
             >
-              <Card size="sm" className="cursor-pointer">
+              <Card size="sm" className="min-w-0 cursor-pointer">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-medium text-muted-foreground">All Drivers</CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-500">
@@ -398,11 +398,11 @@ export default function DriversPage() {
             <button
               type="button"
               onClick={() => setCardFilter((prev) => (prev === "overpaid" ? "all" : "overpaid"))}
-              className={`block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "overpaid" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+              className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "overpaid" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
               aria-pressed={cardFilter === "overpaid"}
               aria-label="Filter to drivers with missed savings"
             >
-              <Card size="sm" className="cursor-pointer">
+              <Card size="sm" className="min-w-0 cursor-pointer">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-medium text-muted-foreground">Drivers with missed savings</CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
@@ -420,11 +420,11 @@ export default function DriversPage() {
             <button
               type="button"
               onClick={() => setCardFilter((prev) => (prev === "needs_attention" ? "all" : "needs_attention"))}
-              className={`block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "needs_attention" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+              className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "needs_attention" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
               aria-pressed={cardFilter === "needs_attention"}
               aria-label="Filter to drivers needing attention"
             >
-              <Card size="sm" className="cursor-pointer">
+              <Card size="sm" className="min-w-0 cursor-pointer">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-medium text-muted-foreground">Drivers Needing Attention</CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
@@ -440,11 +440,11 @@ export default function DriversPage() {
             <button
               type="button"
               onClick={() => setCardFilter((prev) => (prev === "fully_compliant" ? "all" : "fully_compliant"))}
-              className={`block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+              className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
               aria-pressed={cardFilter === "fully_compliant"}
               aria-label="Filter to fully compliant drivers"
             >
-              <Card size="sm" className="cursor-pointer">
+              <Card size="sm" className="min-w-0 cursor-pointer">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-medium text-muted-foreground">Fully Compliant</CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
