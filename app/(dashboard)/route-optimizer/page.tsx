@@ -5,7 +5,7 @@ import dynamic from "next/dynamic"
 import { useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { toast } from "sonner"
-import { trucks, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
+import { trucks, drivers, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
 import { geocodeAddress } from "@/lib/geocode"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlanStop, TripPlanSummary, LngLat } from "@/lib/trips"
@@ -125,6 +125,7 @@ function RouteOptimizerPageContent() {
   const [tripStartOpen, setTripStartOpen] = React.useState(false)
   const [tripEndOpen, setTripEndOpen] = React.useState(false)
   const [initialFuelLevel, setInitialFuelLevel] = React.useState(100)
+  const [driverId, setDriverId] = React.useState("")
   const [truckId, setTruckId] = React.useState("")
   const [tankSize, setTankSize] = React.useState("")
   const [mpg, setMpg] = React.useState("")
@@ -138,6 +139,19 @@ function RouteOptimizerPageContent() {
   const [openSections, setOpenSections] = React.useState<("where" | "when" | "who")[]>(["where"])
   const [planStops, setPlanStops] = React.useState<TripPlanStop[]>([])
   const [planSummary, setPlanSummary] = React.useState<TripPlanSummary | null>(null)
+  const [sidebarWidth, setSidebarWidth] = React.useState(0)
+  const sidebarRef = React.useRef<HTMLElement>(null)
+
+  React.useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const { width } = entries[0]?.contentRect ?? { width: 0 }
+      setSidebarWidth(Math.round(width))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const {
     coords: originCoords,
@@ -201,6 +215,7 @@ function RouteOptimizerPageContent() {
     setTripStart(plan.tripStart ? new Date(plan.tripStart) : undefined)
     setTripEnd(plan.tripEnd ? new Date(plan.tripEnd) : undefined)
     setTruckId(plan.truckId)
+    setDriverId(plan.driverId ?? "")
     setRouteCoordinates(plan.routeCoordinates)
     setPlanStops(plan.stops)
     setPlanSummary(plan.summary)
@@ -280,6 +295,7 @@ function RouteOptimizerPageContent() {
     const start = tripStart?.toISOString?.() ?? ""
     const end = tripEnd?.toISOString?.() ?? ""
     if (!start || !end || !planSummary) return
+    const driverName = drivers.find((d) => d.driverId === driverId)?.driverName
     addTripPlan({
       name: `${origin} → ${destination}`,
       origin,
@@ -288,6 +304,8 @@ function RouteOptimizerPageContent() {
       tripStart: start,
       tripEnd: end,
       truckId,
+      driverId,
+      driverName,
       stops: planStops.length ? planStops : mockRouteStops.map((s, i) => ({
         ...s,
         lat: fuelStopCoords[i]?.[1] ?? 0,
@@ -301,15 +319,15 @@ function RouteOptimizerPageContent() {
 
   return (
     <div
-      className="relative flex flex-col flex-1 min-h-0 gap-0 overflow-y-auto p-0 md:overflow-visible md:flex-row"
+      className="relative flex flex-1 min-h-0 overflow-hidden p-0"
       style={{
         height: "100%",
         maxHeight: "calc(100dvh - var(--header-height, 3rem))",
       }}
     >
-      {/* Map: on mobile, scrolls with form; on desktop, right column */}
-      <div className="flex h-[26vh] min-h-[160px] shrink-0 flex-col pl-0 md:order-2 md:h-auto md:min-h-0 md:flex-1 md:pl-0">
-        <div className="h-full min-h-0 w-full">
+      {/* Full-bleed map background */}
+      <div className="absolute inset-0 z-0">
+        <div className="h-full w-full">
           <RouteOptimizerMapDynamic
             originCoords={originCoords}
             destinationCoords={destinationCoords}
@@ -317,16 +335,19 @@ function RouteOptimizerPageContent() {
             routeLoading={routeLoading}
             showOptimizingOverlay={isOptimizing}
             fuelStopCoords={fuelStopCoords}
+            mapLeftPadding={sidebarWidth}
           />
         </div>
       </div>
 
-      {/* Left panel: form 1/3; on mobile, scrolls with map */}
+      {/* Left overlay: blocks map interaction; contains floating card */}
       <aside
-        className="flex min-h-0 w-full min-w-0 flex-1 flex-col border-r-0 border-border md:order-1 md:max-w-md md:w-1/3 md:flex-shrink-0 md:border-r"
+        ref={sidebarRef}
+        className="absolute left-0 top-0 bottom-0 z-10 flex w-full flex-col overflow-y-auto p-4 md:max-w-xl md:w-[43%]"
         aria-label="Route details"
       >
-        <div className="flex flex-col gap-4 p-4 md:min-h-0 md:overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
+          <div className="flex flex-col gap-4 p-0 md:p-4">
           {calculated ? (
             <div className="space-y-4">
               <Button
@@ -405,7 +426,7 @@ function RouteOptimizerPageContent() {
             </p>
             <Accordion
               multiple
-              className="w-full -space-y-px rounded-lg border"
+              className="w-full -space-y-px rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden"
               value={openSections}
               onValueChange={(v) => {
                 const arr = Array.isArray(v) ? v : []
@@ -595,15 +616,39 @@ function RouteOptimizerPageContent() {
                 <AccordionContent className="px-4">
                   <div className="flex flex-col gap-4 pt-1">
                     <Field>
+                      <FieldLabel>Driver</FieldLabel>
+                      <Select
+                        value={driverId}
+                        onValueChange={(v) => setDriverId(v ?? "")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select driver" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {drivers.map((d) => (
+                            <SelectItem key={d.driverId} value={d.driverId}>
+                              {d.driverName} · {d.driverId}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Spending on this route will be tracked to this driver’s fuel card.
+                      </p>
+                    </Field>
+                    <Field>
                       <FieldLabel>Select truck</FieldLabel>
-                      <Select value={truckId} onValueChange={(v) => setTruckId(v ?? "")}>
+                      <Select
+                        value={truckId}
+                        onValueChange={(v) => setTruckId(v ?? "")}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select truck" />
                         </SelectTrigger>
                         <SelectContent>
                           {trucks.slice(0, 20).map((t) => (
                             <SelectItem key={t.id} value={t.id}>
-                              {t.id} · {t.driverName}
+                              {t.id}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -662,6 +707,7 @@ function RouteOptimizerPageContent() {
             </Button>
           </FieldGroup>
           )}
+          </div>
         </div>
       </aside>
     </div>

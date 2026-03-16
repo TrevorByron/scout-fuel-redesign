@@ -8,7 +8,7 @@ import { format } from "date-fns"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
 import { computeTripProgress } from "@/lib/trips"
-import { getFuelTransactions } from "@/lib/mock-data"
+import { getFuelTransactions, drivers, trucks } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Fuel, ArrowLeft, Pencil, CheckCircle2, AlertCircle } from "lucide-react"
@@ -60,6 +60,12 @@ export default function TripDetailPage() {
   }
 
   const detailStatus = getTripStatus(trip)
+  const driverDisplay =
+    trip.driverName ??
+    (trip.driverId
+      ? drivers.find((d) => d.driverId === trip.driverId)?.driverName
+      : undefined) ??
+    trucks.find((t) => t.id === trip.truckId)?.driverName
 
   return (
     <main className="flex flex-1 flex-col min-h-0 overflow-y-auto p-4">
@@ -114,6 +120,7 @@ export default function TripDetailPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Trip plan</CardTitle>
             <CardDescription>
+              {driverDisplay ? `${driverDisplay} · ` : ""}
               {trip.truckId} · {format(new Date(trip.tripStart), "MMM d, yyyy")} – {format(new Date(trip.tripEnd), "MMM d, yyyy")}
             </CardDescription>
           </CardHeader>

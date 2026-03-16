@@ -497,6 +497,18 @@ export const trucks: Truck[] = Array.from({ length: NUM_FLEET_DRIVERS }, (_, i) 
   }
 })
 
+/** Driver (fuel card holder); independent of truck assignment. */
+export interface Driver {
+  driverId: string
+  driverName: string
+}
+
+/** All drivers in the fleet; use for independent driver/truck selection. */
+export const drivers: Driver[] = trucks.map((t) => ({
+  driverId: t.driverId,
+  driverName: t.driverName,
+}))
+
 const FUEL_TYPE_SEQUENCE: FuelType[] = [
   "Diesel", "Diesel", "Diesel", "Diesel", "Diesel",
   "Diesel", "Diesel", "Reefer", "Reefer", "DEF",

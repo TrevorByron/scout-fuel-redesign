@@ -42,6 +42,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
+import { cn } from "@/lib/utils"
 
 const FuelTransactionTable = dynamic(
   () =>
@@ -259,6 +260,15 @@ export default function DriverDetailPage() {
     []
   )
 
+  const activePreset =
+    isExactlyTodayRange(dateRange)
+      ? "today"
+      : rangeMatches(dateRange, "week")
+        ? "week"
+        : rangeMatches(dateRange, "month")
+          ? "month"
+          : null
+
   const isThisWeek = rangeMatches(effectiveDateRange, "week")
   const trendLabel =
     summaryStats.thisWeekScorePct >= summaryStats.lastWeekScorePct
@@ -434,17 +444,7 @@ export default function DriverDetailPage() {
         </h2>
         <div className="flex items-center gap-2">
           <Tabs
-            value={
-              isExactlyTodayRange(dateRange)
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
-                  : rangeMatches(dateRange, "today")
-                    ? "today"
-                    : rangeMatches(dateRange, "month")
-                      ? "month"
-                      : "today"
-            }
+            value={activePreset ?? "custom"}
             onValueChange={(v) => {
               if (v === "today") setDateRange(getTodayRange())
               if (v === "week") setDateRange(getThisWeekRange())
@@ -476,7 +476,7 @@ export default function DriverDetailPage() {
             <PopoverTrigger
               render={
                 <Button
-                  variant="outline"
+                  variant={activePreset === null ? "default" : "outline"}
                   className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
                 />
               }
@@ -484,7 +484,7 @@ export default function DriverDetailPage() {
               <HugeiconsIcon
                 icon={Calendar01Icon}
                 strokeWidth={1.5}
-                className="size-4 text-muted-foreground"
+                className={cn("size-4", activePreset === null ? "text-primary-foreground" : "text-muted-foreground")}
               />
               {formatRangeLabel(dateRange)}
             </PopoverTrigger>

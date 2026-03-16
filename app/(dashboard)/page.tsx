@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { HugeiconsIcon } from "@hugeicons/react"
 import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon, UserGroupIcon, Location01Icon } from "@hugeicons/core-free-icons"
 import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -401,6 +402,15 @@ export default function DashboardPage() {
       .slice(0, 5)
   }, [dateRange])
 
+  const activePreset =
+    isExactlyTodayRange(dateRange)
+      ? "today"
+      : rangeMatches(dateRange, "week")
+        ? "week"
+        : rangeMatches(dateRange, "month")
+          ? "month"
+          : null
+
   const periodLabel =
     isExactlyTodayRange(dateRange) ? "today" : rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "month") ? "month" : "period"
   const periodBadgeLabel =
@@ -543,18 +553,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Tabs
-            value={
-              periodTab ??
-              (isExactlyTodayRange(dateRange)
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
-                  : rangeMatches(dateRange, "today")
-                    ? "today"
-                    : rangeMatches(dateRange, "month")
-                      ? "month"
-                      : "today")
-            }
+            value={activePreset ?? "custom"}
             onValueChange={(v) => {
               const period = String(v) as PeriodTabValue
               if (period !== "today" && period !== "week" && period !== "month") return
@@ -578,9 +577,14 @@ export default function DashboardPage() {
           </Tabs>
           <Popover>
             <PopoverTrigger
-              render={<Button variant="outline" className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex" />}
+              render={
+                <Button
+                  variant={activePreset === null ? "default" : "outline"}
+                  className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
+                />
+              }
             >
-              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="size-4 text-muted-foreground" />
+              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className={cn("size-4", activePreset === null ? "text-primary-foreground" : "text-muted-foreground")} />
               {formatRangeLabel(dateRange)}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">

@@ -28,6 +28,9 @@ export interface TripPlan {
   tripStart: string // ISO date
   tripEnd: string // ISO date
   truckId: string
+  /** Driver (fuel card) for this route; may be omitted on legacy plans (derive from truckId). */
+  driverId?: string
+  driverName?: string
   stops: TripPlanStop[]
   summary: TripPlanSummary
   routeCoordinates: LngLat[]
@@ -71,6 +74,8 @@ export function getSeedTripPlans(): TripPlan[] {
       tripStart: startStr,
       tripEnd: endStr,
       truckId: "T001",
+      driverId: "D001",
+      driverName: "Mike Johnson",
       stops: [
         { station: "Pilot Flying J", location: "Phoenix, AZ", pricePerGallon: 3.72, refuelGallons: 120, distanceFromPrev: 0, eta: "08:00", fuelPct: 85, lat: 33.4484, lng: -112.074 },
         { station: "Love's", location: "Albuquerque, NM", pricePerGallon: 3.68, refuelGallons: 95, distanceFromPrev: 465, eta: "14:30", fuelPct: 78, lat: 35.0844, lng: -106.6504 },
@@ -89,6 +94,8 @@ export function getSeedTripPlans(): TripPlan[] {
       tripStart: startStr,
       tripEnd: endStr,
       truckId: "T002",
+      driverId: "D002",
+      driverName: "Sarah Williams",
       stops: [
         { station: "Pilot Flying J", location: "Denver, CO", pricePerGallon: 3.78, refuelGallons: 115, distanceFromPrev: 0, eta: "07:00", fuelPct: 88, lat: 39.7392, lng: -104.9903 },
         { station: "Love's", location: "Oklahoma City, OK", pricePerGallon: 3.65, refuelGallons: 98, distanceFromPrev: 540, eta: "16:00", fuelPct: 75, lat: 35.4676, lng: -97.5164 },
@@ -107,6 +114,8 @@ export function getSeedTripPlans(): TripPlan[] {
       tripStart: startStr,
       tripEnd: endStr,
       truckId: "T003",
+      driverId: "D003",
+      driverName: "James Davis",
       stops: [
         { station: "Pilot Flying J", location: "El Paso, TX", pricePerGallon: 3.69, refuelGallons: 118, distanceFromPrev: 0, eta: "06:30", fuelPct: 86, lat: 31.7619, lng: -106.485 },
         { station: "Love's", location: "Tucson, AZ", pricePerGallon: 3.74, refuelGallons: 92, distanceFromPrev: 420, eta: "13:00", fuelPct: 77, lat: 32.2226, lng: -110.9747 },

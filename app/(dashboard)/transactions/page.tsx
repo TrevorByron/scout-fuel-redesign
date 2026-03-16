@@ -112,6 +112,15 @@ const stateChartConfig = {
   gallons: { label: "Gallons", color: "var(--chart-1)" },
 } satisfies ChartConfig
 
+/** Generate ~5 X-axis tick values from 0 to max for the state chart. */
+function stateChartXTicks(maxGallons: number): number[] {
+  if (maxGallons <= 0) return [0]
+  const ticks: number[] = [0]
+  for (let i = 1; i < 4; i++) ticks.push(Math.round((maxGallons * i) / 4))
+  ticks.push(maxGallons)
+  return ticks
+}
+
 type SpendingRange = "1W" | "1M" | "6M" | "1Y" | "YTD"
 
 interface SpendingPoint {
@@ -612,52 +621,83 @@ export default function TransactionsPage() {
         </Card>
 
         {/* Gallons by state — horizontal bar chart */}
-        <Card className="@container/card flex flex-col min-h-0">
+        <Card className="@container/card flex max-h-[70dvh] min-h-0 flex-col">
           <CardHeader className="shrink-0">
             <CardTitle>Gallons by state</CardTitle>
             <CardDescription>Total gallons purchased per state</CardDescription>
           </CardHeader>
-          <CardContent className="min-h-0 flex flex-col flex-1">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <ChartContainer
-                config={stateChartConfig}
-                className="w-full"
-                style={{ minHeight: Math.max(280, stateChartData.length * 32) }}
-              >
-                <BarChart
-                  data={stateChartData}
-                  layout="vertical"
-                  margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
-                  barCategoryGap={4}
+          <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+              {/* Sticky Y-axis labels so state names stay visible when scrolling */}
+              <div className="flex min-w-0">
+                <div
+                  className="sticky left-0 z-10 flex shrink-0 flex-col border-r border-border/50 bg-card py-[2px]"
+                  style={{
+                    width: 40,
+                    height: Math.max(200, stateChartData.length * 26),
+                  }}
+                  aria-hidden
                 >
-                  <CartesianGrid horizontal={false} />
-                  <XAxis type="number" tickLine={false} axisLine={false} tickMargin={6} tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toLocaleString()}k` : String(v))} />
-                  <YAxis
-                    type="category"
-                    dataKey="state"
-                    width={40}
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={4}
-                    interval={0}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <ChartTooltip
-                    cursor={{ fill: "var(--muted)" }}
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value) => value != null ? value.toLocaleString("en-US") : ""}
-                        nameKey="state"
-                        labelFormatter={(_, payload) => {
-                          const p = payload?.[0]?.payload as { state: string; gallons: number } | undefined
-                          return p ? `${p.state} · ${p.gallons.toLocaleString("en-US")} gal` : ""
-                        }}
-                      />
-                    }
-                  />
-                  <Bar dataKey="gallons" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ChartContainer>
+                  {stateChartData.map((d) => (
+                    <div
+                      key={d.state}
+                      className="flex h-[26px] items-center pr-2 text-right text-xs text-muted-foreground"
+                      style={{ lineHeight: 1 }}
+                    >
+                      {d.state}
+                    </div>
+                  ))}
+                </div>
+                <ChartContainer
+                  config={stateChartConfig}
+                  className="min-w-0 flex-1 aspect-auto"
+                  style={{
+                    minHeight: Math.max(200, stateChartData.length * 26),
+                    height: Math.max(200, stateChartData.length * 26),
+                  }}
+                >
+                  <BarChart
+                    data={stateChartData}
+                    layout="vertical"
+                    margin={{ top: 2, right: 8, left: 4, bottom: 2 }}
+                    barCategoryGap={2}
+                  >
+                    <CartesianGrid horizontal={false} />
+                    <XAxis type="number" tickLine={false} axisLine={false} hide />
+                    <YAxis type="category" dataKey="state" width={0} tickLine={false} axisLine={false} hide />
+                    <ChartTooltip
+                      cursor={{ fill: "var(--muted)" }}
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) => value != null ? value.toLocaleString("en-US") : ""}
+                          nameKey="state"
+                          labelFormatter={(_, payload) => {
+                            const p = payload?.[0]?.payload as { state: string; gallons: number } | undefined
+                            return p ? `${p.state} · ${p.gallons.toLocaleString("en-US")} gal` : ""
+                          }}
+                        />
+                      }
+                    />
+                    <Bar dataKey="gallons" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </div>
+            </div>
+            {/* Sticky X-axis at bottom of card so scale is always visible */}
+            <div
+              className="flex shrink-0 items-center border-t border-border/50 bg-card px-0 py-1.5"
+              aria-hidden
+            >
+              <div className="w-10 shrink-0" />
+              <div className="flex min-w-0 flex-1 justify-between text-xs text-muted-foreground">
+                {stateChartXTicks(
+                  stateChartData.length ? Math.max(...stateChartData.map((d) => d.gallons)) : 0
+                ).map((value) => (
+                  <span key={value} className="shrink-0 tabular-nums">
+                    {value >= 1000 ? `${(value / 1000).toLocaleString()}k` : String(value)}
+                  </span>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>

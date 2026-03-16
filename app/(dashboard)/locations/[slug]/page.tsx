@@ -36,6 +36,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
+import { cn } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -265,6 +266,15 @@ export default function LocationDetailPage() {
         : { lat: 0, lng: 0 }
   }, [dateFilteredTransactions, locationTransactions])
 
+  const activePreset =
+    isExactlyTodayRange(dateRange)
+      ? "today"
+      : rangeMatches(dateRange, "week")
+        ? "week"
+        : rangeMatches(dateRange, "month")
+          ? "month"
+          : null
+
   return (
     <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
       <Breadcrumb>
@@ -362,17 +372,7 @@ export default function LocationDetailPage() {
         </h2>
         <div className="flex items-center gap-2">
           <Tabs
-            value={
-              isExactlyTodayRange(dateRange)
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
-                  : rangeMatches(dateRange, "today")
-                    ? "today"
-                    : rangeMatches(dateRange, "month")
-                      ? "month"
-                      : "today"
-            }
+            value={activePreset ?? "custom"}
             onValueChange={(v) => {
               if (v === "today") setDateRange(getTodayRange())
               if (v === "week") setDateRange(getThisWeekRange())
@@ -404,7 +404,7 @@ export default function LocationDetailPage() {
             <PopoverTrigger
               render={
                 <Button
-                  variant="outline"
+                  variant={activePreset === null ? "default" : "outline"}
                   className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
                 />
               }
@@ -412,7 +412,7 @@ export default function LocationDetailPage() {
               <HugeiconsIcon
                 icon={Calendar01Icon}
                 strokeWidth={1.5}
-                className="size-4 text-muted-foreground"
+                className={cn("size-4", activePreset === null ? "text-primary-foreground" : "text-muted-foreground")}
               />
               {formatRangeLabel(dateRange)}
             </PopoverTrigger>

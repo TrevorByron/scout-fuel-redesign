@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -172,8 +173,8 @@ const SORT_BY_LABELS: Record<string, string> = {
   "totalGallons-asc": "Total gallons (low first)",
   "transactions-desc": "Transactions (high first)",
   "transactions-asc": "Transactions (low first)",
-  "pct-desc": "Compliance % (high first)",
-  "pct-asc": "Compliance % (low first)",
+  "pct-desc": "Compliance (compliant first)",
+  "pct-asc": "Compliance (not compliant first)",
   "avgPerBadStop-desc": "Avg per bad stop (high first)",
   "avgPerBadStop-asc": "Avg per bad stop (low first)",
 }
@@ -315,6 +316,15 @@ export default function LocationInsightsPage() {
     [filteredAndSorted]
   )
 
+  const activePreset =
+    isExactlyTodayRange(dateRange)
+      ? "today"
+      : rangeMatches(dateRange, "week")
+        ? "week"
+        : rangeMatches(dateRange, "month")
+          ? "month"
+          : null
+
   const chainChartData = React.useMemo(() => {
     const byChain = new Map<string, number>()
     for (const loc of locationListStats) {
@@ -365,17 +375,7 @@ export default function LocationInsightsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Tabs
-            value={
-              isExactlyTodayRange(dateRange)
-                ? "today"
-                : rangeMatches(dateRange, "week")
-                  ? "week"
-                  : rangeMatches(dateRange, "today")
-                    ? "today"
-                    : rangeMatches(dateRange, "month")
-                      ? "month"
-                      : "today"
-            }
+            value={activePreset ?? "custom"}
             onValueChange={(v) => {
               if (v === "today") setDateRange(getTodayRange())
               if (v === "week") setDateRange(getThisWeekRange())
@@ -396,9 +396,14 @@ export default function LocationInsightsPage() {
           </Tabs>
           <Popover>
             <PopoverTrigger
-              render={<Button variant="outline" className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex" />}
+              render={
+                <Button
+                  variant={activePreset === null ? "default" : "outline"}
+                  className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
+                />
+              }
             >
-              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className="size-4 text-muted-foreground" />
+              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className={cn("size-4", activePreset === null ? "text-primary-foreground" : "text-muted-foreground")} />
               {formatRangeLabel(dateRange)}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
@@ -827,12 +832,13 @@ export default function LocationInsightsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <span
-                          className={[
-                            "tabular-nums font-medium",
-                            complianceScoreColorClass(loc.compliancePct),
-                          ].join(" ")}
+                          className={
+                            loc.compliancePct === 100
+                              ? "font-medium text-green-600 dark:text-green-500"
+                              : "text-muted-foreground"
+                          }
                         >
-                          {loc.compliancePct}%
+                          {loc.compliancePct === 100 ? "Compliant" : "Not compliant"}
                         </span>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">

@@ -33,14 +33,18 @@ function FitSinglePoint({ coords }: { coords: LngLat }) {
   return null
 }
 
+const DEFAULT_PADDING = 100
+
 function FitRouteBounds({
   originCoords,
   destinationCoords,
   routeCoordinates,
+  mapLeftPadding = 0,
 }: {
   originCoords: LngLat | null
   destinationCoords: LngLat | null
   routeCoordinates: LngLat[]
+  mapLeftPadding?: number
 }) {
   const { map, isLoaded } = useMap()
 
@@ -69,9 +73,18 @@ function FitRouteBounds({
         [minLng, minLat],
         [maxLng, maxLat],
       ],
-      { padding: 48, maxZoom: 13, duration: FLY_DURATION_MS }
+      {
+        padding: {
+          left: mapLeftPadding,
+          right: DEFAULT_PADDING,
+          top: DEFAULT_PADDING,
+          bottom: DEFAULT_PADDING,
+        },
+        maxZoom: 12,
+        duration: FLY_DURATION_MS,
+      }
     )
-  }, [map, isLoaded, originCoords, destinationCoords, routeCoordinates])
+  }, [map, isLoaded, originCoords, destinationCoords, routeCoordinates, mapLeftPadding])
 
   return null
 }
@@ -83,6 +96,8 @@ export type RouteOptimizerMapProps = {
   routeLoading?: boolean
   showOptimizingOverlay?: boolean
   fuelStopCoords?: LngLat[]
+  /** Left padding in px for fitBounds (e.g. sidebar width) so route stays visible. */
+  mapLeftPadding?: number
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
@@ -95,6 +110,7 @@ export function RouteOptimizerMap({
   routeLoading = false,
   showOptimizingOverlay = false,
   fuelStopCoords = [],
+  mapLeftPadding = 0,
 }: RouteOptimizerMapProps) {
   const [mounted, setMounted] = React.useState(false)
 
@@ -136,6 +152,7 @@ export function RouteOptimizerMap({
             originCoords={originCoords}
             destinationCoords={destinationCoords}
             routeCoordinates={routeCoordinates.length >= 2 ? routeCoordinates : []}
+            mapLeftPadding={mapLeftPadding}
           />
         )}
         {originCoords && (
