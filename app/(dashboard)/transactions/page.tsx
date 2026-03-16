@@ -621,7 +621,7 @@ export default function TransactionsPage() {
         </Card>
 
         {/* Gallons by state — horizontal bar chart */}
-        <Card className="@container/card flex max-h-[70dvh] min-h-0 flex-col">
+        <Card className="@container/card flex max-h-[35dvh] min-h-0 flex-col">
           <CardHeader className="shrink-0">
             <CardTitle>Gallons by state</CardTitle>
             <CardDescription>Total gallons purchased per state</CardDescription>
@@ -631,7 +631,7 @@ export default function TransactionsPage() {
               {/* Sticky Y-axis labels so state names stay visible when scrolling */}
               <div className="flex min-w-0">
                 <div
-                  className="sticky left-0 z-10 flex shrink-0 flex-col border-r border-border/50 bg-card py-[2px]"
+                  className="sticky left-0 z-10 flex shrink-0 flex-col border-r border-border/50 py-[2px]"
                   style={{
                     width: 40,
                     height: Math.max(200, stateChartData.length * 26),
@@ -685,7 +685,7 @@ export default function TransactionsPage() {
             </div>
             {/* Sticky X-axis at bottom of card so scale is always visible */}
             <div
-              className="flex shrink-0 items-center border-t border-border/50 bg-card px-0 py-1.5"
+              className="flex shrink-0 items-center border-t border-border/50 px-0 py-1.5"
               aria-hidden
             >
               <div className="w-10 shrink-0" />

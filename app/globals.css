@@ -134,6 +134,10 @@
   [data-slot="card"] {
     box-shadow: var(--shadow-sm);
   }
+  /* Dark mode: no background on sticky table header rows so they don’t block the page background */
+  .dark thead tr.bg-card {
+    background-color: transparent;
+  }
   /* Ensure chart colors cascade into Recharts SVG (var(--chart-*) used in stroke/fill) */
   [data-slot="chart"] {
     --chart-1: var(--color-chart-1);

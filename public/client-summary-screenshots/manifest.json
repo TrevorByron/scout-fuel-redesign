@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-03-10T16:18:02.704Z",
+  "capturedAt": "2026-03-16T20:09:57.043Z",
   "results": [
     {
-      "url": "http://localhost:3000",
-      "filename": "org-switcher_localhost_3000.png",
-      "filepath": "public/client-summary-screenshots/org-switcher_localhost_3000.png",
+      "url": "https://scout-fuel-redesign.vercel.app",
+      "filename": "mar16-light-cards_scout_fuel_redesign_vercel_app.png",
+      "filepath": "public/client-summary-screenshots/mar16-light-cards_scout_fuel_redesign_vercel_app.png",
       "status": "ok"
     }
   ]
