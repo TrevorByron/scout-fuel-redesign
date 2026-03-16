@@ -46,6 +46,10 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
+  --font-weight-normal: var(--fw-normal);
+  --font-weight-medium: var(--fw-medium);
+  --font-weight-semibold: var(--fw-semibold);
+  --font-weight-bold: var(--fw-bold);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -164,6 +168,10 @@
    Mobile: the block below applies only when viewport width <= 767px; desktop always uses the values here. */
 :root {
   --mobile-text-ratio: 1;
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
   --text-2xs-sm: 0.5625rem;   /* 9px desktop */
   --text-2xs: 0.625rem;       /* 10px desktop */
   --text-tiny: 0.8rem;
@@ -171,6 +179,10 @@
 @media (max-width: 767px) {
   :root {
     --mobile-text-ratio: 1; /* 16/12 so text-xs (0.75rem) => 16px */
+    --fw-normal: 500;
+    --fw-medium: 600;
+    --fw-semibold: 700;
+    --fw-bold: 800;
     --text-xs: calc(0.75rem * var(--mobile-text-ratio));
     --text-sm: calc(0.875rem * var(--mobile-text-ratio));
     --text-base: calc(1rem * var(--mobile-text-ratio));
@@ -187,5 +199,8 @@
     --text-2xs-sm: calc(0.5625rem * var(--mobile-text-ratio));
     --text-2xs: calc(0.625rem * var(--mobile-text-ratio));
     --text-tiny: calc(0.8rem * var(--mobile-text-ratio));
+  }
+  body {
+    font-weight: var(--fw-normal);
   }
 }
