@@ -62,8 +62,12 @@ function ensureMinimumLocationsWithBadStops(
     const need = minBadStops - badCount
     const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
     if (inNetworkTxns.length < need) continue
+    /** Prefer flipping txns outside the week of Jan 1 so that week stays at 98% compliance. */
+    const toFlip = [...inNetworkTxns].sort((a, b) =>
+      isInWeekOfJan1(a) === isInWeekOfJan1(b) ? 0 : isInWeekOfJan1(a) ? 1 : -1
+    ).slice(0, need)
     for (let j = 0; j < need; j++) {
-      const t = inNetworkTxns[j]
+      const t = toFlip[j]
       t.inNetwork = false
       const betterStation = IN_NETWORK_BRANDS[j % IN_NETWORK_BRANDS.length]
       const discount = 0.05 + (j % 4) * 0.008
@@ -81,6 +85,14 @@ function ensureMinimumLocationsWithBadStops(
     }
     locationsWithEnough++
   }
+}
+
+/** Week of Jan 1 2026 (Sun Dec 28 – Sat Jan 3). Used so we don't flip txns in this week and break 98% compliance. */
+function isInWeekOfJan1(t: FuelTransaction): boolean {
+  const weekStart = new Date(2025, 11, 28).getTime()
+  const weekEnd = new Date(2026, 0, 3, 23, 59, 59, 999).getTime()
+  const tms = new Date(t.dateTime).getTime()
+  return tms >= weekStart && tms <= weekEnd
 }
 
 /** Ensure at least one location in the full list has 2+ bad stops and 5+ transactions (needs attention). */
@@ -101,8 +113,12 @@ function ensureAtLeastOneLocationNeedsAttention(list: FuelTransaction[]): void {
     if (txns.length < minTotalTxns) continue
     const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
     if (inNetworkTxns.length < minBadStops) continue
+    /** Prefer flipping txns outside the week of Jan 1 so that week stays at 98% compliance. */
+    const toFlip = [...inNetworkTxns].sort((a, b) =>
+      isInWeekOfJan1(a) === isInWeekOfJan1(b) ? 0 : isInWeekOfJan1(a) ? 1 : -1
+    ).slice(0, minBadStops)
     for (let j = 0; j < minBadStops; j++) {
-      const t = inNetworkTxns[j]
+      const t = toFlip[j]
       t.inNetwork = false
       const betterStation = IN_NETWORK_BRANDS[j % IN_NETWORK_BRANDS.length]
       const discount = 0.05 + (j % 4) * 0.008
@@ -615,10 +631,20 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       const txnDate = new Date(date)
       txnDate.setHours(6 + ((i + k) % 14), ((i + k) % 4) * 15, 0, 0)
 
+      /** Week of Jan 1 2026 (Sun Dec 28 – Sat Jan 3): show 98% compliance when this week is selected. */
+      const weekOfJan1Start = new Date(2025, 11, 28).getTime()
+      const weekOfJan1End = new Date(2026, 0, 3, 23, 59, 59, 999).getTime()
+      const inWeekOfJan1 =
+        txnDate.getTime() >= weekOfJan1Start && txnDate.getTime() <= weekOfJan1End
+
       /** Location-based compliance band so any date range shows red/yellow/green on the map; roll keeps it deterministic. For "today" seed location, force out-of-network so one key has 5+ txns. */
       const locationTargetPct = getLocationComplianceTarget(locationIndex)
       const roll = (i * 13 + daysAgo * 17 + k * 7) % 100
-      const inNetwork = isFirstFiveOfToday ? false : roll < locationTargetPct
+      const inNetwork = isFirstFiveOfToday
+        ? false
+        : inWeekOfJan1
+          ? roll < 98
+          : roll < locationTargetPct
       const stationBrand = inNetwork
         ? IN_NETWORK_BRANDS[(i + daysAgo + k) % IN_NETWORK_BRANDS.length]
         : OUT_OF_NETWORK_BRANDS[isFirstFiveOfToday ? 0 : (i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
@@ -952,14 +978,16 @@ export const alertsList: AlertItem[] = [
 
 /** Mock data for FleetScoreCard: week label, target, and 3-month compliance trend. */
 export const fleetScoreCardMock = {
-  weekDate: "Oct 21",
-  previousGrade: "C",
-  targetGrade: "B+",
-  targetDate: "Nov 1",
+  weekDate: "Jan 8",
+  previousGrade: "A",
+  targetGrade: "A+",
+  targetDate: "Feb 1",
   trendData: [
-    { month: "Aug", value: 58 },
-    { month: "Sep", value: 62 },
-    { month: "Oct", value: 67 },
+    { month: "Dec 9", value: 82 },
+    { month: "Dec 16", value: 86 },
+    { month: "Dec 23", value: 92 },
+    { month: "Jan 1", value: 98 },
+    { month: "Jan 8", value: 94 },
   ] as { month: string; value: number }[],
 }
 

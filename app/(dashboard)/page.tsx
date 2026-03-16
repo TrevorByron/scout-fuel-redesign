@@ -36,6 +36,7 @@ import { AreaChart, Area, XAxis, CartesianGrid, PieChart, Pie, Label, ReferenceL
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 
 const fuelPriceChartConfig = {
   price: {
@@ -679,6 +680,34 @@ export default function DashboardPage() {
             <p className="text-center text-xs font-normal text-muted-foreground">
               Across {fleetScoreProps.overpaidFillUpCount} fill-up{fleetScoreProps.overpaidFillUpCount === 1 ? "" : "s"} from {fleetScoreProps.overpaidDriverCount} driver{fleetScoreProps.overpaidDriverCount === 1 ? "" : "s"}
             </p>
+            {(() => {
+              const totalPotential = kpis.totalSavings + fleetScoreProps.missedSavings
+              const savingsCapturePct = totalPotential > 0 ? (kpis.totalSavings / totalPotential) * 100 : 0
+              if (totalPotential <= 0) return null
+              const compliance = fleetScoreProps.complianceRate
+              const trackClass =
+                compliance >= 90
+                  ? "bg-green-600 dark:bg-green-500"
+                  : compliance >= 50
+                    ? "bg-yellow-600 dark:bg-yellow-500"
+                    : "bg-red-600 dark:bg-red-500"
+              return (
+                <div className="space-y-1 pt-2 w-[320px] max-w-full mx-auto shrink-0">
+                  <Progress
+                    value={compliance}
+                    className={cn(
+                      "h-2 w-full overflow-hidden rounded-full [&>div:last-child]:bg-green-600 [&>div:last-child]:dark:bg-green-500 [&>div:last-child]:border-r-2 [&>div:last-child]:border-white",
+                      trackClass
+                    )}
+                    aria-label={`Compliance ${compliance}%; $${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} captured, $${fleetScoreProps.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} missed`}
+                  />
+                  <div className="flex items-center justify-between text-[length:var(--text-2xs)] text-muted-foreground">
+                    <span>${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} captured</span>
+                    <span>${fleetScoreProps.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} missed</span>
+                  </div>
+                </div>
+              )
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -832,7 +861,7 @@ export default function DashboardPage() {
           <CardContent>
             {driversInNeedOfAttention.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No drivers in need of attention in this period.
+                🎉 No drivers in need of attention in this period.
               </p>
             ) : (
               <div className="divide-y divide-border">
@@ -891,7 +920,7 @@ export default function DashboardPage() {
           <CardContent>
             {locationsInNeedOfAttention.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No locations that need attention in this period.
+                🎉 No locations that need attention in this period.
               </p>
             ) : (
               <div className="divide-y divide-border">
