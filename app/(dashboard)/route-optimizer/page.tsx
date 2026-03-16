@@ -343,11 +343,11 @@ function RouteOptimizerPageContent() {
       {/* Left overlay: blocks map interaction; contains floating card */}
       <aside
         ref={sidebarRef}
-        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-[25rem] flex-col overflow-y-auto p-4 md:max-w-xl md:w-[43%]"
+        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-[23.75rem] flex-col overflow-y-auto p-4 md:max-w-xl md:w-[43%]"
         aria-label="Route details"
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
-          <div className="flex flex-col gap-4 p-0 md:p-4">
+        <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto md:justify-start md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto p-0 md:flex-1 md:p-4">
           {calculated ? (
             <div className="rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden md:rounded-none md:border-0 md:bg-transparent md:shadow-none md:ring-0">
               <div className="space-y-4 p-4 md:p-0">
@@ -421,12 +421,13 @@ function RouteOptimizerPageContent() {
               </div>
             </div>
           ) : (
-          <FieldGroup className="gap-4">
-            <h2 className="hidden text-lg font-semibold md:block">Optimize fuel purchases</h2>
-            <p className="text-xs font-medium text-muted-foreground">
-              Trip location information
-            </p>
-            <Accordion
+          <FieldGroup className="flex min-h-0 flex-1 flex-col gap-4">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <h2 className="hidden text-lg font-semibold md:block">Optimize fuel purchases</h2>
+              <p className="text-xs font-medium text-muted-foreground">
+                Trip location information
+              </p>
+              <Accordion
               multiple
               className="w-full -space-y-px rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden"
               value={openSections}
@@ -699,14 +700,16 @@ function RouteOptimizerPageContent() {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-
-            <Button
-              onClick={handleOptimize}
-              className="w-full"
-              disabled={!origin?.trim() || !destination?.trim()}
-            >
-              Optimize trip
-            </Button>
+            </div>
+            <div className="shrink-0">
+              <Button
+                onClick={handleOptimize}
+                className="w-full"
+                disabled={!origin?.trim() || !destination?.trim()}
+              >
+                Optimize trip
+              </Button>
+            </div>
           </FieldGroup>
           )}
           </div>
