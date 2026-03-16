@@ -343,13 +343,14 @@ function RouteOptimizerPageContent() {
       {/* Left overlay: blocks map interaction; contains floating card */}
       <aside
         ref={sidebarRef}
-        className="absolute left-0 top-0 bottom-0 z-10 flex w-full flex-col overflow-y-auto p-4 md:max-w-xl md:w-[43%]"
+        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-[25rem] flex-col overflow-y-auto p-4 md:max-w-xl md:w-[43%]"
         aria-label="Route details"
       >
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
           <div className="flex flex-col gap-4 p-0 md:p-4">
           {calculated ? (
-            <div className="space-y-4">
+            <div className="rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden md:rounded-none md:border-0 md:bg-transparent md:shadow-none md:ring-0">
+              <div className="space-y-4 p-4 md:p-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -416,6 +417,7 @@ function RouteOptimizerPageContent() {
                 >
                   Save trip
                 </Button>
+              </div>
               </div>
             </div>
           ) : (

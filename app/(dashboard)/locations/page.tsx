@@ -443,7 +443,7 @@ export default function LocationInsightsPage() {
           >
             <Card size="sm" className="min-w-0 cursor-pointer">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Gallons</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">All Locations</CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-foreground">
                   {summaryStats.totalGallons.toLocaleString("en-US", {
                     maximumFractionDigits: 1,
@@ -452,7 +452,7 @@ export default function LocationInsightsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Purchased this period
+                  Total Gallons
                 </p>
               </CardContent>
             </Card>
@@ -493,7 +493,7 @@ export default function LocationInsightsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">Drivers often use out-of-network</p>
+                <p className="text-xs text-muted-foreground">Often used non-compliant</p>
               </CardContent>
             </Card>
           </button>
