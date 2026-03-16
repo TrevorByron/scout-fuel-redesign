@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Link from "next/link"
-import dynamic from "next/dynamic"
 import { type DateRange } from "react-day-picker"
 import {
   fleetScoreCardMock,
@@ -11,22 +10,18 @@ import {
   type FuelPricePoint,
   type FuelTransaction,
 } from "@/lib/mock-data"
+import { getPilotRebateSummary } from "@/lib/rebate"
 import { getFleetGrade } from "@/lib/fuelScore"
 import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
+import { getLocationListStats, locationToSlug } from "@/lib/location-utils"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
+import { PilotRebateCard } from "@/components/pilot-rebate-card"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
+import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon, UserGroupIcon, Location01Icon } from "@hugeicons/core-free-icons"
 import { buttonVariants } from "@/components/ui/button"
 
-const FuelTransactionTable = dynamic(
-  () =>
-    import("@/components/fuel-transaction-table").then((m) => ({
-      default: m.FuelTransactionTable,
-    })),
-  { ssr: false, loading: () => <div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">Loading table…</div> }
-)
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -379,13 +374,6 @@ export default function DashboardPage() {
     return getFuelTransactions().filter((t) => isInDateRange(t, dateRange))
   }, [dateRange])
 
-  /** Transactions in range where they could have paid less (better location or optimal price). Same pool as Overpaid card. */
-  const attentionTxns = React.useMemo(
-    () => filteredByDateTransactions.filter((t) => getOverpaidAmount(t) > 0),
-    [filteredByDateTransactions]
-  )
-  const recentTxns = React.useMemo(() => attentionTxns.slice(0, 10), [attentionTxns])
-
   /** Drivers needing attention = below 60% compliance in period (same definition as Driver Insights). Top 5 by missed savings. */
   const driversInNeedOfAttention = React.useMemo(() => {
     const week = getThisWeekRange()
@@ -396,6 +384,21 @@ export default function DashboardPage() {
       from: range.from ?? week.from!,
       to: range.to ?? range.from ?? week.to,
     }).slice(0, 5)
+  }, [dateRange])
+
+  /** Locations that need attention in the selected period. Top 5 by missed savings. */
+  const locationsInNeedOfAttention = React.useMemo(() => {
+    const week = getThisWeekRange()
+    const range = dateRange?.from
+      ? { from: dateRange.from, to: dateRange.to ?? dateRange.from }
+      : week
+    return getLocationListStats({
+      from: range.from ?? week.from!,
+      to: range.to ?? range.from ?? week.to,
+    })
+      .filter((loc) => loc.needsAttention)
+      .sort((a, b) => b.missedSavings - a.missedSavings)
+      .slice(0, 5)
   }, [dateRange])
 
   const periodLabel =
@@ -458,6 +461,11 @@ export default function DashboardPage() {
     [filteredByDateTransactions]
   )
 
+  const pilotRebateSummary = React.useMemo(
+    () => getPilotRebateSummary(getFuelTransactions(), new Date()),
+    []
+  )
+
   const fleetScoreProps = React.useMemo(() => {
     const total = filteredByDateTransactions.length
     // Optimization score: TBD formula to include in-network vs out-of-network AND better location on route within tank range
@@ -469,7 +477,7 @@ export default function DashboardPage() {
     const grade = gradeMatch ? gradeMatch[1] : "F"
     const gradeSuffix = gradeMatch?.[2]
 
-    /** Same as attentionTxns: could have paid less (betterOption or variance). Overpaid $ = sum of getOverpaidAmount(t). */
+    /** Could have paid less (betterOption or variance). Overpaid $ = sum of getOverpaidAmount(t). */
     const overpaidTxns = filteredByDateTransactions.filter((t) => getOverpaidAmount(t) > 0)
     const rawSum = overpaidTxns.reduce((sum, t) => sum + getOverpaidAmount(t), 0)
     const overpaidFillUpCount = overpaidTxns.length
@@ -805,7 +813,10 @@ export default function DashboardPage() {
         {/* Drivers in need of attention — same slot as old Fuel Price Trends card */}
         <Card className="flex min-h-0 min-w-0 flex-col">
           <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <CardTitle>Drivers in need of attention this {periodLabel}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
+              Drivers in need of attention this {periodLabel}
+            </CardTitle>
             <Link
               href="/drivers"
               className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
@@ -843,6 +854,65 @@ export default function DashboardPage() {
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
                         -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      </span>
+                      <span
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                        aria-hidden
+                      >
+                        <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Locations that need attention */}
+        <Card className="flex min-h-0 min-w-0 flex-col">
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <HugeiconsIcon icon={Location01Icon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
+              Locations that need attention this {periodLabel}
+            </CardTitle>
+            <Link
+              href="/locations"
+              className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
+            >
+              View all
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {locationsInNeedOfAttention.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No locations that need attention in this period.
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {locationsInNeedOfAttention.map((loc, index) => (
+                  <Link
+                    key={loc.locationKey}
+                    href={`/locations/${locationToSlug(loc.displayName)}`}
+                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="tabular-nums text-muted-foreground w-5 shrink-0">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">{loc.displayName}</span>
+                          {loc.badStopsCount > 0 && (
+                            <Badge variant="destructive" className="text-[10px] font-normal">
+                              {loc.badStopsCount} bad stop{loc.badStopsCount !== 1 ? "s" : ""} {periodBadgeLabel}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
+                        -${loc.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                       </span>
                       <span
                         className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
@@ -938,48 +1008,8 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+        <PilotRebateCard summary={pilotRebateSummary} />
 
-        {/* Transactions that need attention — actionable with count */}
-        <Card className="col-span-full @[66rem]/main:col-span-2">
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                Transactions that need attention
-                {attentionTxns.length > 0 && (
-                  <Badge variant="secondary" className="font-normal tabular-nums">
-                    {attentionTxns.length} to review
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription>
-                Review transactions where you could have saved by using the optimized location.
-              </CardDescription>
-            </div>
-            <Link
-              href="/transactions"
-              className={buttonVariants({ variant: "default", size: "sm", className: "gap-1.5" })}
-            >
-              Review all
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <FuelTransactionTable
-              transactions={recentTxns}
-              maxRows={10}
-              emptyTitle="No transactions needing attention"
-              emptyDescription="No savings opportunity in this period; all fill-ups were at or better than optimal."
-              emptyAction={
-                <Link
-                  href="/transactions"
-                  className={buttonVariants({ variant: "link", size: "sm" })}
-                >
-                  View all transactions
-                </Link>
-              }
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   )
