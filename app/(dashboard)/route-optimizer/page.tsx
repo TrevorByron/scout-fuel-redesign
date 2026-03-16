@@ -630,14 +630,11 @@ function RouteOptimizerPageContent() {
                         <SelectContent>
                           {drivers.map((d) => (
                             <SelectItem key={d.driverId} value={d.driverId}>
-                              {d.driverName} · {d.driverId}
+                              {d.driverName}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Spending on this route will be tracked to this driver’s fuel card.
-                      </p>
                     </Field>
                     <Field>
                       <FieldLabel>Select truck</FieldLabel>
