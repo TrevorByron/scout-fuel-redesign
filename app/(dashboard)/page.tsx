@@ -488,8 +488,10 @@ export default function DashboardPage() {
     const grade = gradeMatch ? gradeMatch[1] : "F"
     const gradeSuffix = gradeMatch?.[2]
 
-    /** Could have paid less (betterOption or variance). Overpaid $ = sum of getOverpaidAmount(t). */
-    const overpaidTxns = filteredByDateTransactions.filter((t) => getOverpaidAmount(t) > 0)
+    /** Missed savings = overpaid $ on out-of-network fill-ups only (matches Drivers page). High compliance => small missed $ */
+    const overpaidTxns = filteredByDateTransactions.filter(
+      (t) => !t.inNetwork && getOverpaidAmount(t) > 0
+    )
     const rawSum = overpaidTxns.reduce((sum, t) => sum + getOverpaidAmount(t), 0)
     const overpaidFillUpCount = overpaidTxns.length
     const overpaidDriverCount = new Set(overpaidTxns.map((t) => t.driverName)).size
@@ -501,7 +503,7 @@ export default function DashboardPage() {
       ? Math.round(
           getFuelTransactions()
             .filter((t) => isInDateRange(t, comparison.range))
-            .filter((t) => getOverpaidAmount(t) > 0)
+            .filter((t) => !t.inNetwork && getOverpaidAmount(t) > 0)
             .reduce((sum, t) => sum + getOverpaidAmount(t), 0)
         )
       : 0
