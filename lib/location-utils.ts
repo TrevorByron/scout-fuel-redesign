@@ -154,12 +154,14 @@ export function getLocationListStats(
     const compliancePct =
       txns.length > 0 ? Math.round((inNetworkCount / txns.length) * 100) : 0
     const badStops = txns.filter((t) => !t.inNetwork && getOverpaidAmount(t) > 0)
+    const badStopsCount = badStops.length
     const missedSavings = Math.round(
       badStops.reduce((s, t) => s + getOverpaidAmount(t), 0)
     )
     const avgMissedSavingsPerBadStop =
-      badStops.length > 0 ? Math.round(missedSavings / badStops.length) : 0
-    const needsAttention = txns.length > 0 && compliancePct < 60
+      badStopsCount > 0 ? Math.round(missedSavings / badStopsCount) : 0
+    // Needs attention when drivers regularly use this location when not compliant (2+ bad stops) and there is enough volume (5+ transactions).
+    const needsAttention = badStopsCount >= 2 && txns.length >= 5
 
     result.push({
       locationKey,
@@ -168,7 +170,7 @@ export function getLocationListStats(
       transactionCount: txns.length,
       compliancePct,
       missedSavings,
-      badStopsCount: badStops.length,
+      badStopsCount,
       avgMissedSavingsPerBadStop,
       needsAttention,
       lat: data.lat,

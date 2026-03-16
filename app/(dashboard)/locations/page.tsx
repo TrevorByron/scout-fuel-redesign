@@ -488,7 +488,7 @@ export default function LocationInsightsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">Below 60% compliance</p>
+                <p className="text-xs text-muted-foreground">Drivers often use out-of-network</p>
               </CardContent>
             </Card>
           </button>

@@ -13,18 +13,10 @@ import {
   getLocationKey,
   getLocationKeyFromDisplay,
   getLocationSummaryStats,
-  getLocationComplianceTrend,
   getDriversAtLocation,
   getRepresentativeBetterOption,
   type DateRange as LocationDateRange,
 } from "@/lib/location-utils"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from "recharts"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -183,18 +175,6 @@ function isInDateRange(
   return true
 }
 
-function complianceScoreColorClass(pct: number): string {
-  if (pct >= 90) return "text-green-600 dark:text-green-500"
-  if (pct >= 50) return "text-yellow-600 dark:text-yellow-500"
-  return "text-red-600 dark:text-red-500"
-}
-
-function getComplianceBarFill(scorePct: number): string {
-  if (scorePct >= 90) return "#22c55e"
-  if (scorePct >= 50) return "#eab308"
-  return "var(--destructive)"
-}
-
 function transactionMatchesLocation(t: FuelTransaction, locationKey: string): boolean {
   return getLocationKey(t.stationBrand, t.location) === locationKey
 }
@@ -230,17 +210,6 @@ export default function LocationDetailPage() {
     effectiveDateRange as LocationDateRange,
     previousPeriodRange as LocationDateRange
   )
-  const complianceTrendData = React.useMemo(
-    () => getLocationComplianceTrend(locationKey, 8),
-    [locationKey]
-  )
-  const complianceChartConfig = {
-    scorePct: {
-      label: "Compliance score",
-      color: "var(--chart-1)",
-    },
-  } satisfies ChartConfig
-
   const locationTransactions = React.useMemo(
     () =>
       getFuelTransactions().filter((t) => transactionMatchesLocation(t, locationKey)),
@@ -296,12 +265,6 @@ export default function LocationDetailPage() {
         : { lat: 0, lng: 0 }
   }, [dateFilteredTransactions, locationTransactions])
 
-  const isThisWeek = rangeMatches(effectiveDateRange, "week")
-  const trendLabel =
-    summaryStats.thisPeriodScorePct >= summaryStats.lastPeriodScorePct
-      ? `↑ from ${summaryStats.lastPeriodScorePct}% ${isThisWeek ? "last week" : "previous period"}`
-      : `↓ from ${summaryStats.lastPeriodScorePct}% ${isThisWeek ? "last week" : "previous period"}`
-
   return (
     <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
       <Breadcrumb>
@@ -327,16 +290,13 @@ export default function LocationDetailPage() {
 
           <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-muted-foreground text-xs">Compliance score</p>
-              <p
-                className={[
-                  "text-2xl font-bold tabular-nums",
-                  complianceScoreColorClass(summaryStats.thisPeriodScorePct),
-                ].join(" ")}
-              >
-                {summaryStats.thisPeriodScorePct}%
+              <p className="text-muted-foreground text-xs">Drivers who shopped here</p>
+              <p className="text-2xl font-bold tabular-nums text-foreground">
+                {driversAtLocation.length}
               </p>
-              <p className="text-muted-foreground text-xs">{trendLabel}</p>
+              <p className="text-muted-foreground text-xs">
+                in the selected date range
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Overpaid</p>
@@ -393,57 +353,6 @@ export default function LocationDetailPage() {
             </div>
           </div>
 
-          <div className="border-t border-border pt-4">
-            <p className="text-muted-foreground text-xs font-medium mb-2">
-              Compliance score over time (last 8 weeks)
-            </p>
-            <ChartContainer
-              config={complianceChartConfig}
-              className="h-[140px] w-full [&_.recharts-cartesian-axis-tick_text]:text-[10px]"
-            >
-              <BarChart
-                data={complianceTrendData}
-                margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid vertical={false} strokeDasharray="2 2" />
-                <XAxis
-                  dataKey="weekLabel"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={4}
-                  tick={{ fontSize: 10 }}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
-                  tickLine={false}
-                  axisLine={false}
-                  width={24}
-                  tick={{ fontSize: 10 }}
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      formatter={(v) => `${Number(v).toFixed(0)}%`}
-                    />
-                  }
-                />
-                <Bar
-                  dataKey="scorePct"
-                  name="scorePct"
-                  radius={[2, 2, 0, 0]}
-                  barSize={20}
-                >
-                  {complianceTrendData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={getComplianceBarFill(entry.scorePct)}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ChartContainer>
-          </div>
         </CardContent>
       </Card>
 
@@ -567,7 +476,6 @@ export default function LocationDetailPage() {
                   <TableHead>Driver</TableHead>
                   <TableHead className="text-right">Fill-ups</TableHead>
                   <TableHead className="text-right">Missed savings</TableHead>
-                  <TableHead className="text-right">Compliance %</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -588,11 +496,6 @@ export default function LocationDetailPage() {
                       className={`text-right tabular-nums ${d.missedSavings > 0 ? "text-red-600 dark:text-red-500 font-medium" : ""}`}
                     >
                       ${d.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right tabular-nums ${complianceScoreColorClass(d.compliancePct)}`}
-                    >
-                      {d.compliancePct}%
                     </TableCell>
                   </TableRow>
                 ))}

@@ -21,6 +21,157 @@ const OUT_OF_NETWORK_BRANDS = STATION_BRANDS.filter(
   (b) => !(IN_NETWORK_BRANDS as readonly string[]).includes(b)
 ) as readonly string[]
 
+const LOCATION_KEY_SEP = "\u001f"
+
+function getLocationKey(stationBrand: string, location: string): string {
+  return `${stationBrand}${LOCATION_KEY_SEP}${location}`
+}
+
+function isBadStop(t: FuelTransaction): boolean {
+  return t.inNetwork === false && (t.betterOption?.potentialSavings ?? 0) > 0
+}
+
+/** Ensure at least minLocations distinct (stationBrand, location) pairs have at least minBadStops non-compliant transactions each. */
+function ensureMinimumLocationsWithBadStops(
+  list: FuelTransaction[],
+  minLocations: number,
+  minBadStops: number
+): void {
+  const byKey = new Map<string, FuelTransaction[]>()
+  for (const t of list) {
+    const key = getLocationKey(t.stationBrand, t.location)
+    const arr = byKey.get(key) ?? []
+    arr.push(t)
+    byKey.set(key, arr)
+  }
+  let locationsWithEnough = 0
+  for (const [, txns] of byKey) {
+    const bad = txns.filter(isBadStop)
+    if (bad.length >= minBadStops) locationsWithEnough++
+  }
+  if (locationsWithEnough >= minLocations) return
+
+  const minTotalTxns = 5
+  const keysByBadCount = [...byKey.entries()]
+    .map(([key, txns]) => ({ key, txns, badCount: txns.filter(isBadStop).length }))
+    .filter((x) => x.badCount < minBadStops && x.txns.length >= minTotalTxns)
+    .sort((a, b) => b.badCount - a.badCount)
+
+  for (const { txns, badCount } of keysByBadCount) {
+    if (locationsWithEnough >= minLocations) break
+    const need = minBadStops - badCount
+    const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
+    if (inNetworkTxns.length < need) continue
+    for (let j = 0; j < need; j++) {
+      const t = inNetworkTxns[j]
+      t.inNetwork = false
+      const betterStation = IN_NETWORK_BRANDS[j % IN_NETWORK_BRANDS.length]
+      const discount = 0.05 + (j % 4) * 0.008
+      const betterPrice = Math.round(t.pricePerGallon * (1 - discount) * 100) / 100
+      const potentialSavings = Math.round(t.gallons * (t.pricePerGallon - betterPrice) * 100) / 100
+      t.betterOption = {
+        stationName: betterStation,
+        location: t.location,
+        lat: t.lat + 0.05,
+        lng: t.lng - 0.03,
+        pricePerGallon: betterPrice,
+        distanceMiles: 2 + (j % 10),
+        potentialSavings: potentialSavings > 0 ? potentialSavings : 15,
+      }
+    }
+    locationsWithEnough++
+  }
+}
+
+/** Ensure at least one location in the full list has 2+ bad stops and 5+ transactions (needs attention). */
+function ensureAtLeastOneLocationNeedsAttention(list: FuelTransaction[]): void {
+  const byKey = new Map<string, FuelTransaction[]>()
+  for (const t of list) {
+    const key = getLocationKey(t.stationBrand, t.location)
+    const arr = byKey.get(key) ?? []
+    arr.push(t)
+    byKey.set(key, arr)
+  }
+  const minBadStops = 2
+  const minTotalTxns = 5
+  for (const [, txns] of byKey) {
+    if (txns.length >= minTotalTxns && txns.filter(isBadStop).length >= minBadStops) return
+  }
+  for (const [, txns] of byKey) {
+    if (txns.length < minTotalTxns) continue
+    const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
+    if (inNetworkTxns.length < minBadStops) continue
+    for (let j = 0; j < minBadStops; j++) {
+      const t = inNetworkTxns[j]
+      t.inNetwork = false
+      const betterStation = IN_NETWORK_BRANDS[j % IN_NETWORK_BRANDS.length]
+      const discount = 0.05 + (j % 4) * 0.008
+      const betterPrice = Math.round(t.pricePerGallon * (1 - discount) * 100) / 100
+      const potentialSavings = Math.round(t.gallons * (t.pricePerGallon - betterPrice) * 100) / 100
+      t.betterOption = {
+        stationName: betterStation,
+        location: t.location,
+        lat: t.lat + 0.05,
+        lng: t.lng - 0.03,
+        pricePerGallon: betterPrice,
+        distanceMiles: 2 + (j % 10),
+        potentialSavings: potentialSavings > 0 ? potentialSavings : 15,
+      }
+    }
+    return
+  }
+}
+
+/** Ensure at least one location has 2+ bad stops on refDate so "today", "this week", and "this month" always show at least one location needing attention. */
+function ensureAtLeastOneLocationNeedsAttentionOnDay(
+  list: FuelTransaction[],
+  refDate: Date
+): void {
+  const dayStart = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()).getTime()
+  const dayEnd = dayStart + 86400000 - 1
+  const onDay = (t: FuelTransaction) => {
+    const tms = new Date(t.dateTime).getTime()
+    return tms >= dayStart && tms <= dayEnd
+  }
+  const dayTxns = list.filter(onDay)
+  const byKey = new Map<string, FuelTransaction[]>()
+  for (const t of dayTxns) {
+    const key = getLocationKey(t.stationBrand, t.location)
+    const arr = byKey.get(key) ?? []
+    arr.push(t)
+    byKey.set(key, arr)
+  }
+  const minBadStops = 2
+  const minTotalTxns = 5
+  for (const [, txns] of byKey) {
+    if (txns.length >= minTotalTxns && txns.filter(isBadStop).length >= minBadStops) return
+  }
+  const need = minBadStops
+  for (const [, txns] of byKey) {
+    if (txns.length < minTotalTxns) continue
+    const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
+    if (inNetworkTxns.length < need) continue
+    for (let j = 0; j < need; j++) {
+      const t = inNetworkTxns[j]
+      t.inNetwork = false
+      const betterStation = IN_NETWORK_BRANDS[j % IN_NETWORK_BRANDS.length]
+      const discount = 0.05 + (j % 4) * 0.008
+      const betterPrice = Math.round(t.pricePerGallon * (1 - discount) * 100) / 100
+      const potentialSavings = Math.round(t.gallons * (t.pricePerGallon - betterPrice) * 100) / 100
+      t.betterOption = {
+        stationName: betterStation,
+        location: t.location,
+        lat: t.lat + 0.05,
+        lng: t.lng - 0.03,
+        pricePerGallon: betterPrice,
+        distanceMiles: 2 + (j % 10),
+        potentialSavings: potentialSavings > 0 ? potentialSavings : 15,
+      }
+    }
+    return
+  }
+}
+
 export type InNetworkBrand = (typeof IN_NETWORK_BRANDS)[number]
 
 export const TRUCK_STATUSES = [
@@ -427,7 +578,9 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
     if (date.getTime() > now.getTime()) continue
     for (let driverIndex = 0; driverIndex < NUM_FLEET_DRIVERS; driverIndex++) {
       for (let k = 0; k < TRANSACTIONS_PER_DRIVER_PER_DAY; k++) {
-      const locationIndex = i % LOCATIONS.length
+      /** On the build date (today), pin the first 5 transactions to the same location so at least one location has 5+ txns and can be given 2+ bad stops for "needs attention". */
+      const isFirstFiveOfToday = daysAgo === 0 && driverIndex * TRANSACTIONS_PER_DRIVER_PER_DAY + k < 5
+      const locationIndex = isFirstFiveOfToday ? 0 : i % LOCATIONS.length
       const location = LOCATIONS[locationIndex]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
       const fuelType = k < FUEL_TYPES.length ? FUEL_TYPES[k] : FUEL_TYPE_SEQUENCE[i % 10]
@@ -450,13 +603,13 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       const txnDate = new Date(date)
       txnDate.setHours(6 + ((i + k) % 14), ((i + k) % 4) * 15, 0, 0)
 
-      /** Location-based compliance band so any date range shows red/yellow/green on the map; roll keeps it deterministic. */
+      /** Location-based compliance band so any date range shows red/yellow/green on the map; roll keeps it deterministic. For "today" seed location, force out-of-network so one key has 5+ txns. */
       const locationTargetPct = getLocationComplianceTarget(locationIndex)
       const roll = (i * 13 + daysAgo * 17 + k * 7) % 100
-      const inNetwork = roll < locationTargetPct
+      const inNetwork = isFirstFiveOfToday ? false : roll < locationTargetPct
       const stationBrand = inNetwork
         ? IN_NETWORK_BRANDS[(i + daysAgo + k) % IN_NETWORK_BRANDS.length]
-        : OUT_OF_NETWORK_BRANDS[(i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
+        : OUT_OF_NETWORK_BRANDS[isFirstFiveOfToday ? 0 : (i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
       const offset = getLocationCoordOffset(stationBrand, location)
       const lat = coords.lat + offset.lat
       const lng = coords.lng + offset.lng
@@ -508,6 +661,9 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       }
     }
   }
+  ensureMinimumLocationsWithBadStops(list, 11, 5)
+  ensureAtLeastOneLocationNeedsAttention(list)
+  ensureAtLeastOneLocationNeedsAttentionOnDay(list, anchor)
   return list.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
 }
 
