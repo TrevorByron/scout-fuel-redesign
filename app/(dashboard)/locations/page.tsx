@@ -433,15 +433,15 @@ export default function LocationInsightsPage() {
       </div>
 
       <div className="flex flex-col gap-4 md:gap-6">
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 items-stretch">
           <button
             type="button"
             onClick={() => setCardFilter("all")}
-            className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
             aria-pressed={cardFilter === "all"}
             aria-label="Show all locations"
           >
-            <Card size="sm" className="min-w-0 cursor-pointer">
+            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">All Locations</CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-foreground">
@@ -460,11 +460,11 @@ export default function LocationInsightsPage() {
           <button
             type="button"
             onClick={() => setCardFilter((prev) => (prev === "overpaid" ? "all" : "overpaid"))}
-            className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "overpaid" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "overpaid" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
             aria-pressed={cardFilter === "overpaid"}
             aria-label="Filter to locations with missed savings"
           >
-            <Card size="sm" className="min-w-0 cursor-pointer">
+            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Total Missed Savings</CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
@@ -481,11 +481,11 @@ export default function LocationInsightsPage() {
           <button
             type="button"
             onClick={() => setCardFilter((prev) => (prev === "needs_attention" ? "all" : "needs_attention"))}
-            className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "needs_attention" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "needs_attention" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
             aria-pressed={cardFilter === "needs_attention"}
             aria-label="Filter to locations needing attention"
           >
-            <Card size="sm" className="min-w-0 cursor-pointer">
+            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Locations Needing Attention</CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
@@ -500,11 +500,11 @@ export default function LocationInsightsPage() {
           <button
             type="button"
             onClick={() => setCardFilter((prev) => (prev === "fully_compliant" ? "all" : "fully_compliant"))}
-            className={`min-w-0 block w-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
             aria-pressed={cardFilter === "fully_compliant"}
             aria-label="Filter to fully compliant locations"
           >
-            <Card size="sm" className="min-w-0 cursor-pointer">
+            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Fully Compliant</CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
