@@ -3,7 +3,6 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { pricingSummaryRows } from "@/lib/mock-data"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -156,9 +155,8 @@ export default function PricingSummaryPage() {
         </div>
       </div>
 
-      <Card className="mx-4 flex min-h-0 flex-1 flex-col lg:mx-6">
-        <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-          <div className="min-h-0 flex-1 overflow-auto">
+      <div className="mx-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border lg:mx-6">
+        <div className="min-h-0 flex-1 overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow className="sticky top-0 z-10 bg-card border-b shadow-[0_1px_0_0_hsl(var(--border))]">
@@ -210,8 +208,7 @@ export default function PricingSummaryPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
   )
 }

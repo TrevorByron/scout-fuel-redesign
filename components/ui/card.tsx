@@ -5,13 +5,23 @@ import { cn } from "@/lib/utils"
 function Card({
   className,
   size = "default",
+  variant = "default",
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & {
+  size?: "default" | "sm"
+  variant?: "default" | "flat"
+}) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn("shadow-md ring-foreground/10 bg-card text-card-foreground gap-4 overflow-hidden rounded-lg py-4 text-xs ring-1 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg group/card flex flex-col", className)}
+      data-variant={variant}
+      className={cn(
+        "bg-card text-card-foreground gap-4 overflow-hidden rounded-lg py-4 text-xs has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg group/card flex flex-col",
+        variant === "default" && "shadow-md ring-1 ring-foreground/10",
+        variant === "flat" && "border border-border",
+        className
+      )}
       {...props}
     />
   )

@@ -424,7 +424,7 @@ function RouteOptimizerPageContent() {
           <FieldGroup className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="min-h-0 flex-1 overflow-y-auto">
               <h2 className="hidden text-lg font-semibold md:block">Optimize fuel purchases</h2>
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="mb-6 text-xs font-medium text-muted-foreground">
                 Trip location information
               </p>
               <Accordion

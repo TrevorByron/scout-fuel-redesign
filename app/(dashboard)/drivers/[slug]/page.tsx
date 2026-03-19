@@ -292,7 +292,7 @@ export default function DriverDetailPage() {
       </Breadcrumb>
 
       {/* Summary block */}
-      <Card className="overflow-hidden shadow-md ring-1 ring-foreground/10">
+      <Card variant="flat" className="overflow-hidden">
         <CardContent className="flex flex-col gap-4 pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex flex-col gap-3">
@@ -524,7 +524,7 @@ export default function DriverDetailPage() {
       </div>
 
       {/* Transactions table */}
-      <Card>
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Transactions</CardTitle>
           <CardDescription>

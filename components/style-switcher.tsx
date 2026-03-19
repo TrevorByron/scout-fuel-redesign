@@ -9,6 +9,7 @@ const STYLES = [
   { id: "2" as const, label: "Style 2", swatchVar: "var(--swatch-2)" },
   { id: "3" as const, label: "Style 3", swatchVar: "var(--swatch-3)" },
   { id: "4" as const, label: "Style 4 (WIP)", swatchVar: "var(--swatch-4)" },
+  { id: "5" as const, label: "Uber", swatchVar: "var(--swatch-5)" },
 ] as const;
 
 export function StyleSwitcher() {
@@ -16,7 +17,7 @@ export function StyleSwitcher() {
 
   return (
     <div
-      className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 gap-1 rounded-lg border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      className="fixed bottom-4 left-1/2 z-50 flex max-w-[min(100vw-1rem,28rem)] -translate-x-1/2 flex-wrap justify-center gap-1 rounded-lg border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
       role="group"
       aria-label="Style template"
     >

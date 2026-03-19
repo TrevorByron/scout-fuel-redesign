@@ -361,7 +361,7 @@ function SpendingTrendsCard() {
   )
 
   return (
-    <Card className="@container/card md:col-span-2 xl:max-h-[320px] xl:flex xl:flex-col xl:min-h-0">
+    <Card variant="flat" className="@container/card md:col-span-2 xl:max-h-[320px] xl:flex xl:flex-col xl:min-h-0">
       <CardHeader className="pb-2 shrink-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -538,7 +538,7 @@ export default function TransactionsPage() {
         <SpendingTrendsCard />
 
         {/* Gallons by chain — pie chart */}
-        <Card className="@container/card flex flex-col min-h-0">
+        <Card variant="flat" className="@container/card flex flex-col min-h-0">
           <CardHeader className="shrink-0">
             <CardTitle>Gallons by chain</CardTitle>
             <CardDescription>Total gallons purchased per station brand</CardDescription>
@@ -621,7 +621,7 @@ export default function TransactionsPage() {
         </Card>
 
         {/* Gallons by state — horizontal bar chart */}
-        <Card className="@container/card flex max-h-[35dvh] min-h-0 flex-col">
+        <Card variant="flat" className="@container/card flex max-h-[35dvh] min-h-0 flex-col">
           <CardHeader className="shrink-0">
             <CardTitle>Gallons by state</CardTitle>
             <CardDescription>Total gallons purchased per state</CardDescription>
@@ -704,7 +704,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Fuel transactions table */}
-      <Card className="mx-4 md:col-span-2 lg:mx-6">
+      <Card variant="flat" className="mx-4 md:col-span-2 lg:mx-6">
         <div className="flex flex-col gap-2 border-b px-4 pt-0 pb-4 lg:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1">

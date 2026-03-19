@@ -46,7 +46,7 @@ export default function BudgetPage() {
           <TabsTrigger value="year">Year</TabsTrigger>
         </TabsList>
         <TabsContent value="month" className="space-y-4 pt-4">
-          <Card>
+          <Card variant="flat">
             <CardHeader>
               <CardTitle>Budget vs Actual</CardTitle>
             </CardHeader>
@@ -69,7 +69,7 @@ export default function BudgetPage() {
           </Card>
         </TabsContent>
         <TabsContent value="quarter" className="space-y-4 pt-4">
-          <Card>
+          <Card variant="flat">
             <CardHeader>
               <CardTitle>Budget vs Actual (Quarter)</CardTitle>
             </CardHeader>
@@ -88,7 +88,7 @@ export default function BudgetPage() {
           </Card>
         </TabsContent>
         <TabsContent value="year" className="space-y-4 pt-4">
-          <Card>
+          <Card variant="flat">
             <CardHeader>
               <CardTitle>Budget vs Actual (Year)</CardTitle>
             </CardHeader>
@@ -109,7 +109,7 @@ export default function BudgetPage() {
       </Tabs>
 
       <div className="grid gap-4 px-4 md:grid-cols-2 lg:px-6">
-        <Card>
+        <Card variant="flat">
           <CardHeader>
             <CardTitle>Forecast model</CardTitle>
           </CardHeader>
@@ -131,7 +131,7 @@ export default function BudgetPage() {
             </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="flat">
           <CardHeader>
             <CardTitle>Historical trends</CardTitle>
           </CardHeader>
@@ -147,7 +147,7 @@ export default function BudgetPage() {
             </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card variant="flat" className="md:col-span-2">
           <CardHeader>
             <CardTitle>Scenario analysis</CardTitle>
           </CardHeader>

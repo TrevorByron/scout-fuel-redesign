@@ -1,12 +1,14 @@
 # Style templates
 
-This folder contains the three style templates used by the app. Users can switch between them using the floating bar at the bottom of the screen (“Style 1”, “Style 2”, “Style 3”).
+This folder contains the style templates used by the app. Users can switch between them using the floating bar at the bottom of the screen.
 
 ## Files
 
 - **style-1.css** – Default theme (blue/violet). Also provides the fallback when no style is selected.
 - **style-2.css** – Warm/amber palette.
 - **style-3.css** – Teal/green palette.
+- **style-4.css** – Glass / gradient variant (WIP).
+- **style-5.css** – Uber Base–inspired (primary blue, system/Helvetica stack, Base shadows, square controls).
 
 ## Customizing a template
 

@@ -28,7 +28,7 @@ export function PilotRebateCard({ summary, className }: PilotRebateCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <CardTitle className="text-base flex items-center gap-1.5">
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
               Pilot rebate — {currentMonth.monthLabel}
               <Tooltip>
                 <TooltipTrigger

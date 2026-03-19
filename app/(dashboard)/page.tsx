@@ -16,6 +16,7 @@ import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils
 import { getLocationListStats, locationToSlug } from "@/lib/location-utils"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { PilotRebateCard } from "@/components/pilot-rebate-card"
+import { StatStrip, StatStripItem, StatStripLabel, StatStripValue } from "@/components/stat-strip"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -371,6 +372,7 @@ export default function DashboardPage() {
   )
   /** Track which period tab is selected so clicks update UI immediately; null = derive from dateRange (e.g. after calendar pick). */
   const [periodTab, setPeriodTab] = React.useState<PeriodTabValue | null>("week")
+  const [attentionTab, setAttentionTab] = React.useState<"drivers" | "locations">("drivers")
 
   const filteredByDateTransactions = React.useMemo(() => {
     return getFuelTransactions().filter((t) => isInDateRange(t, dateRange))
@@ -714,160 +716,44 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* KPI row: 2 per row on phone (shrink to fit), 5 cols on lg */}
-      <div className="grid grid-cols-2 gap-2 px-4 sm:gap-4 lg:grid-cols-5 lg:px-6">
-        {/* Gallons */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              {kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-0.5 text-xs">
-              {[
-                { label: "Diesel", value: kpis.gallonsByType.Diesel },
-                { label: "Reefer", value: kpis.gallonsByType.Reefer },
-                { label: "DEF", value: kpis.gallonsByType.DEF },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="tabular-nums font-medium">
-                    {value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Average Cost */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Avg Cost / Gallon</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              ${kpis.avgCostAll.toFixed(3)}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-0.5 text-xs">
-              {[
-                { label: "Diesel", value: kpis.avgCostByType.Diesel },
-                { label: "Reefer", value: kpis.avgCostByType.Reefer },
-                { label: "DEF", value: kpis.avgCostByType.DEF },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Average Savings */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Avg Savings / Gallon</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              ${kpis.avgSavingsAll.toFixed(3)}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-0.5 text-xs">
-              {[
-                { label: "Diesel", value: kpis.avgSavingsByType.Diesel },
-                { label: "Reefer", value: kpis.avgSavingsByType.Reefer },
-                { label: "DEF", value: kpis.avgSavingsByType.DEF },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Savings */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
-            <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
-              ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-0.5 text-xs">
-              {[
-                { label: "Diesel", value: kpis.savingsByType.Diesel },
-                { label: "Reefer", value: kpis.savingsByType.Reefer },
-                { label: "DEF", value: kpis.savingsByType.DEF },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
-                    ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Spent */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              ${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-0.5 text-xs">
-              {[
-                { label: "Diesel", value: kpis.spentByType.Diesel },
-                { label: "Reefer", value: kpis.spentByType.Reefer },
-                { label: "DEF", value: kpis.spentByType.DEF },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="tabular-nums font-medium">
-                    ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Main grid: 2 cols as soon as @container/main has room for two 32.5rem cards (66rem) */}
-      <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2">
-        {/* Drivers in need of attention — same slot as old Fuel Price Trends card */}
-        <Card className="flex min-h-0 min-w-0 flex-col">
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
-              Drivers in need of attention this {periodLabel}
-            </CardTitle>
-            <Link
-              href="/drivers"
-              className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
+      <div className="order-2 grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2">
+        {/* Drivers + Locations: single module with segmented control (Uber-style) */}
+        <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">
+          <CardHeader className="flex flex-row items-start justify-between gap-2 shrink-0">
+            <Tabs
+              value={attentionTab}
+              onValueChange={(v) => setAttentionTab(v as "drivers" | "locations")}
+              className="w-full"
             >
-              View all
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
-            </Link>
+              <div className="flex items-center justify-between gap-2 w-full">
+                <TabsList className="h-8">
+                  <TabsTrigger value="drivers" className="text-xs">
+                    Drivers
+                  </TabsTrigger>
+                  <TabsTrigger value="locations" className="text-xs">
+                    Locations
+                  </TabsTrigger>
+                </TabsList>
+                <Link
+                  href={attentionTab === "drivers" ? "/drivers" : "/locations"}
+                  className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground text-xs shrink-0" })}
+                >
+                  View all
+                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
+                </Link>
+              </div>
+            </Tabs>
           </CardHeader>
-          <CardContent>
-            {driversInNeedOfAttention.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                🎉 No drivers in need of attention in this period.
-              </p>
-            ) : (
-              <div className="divide-y divide-border">
-                {driversInNeedOfAttention.map((driver, index) => (
+          <CardContent className="min-h-0 flex-1 pt-0">
+            {attentionTab === "drivers" ? (
+              driversInNeedOfAttention.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  🎉 No drivers in need of attention in this period.
+                </p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {driversInNeedOfAttention.map((driver, index) => (
                   <Link
                     key={driver.driverName}
                     href={`/drivers/${driverNameToSlug(driver.driverName)}`}
@@ -898,31 +784,12 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Locations that need attention */}
-        <Card className="flex min-h-0 min-w-0 flex-col">
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <HugeiconsIcon icon={Location01Icon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
-              Locations that need attention this {periodLabel}
-            </CardTitle>
-            <Link
-              href="/locations"
-              className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground" })}
-            >
-              View all
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {locationsInNeedOfAttention.length === 0 ? (
+                  ))}
+                </div>
+              )
+            ) : locationsInNeedOfAttention.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                🎉 No locations that need attention in this period.
+                No locations that need attention in this period.
               </p>
             ) : (
               <div className="divide-y divide-border">
@@ -950,7 +817,7 @@ export default function DashboardPage() {
                         -${loc.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                       </span>
                       <span
-                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:bg-amber-400"
                         aria-hidden
                       >
                         <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
@@ -964,7 +831,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Gallons by chain */}
-        <Card className="flex min-h-0 min-w-0 flex-col">
+        <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">
           <CardHeader>
             <CardTitle>Gallons by Chain</CardTitle>
             <CardDescription>Total gallons purchased per station brand</CardDescription>
@@ -1032,7 +899,7 @@ export default function DashboardPage() {
                       <span className="truncate text-muted-foreground">{item.label}</span>
                       <div className="ml-auto flex items-center gap-2 shrink-0">
                         <span className="text-muted-foreground text-xs">{pct}%</span>
-                        <span className="tabular-nums font-medium w-16 text-right">
+                        <span className="tabular-nums font-medium text-xs w-16 text-right">
                           {item.gallons.toLocaleString("en-US")}
                         </span>
                       </div>
@@ -1046,6 +913,35 @@ export default function DashboardPage() {
         <PilotRebateCard summary={pilotRebateSummary} />
 
       </div>
+
+      {/* KPI strip: flat row, Uber-style */}
+      <div className="order-1 px-4 lg:px-6">
+        <StatStrip className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <StatStripItem>
+            <StatStripLabel>Gallons Purchased</StatStripLabel>
+            <StatStripValue>{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+          </StatStripItem>
+          <StatStripItem>
+            <StatStripLabel>Avg Cost / Gallon</StatStripLabel>
+            <StatStripValue>${kpis.avgCostAll.toFixed(3)}</StatStripValue>
+          </StatStripItem>
+          <StatStripItem>
+            <StatStripLabel>Avg Savings / Gallon</StatStripLabel>
+            <StatStripValue>${kpis.avgSavingsAll.toFixed(3)}</StatStripValue>
+          </StatStripItem>
+          <StatStripItem>
+            <StatStripLabel>Total Savings</StatStripLabel>
+            <StatStripValue className="text-green-600 dark:text-green-500">
+              ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </StatStripValue>
+          </StatStripItem>
+          <StatStripItem>
+            <StatStripLabel>Total Spent</StatStripLabel>
+            <StatStripValue>${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+          </StatStripItem>
+        </StatStrip>
+      </div>
+
     </div>
   )
 }

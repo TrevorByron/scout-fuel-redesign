@@ -291,7 +291,7 @@ export default function LocationDetailPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <Card className="overflow-hidden shadow-md ring-1 ring-foreground/10">
+      <Card variant="flat" className="overflow-hidden">
         <CardContent className="flex flex-col gap-4 pt-6">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{displayName}</h1>
@@ -453,7 +453,7 @@ export default function LocationDetailPage() {
         />
       </div>
 
-      <Card>
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Drivers using this location</CardTitle>
           <CardDescription>
@@ -505,7 +505,7 @@ export default function LocationDetailPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card variant="flat">
         <CardHeader>
           <CardTitle>Transactions</CardTitle>
           <CardDescription>

@@ -116,7 +116,7 @@ export default function TripDetailPage() {
           </div>
         )}
 
-        <Card>
+        <Card variant="flat">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Trip plan</CardTitle>
             <CardDescription>
@@ -163,16 +163,12 @@ export default function TripDetailPage() {
               </p>
             </div>
           </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Track progress</CardTitle>
-            <CardDescription>
+          <div className="border-t border-border px-4 pt-4 pb-4">
+            <h2 className="text-sm font-medium mb-3">Track progress</h2>
+            <p className="text-xs text-muted-foreground mb-4">
               Fuel transactions for {trip.truckId} during the trip window.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </p>
+            <div className="space-y-4">
             {progress && (
               <>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -244,7 +240,8 @@ export default function TripDetailPage() {
                 )}
               </>
             )}
-          </CardContent>
+            </div>
+          </div>
         </Card>
       </div>
     </main>

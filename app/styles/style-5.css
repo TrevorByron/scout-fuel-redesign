@@ -1,0 +1,194 @@
+/* Style 5 – Uber Base (Base Web tokens). Primary #276EF1. Swatch = primary. */
+:root {
+  --swatch-5: oklch(0.562 0.219 264);
+}
+
+/* Light: white surfaces, #F7F7F7 fields, Base shadow/border language */
+html[data-style="5"] {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.205 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.562 0.219 264);
+  --primary-foreground: oklch(1 0 0);
+  /* buttonSecondaryFill #EDF3FE */
+  --secondary: oklch(0.955 0.028 264);
+  --secondary-foreground: oklch(0.562 0.219 264);
+  --muted: oklch(0.972 0 0);
+  --muted-foreground: oklch(0.51 0 0);
+  --accent: oklch(0.955 0.028 264);
+  --accent-foreground: oklch(0.562 0.219 264);
+  /* negative400 #E54937 */
+  --destructive: oklch(0.59 0.195 25);
+  --destructive-foreground: oklch(1 0 0);
+  /* mono400-ish */
+  --border: oklch(0.91 0 0);
+  /* inputFill #F7F7F7 */
+  --input: oklch(0.972 0 0);
+  --ring: oklch(0.562 0.219 264);
+  --chart-1: oklch(0.562 0.219 264);
+  --chart-2: oklch(0.52 0.16 155);
+  --chart-3: oklch(0.64 0.17 48);
+  --chart-4: oklch(0.51 0 0);
+  --chart-5: oklch(0.78 0.14 85);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.562 0.219 264);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.972 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.91 0 0);
+  --sidebar-ring: oklch(0.562 0.219 264);
+  /* positive400 #07A35A */
+  --success: oklch(0.55 0.14 155);
+  /* warning400 #ED6F0E */
+  --warning: oklch(0.64 0.17 48);
+  /* Base radius200 on surfaces; controls squared via overrides below */
+  --radius: 0.25rem;
+  --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  /* Base lighting.shadow* — single-layer 16% black */
+  --shadow-2xs: 0 1px 2px hsla(0, 0%, 0%, 0.12);
+  --shadow-xs: 0 1px 3px hsla(0, 0%, 0%, 0.14);
+  --shadow-sm: 0 1px 4px hsla(0, 0%, 0%, 0.16);
+  --shadow: 0 2px 8px hsla(0, 0%, 0%, 0.16);
+  --shadow-md: 0 4px 16px hsla(0, 0%, 0%, 0.16);
+  --shadow-lg: 0 8px 24px hsla(0, 0%, 0%, 0.16);
+  --shadow-xl: 0 12px 32px hsla(0, 0%, 0%, 0.18);
+  --shadow-2xl: 0 16px 48px hsla(0, 0%, 0%, 0.2);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+/* Next.js sets --font-sans on body; beat it so Base stack applies */
+html[data-style="5"] body {
+  --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Flat main area (no dashboard gradient) */
+html[data-style="5"] [data-slot="sidebar-inset"] {
+  background: var(--background) !important;
+}
+
+html[data-style="5"] [data-slot="card"] {
+  box-shadow: 0 1px 4px hsla(0, 0%, 0%, 0.16);
+  border: 1px solid hsla(0, 0%, 0%, 0.08);
+}
+
+/* Uber: flat variant and sm KPI cards — border only, no shadow/ring */
+html[data-style="5"] [data-slot="card"][data-variant="flat"],
+html[data-style="5"] [data-slot="card"][data-size="sm"] {
+  box-shadow: none;
+  border: 1px solid hsla(0, 0%, 0%, 0.08);
+}
+
+/* Base Web: square buttons, inputs, triggers */
+html[data-style="5"] [data-slot="button"] {
+  min-height: 40px;
+  border-radius: 0;
+}
+
+html[data-style="5"] [data-slot="input"] {
+  min-height: 40px;
+  border-radius: 0;
+  /* Solid Base inputFill; utilities use bg-input/20 */
+  background-color: var(--input) !important;
+}
+
+html[data-style="5"] [data-slot="select-trigger"] {
+  min-height: 40px;
+  border-radius: 0;
+}
+
+html[data-style="5"] [data-slot="input-group"] {
+  min-height: 40px;
+  border-radius: 0;
+  background-color: var(--input) !important;
+}
+
+html[data-style="5"] [data-slot="textarea"] {
+  min-height: 40px;
+  border-radius: 0;
+  background-color: var(--input) !important;
+}
+
+html[data-style="5"] [data-slot="popover-trigger"] {
+  min-height: 40px;
+  border-radius: 0;
+}
+
+html[data-style="5"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+  min-height: 40px;
+  border-radius: 0;
+}
+
+/* Dark: near-black chrome, same primary blue */
+html[data-style="5"].dark {
+  --background: oklch(0.14 0 0);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.19 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.22 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.62 0.19 264);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.28 0.06 264);
+  --secondary-foreground: oklch(0.92 0.02 264);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.28 0.06 264);
+  --accent-foreground: oklch(0.92 0.02 264);
+  --destructive: oklch(0.63 0.17 22);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.32 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.62 0.19 264);
+  --chart-1: oklch(0.62 0.19 264);
+  --chart-2: oklch(0.58 0.14 155);
+  --chart-3: oklch(0.68 0.15 48);
+  --chart-4: oklch(0.65 0 0);
+  --chart-5: oklch(0.78 0.12 85);
+  --sidebar: oklch(0.12 0 0);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.62 0.19 264);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(0.32 0 0);
+  --sidebar-ring: oklch(0.62 0.19 264);
+  --success: oklch(0.58 0.13 155);
+  --warning: oklch(0.7 0.15 48);
+  --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --shadow-2xs: 0 1px 2px hsla(0, 0%, 0%, 0.24);
+  --shadow-xs: 0 1px 3px hsla(0, 0%, 0%, 0.28);
+  --shadow-sm: 0 1px 4px hsla(0, 0%, 0%, 0.32);
+  --shadow: 0 2px 8px hsla(0, 0%, 0%, 0.32);
+  --shadow-md: 0 4px 16px hsla(0, 0%, 0%, 0.36);
+  --shadow-lg: 0 8px 24px hsla(0, 0%, 0%, 0.4);
+  --shadow-xl: 0 12px 32px hsla(0, 0%, 0%, 0.42);
+  --shadow-2xl: 0 16px 48px hsla(0, 0%, 0%, 0.45);
+}
+
+html[data-style="5"].dark body {
+  --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+html[data-style="5"].dark [data-slot="sidebar-inset"] {
+  background: var(--background) !important;
+}
+
+html[data-style="5"].dark [data-slot="card"] {
+  box-shadow: 0 1px 4px hsla(0, 0%, 0%, 0.32);
+  border: 1px solid hsla(0, 0%, 100%, 0.1);
+}
+
+html[data-style="5"].dark [data-slot="card"][data-variant="flat"],
+html[data-style="5"].dark [data-slot="card"][data-size="sm"] {
+  box-shadow: none;
+  border: 1px solid hsla(0, 0%, 100%, 0.1);
+}

@@ -51,7 +51,7 @@ export default function RootLayout({
       <body className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem("style-template");document.documentElement.setAttribute("data-style",(s==="1"||s==="2"||s==="3"||s==="4")?s:"4");})();`,
+            __html: `(function(){var s=localStorage.getItem("style-template");document.documentElement.setAttribute("data-style",(s==="1"||s==="2"||s==="3"||s==="4"||s==="5")?s:"4");})();`,
           }}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

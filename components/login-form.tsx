@@ -29,7 +29,7 @@ export function LoginForm({
     >
       <FieldGroup className="gap-5">
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Login to your account</h1>
+          <h1 className="text-xl font-medium tracking-tight sm:text-2xl">Login to your account</h1>
           <p className="text-sm text-balance text-muted-foreground">
             Enter your email below to login to your account
           </p>
@@ -43,7 +43,7 @@ export function LoginForm({
             <FieldLabel htmlFor="password">Password</FieldLabel>
             <a
               href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
+              className="ml-auto text-sm text-primary underline-offset-4 hover:underline"
             >
               Forgot your password?
             </a>
@@ -111,7 +111,7 @@ export function LoginForm({
           </div>
           <FieldDescription className="mt-1 text-center">
             Don&apos;t have an account?{" "}
-            <a href="#" className="underline underline-offset-4">
+            <a href="#" className="text-primary underline underline-offset-4 hover:underline">
               Sign up
             </a>
           </FieldDescription>

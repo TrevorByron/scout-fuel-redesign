@@ -5,6 +5,7 @@
 @import "./styles/style-2.css";
 @import "./styles/style-3.css";
 @import "./styles/style-4.css";
+@import "./styles/style-5.css";
 
 @custom-variant dark (&:is(.dark *));
 

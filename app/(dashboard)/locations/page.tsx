@@ -12,6 +12,7 @@ import {
 } from "@/lib/location-utils"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { StatStrip, StatStripItem, StatStripLabel, StatStripValue } from "@/components/stat-strip"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -433,90 +434,48 @@ export default function LocationInsightsPage() {
       </div>
 
       <div className="flex flex-col gap-4 md:gap-6">
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 items-stretch">
-          <button
-            type="button"
+        <StatStrip className="grid grid-cols-2 sm:grid-cols-4">
+          <StatStripItem
             onClick={() => setCardFilter("all")}
-            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-            aria-pressed={cardFilter === "all"}
+            active={cardFilter === "all"}
             aria-label="Show all locations"
           >
-            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">All Locations</CardTitle>
-                <div className="text-3xl font-bold tabular-nums text-foreground">
-                  {summaryStats.totalGallons.toLocaleString("en-US", {
-                    maximumFractionDigits: 1,
-                  })}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Total Gallons
-                </p>
-              </CardContent>
-            </Card>
-          </button>
-          <button
-            type="button"
+            <StatStripLabel>All Locations</StatStripLabel>
+            <StatStripValue>
+              {summaryStats.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 1 })}
+            </StatStripValue>
+          </StatStripItem>
+          <StatStripItem
             onClick={() => setCardFilter((prev) => (prev === "overpaid" ? "all" : "overpaid"))}
-            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "overpaid" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-            aria-pressed={cardFilter === "overpaid"}
+            active={cardFilter === "overpaid"}
             aria-label="Filter to locations with missed savings"
           >
-            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Missed Savings</CardTitle>
-                <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
-                  ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Across {summaryStats.badStopsCount} bad stop{summaryStats.badStopsCount !== 1 ? "s" : ""}
-                </p>
-              </CardContent>
-            </Card>
-          </button>
-          <button
-            type="button"
+            <StatStripLabel>Total Missed Savings</StatStripLabel>
+            <StatStripValue className="text-red-600 dark:text-red-500">
+              ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </StatStripValue>
+          </StatStripItem>
+          <StatStripItem
             onClick={() => setCardFilter((prev) => (prev === "needs_attention" ? "all" : "needs_attention"))}
-            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "needs_attention" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-            aria-pressed={cardFilter === "needs_attention"}
+            active={cardFilter === "needs_attention"}
             aria-label="Filter to locations needing attention"
           >
-            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Locations Needing Attention</CardTitle>
-                <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
-                  {summaryStats.locationsNeedingAttention}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Often used non-compliant</p>
-              </CardContent>
-            </Card>
-          </button>
-          <button
-            type="button"
+            <StatStripLabel>Needing Attention</StatStripLabel>
+            <StatStripValue className="text-red-600 dark:text-red-500">
+              {summaryStats.locationsNeedingAttention}
+            </StatStripValue>
+          </StatStripItem>
+          <StatStripItem
             onClick={() => setCardFilter((prev) => (prev === "fully_compliant" ? "all" : "fully_compliant"))}
-            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-            aria-pressed={cardFilter === "fully_compliant"}
+            active={cardFilter === "fully_compliant"}
             aria-label="Filter to fully compliant locations"
           >
-            <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Fully Compliant</CardTitle>
-                <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
-                  {summaryStats.fullyCompliantCount}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">100% compliant this period</p>
-              </CardContent>
-            </Card>
-          </button>
-        </div>
+            <StatStripLabel>Fully Compliant</StatStripLabel>
+            <StatStripValue className="text-green-600 dark:text-green-500">
+              {summaryStats.fullyCompliantCount}
+            </StatStripValue>
+          </StatStripItem>
+        </StatStrip>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:items-end">
           <div className="flex flex-col gap-2">
@@ -585,7 +544,7 @@ export default function LocationInsightsPage() {
           <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border">
             <LocationInsightsMap locations={mapItems} />
           </div>
-          <Card className="flex flex-col min-h-0 lg:min-h-[40vh]">
+          <Card variant="flat" className="flex flex-col min-h-0 lg:min-h-[40vh]">
             <CardHeader className="shrink-0">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Network chains
@@ -690,7 +649,7 @@ export default function LocationInsightsPage() {
           </Card>
         </div>
 
-        <Card className="mt-2">
+        <Card variant="flat" className="mt-2">
           <CardHeader>
             <CardTitle>Locations</CardTitle>
             <CardDescription>

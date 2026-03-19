@@ -9,6 +9,7 @@ import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { StatStrip, StatStripItem, StatStripLabel, StatStripValue } from "@/components/stat-strip"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -387,93 +388,48 @@ export default function DriversPage() {
       </div>
 
       <div className="flex flex-col gap-4 md:gap-6">
-          {/* Summary KPI cards — click to filter driver list below; 2 per row on phone */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 items-stretch">
-            {/* 1. All Drivers */}
-            <button
-              type="button"
+          <StatStrip className="grid grid-cols-2 sm:grid-cols-4">
+            <StatStripItem
               onClick={() => setCardFilter("all")}
-              className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-              aria-pressed={cardFilter === "all"}
+              active={cardFilter === "all"}
               aria-label="Show all drivers"
             >
-              <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">All Drivers</CardTitle>
-                  <div className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-500">
-                    {summaryStats.fleetAvgScore}%
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Average compliance score
-                  </p>
-                </CardContent>
-              </Card>
-            </button>
-            {/* 2. Total Missed Savings */}
-            <button
-              type="button"
+              <StatStripLabel>All Drivers</StatStripLabel>
+              <StatStripValue className="text-amber-600 dark:text-amber-500">
+                {summaryStats.fleetAvgScore}%
+              </StatStripValue>
+            </StatStripItem>
+            <StatStripItem
               onClick={() => setCardFilter((prev) => (prev === "overpaid" ? "all" : "overpaid"))}
-              className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "overpaid" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-              aria-pressed={cardFilter === "overpaid"}
+              active={cardFilter === "overpaid"}
               aria-label="Filter to drivers with missed savings"
             >
-              <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Drivers with missed savings</CardTitle>
-                  <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
-                    ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Total missed savings
-                  </p>
-                </CardContent>
-              </Card>
-            </button>
-            {/* 3. Drivers Needing Attention */}
-            <button
-              type="button"
+              <StatStripLabel>Missed Savings</StatStripLabel>
+              <StatStripValue className="text-red-600 dark:text-red-500">
+                ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </StatStripValue>
+            </StatStripItem>
+            <StatStripItem
               onClick={() => setCardFilter((prev) => (prev === "needs_attention" ? "all" : "needs_attention"))}
-              className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "needs_attention" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-              aria-pressed={cardFilter === "needs_attention"}
+              active={cardFilter === "needs_attention"}
               aria-label="Filter to drivers needing attention"
             >
-              <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Drivers Needing Attention</CardTitle>
-                  <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
-                    {summaryStats.driversNeedingAttention}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Below 60% compliance</p>
-                </CardContent>
-              </Card>
-            </button>
-            {/* 4. Fully Compliant */}
-            <button
-              type="button"
+              <StatStripLabel>Needing Attention</StatStripLabel>
+              <StatStripValue className="text-red-600 dark:text-red-500">
+                {summaryStats.driversNeedingAttention}
+              </StatStripValue>
+            </StatStripItem>
+            <StatStripItem
               onClick={() => setCardFilter((prev) => (prev === "fully_compliant" ? "all" : "fully_compliant"))}
-              className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-              aria-pressed={cardFilter === "fully_compliant"}
+              active={cardFilter === "fully_compliant"}
               aria-label="Filter to fully compliant drivers"
             >
-              <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Fully Compliant</CardTitle>
-                  <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
-                    {summaryStats.fullyCompliantCount}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">100% compliant this period</p>
-                </CardContent>
-              </Card>
-            </button>
-          </div>
+              <StatStripLabel>Fully Compliant</StatStripLabel>
+              <StatStripValue className="text-green-600 dark:text-green-500">
+                {summaryStats.fullyCompliantCount}
+              </StatStripValue>
+            </StatStripItem>
+          </StatStrip>
 
           {/* Driver list — sort and filter by name (same grid as cards so Filter matches card width) */}
           <div>

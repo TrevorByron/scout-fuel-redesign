@@ -33,10 +33,10 @@ export default function FleetPage() {
         <FleetMap trucks={filtered} />
       </div>
 
-      {/* Filter tabs overlay at top */}
+      {/* Floating pill tabs (Uber-style map controls) */}
       <div className="absolute left-4 right-4 top-4 z-10 md:left-6 md:right-auto md:top-6">
         <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-          <TabsList className="grid w-full grid-cols-4 sm:w-auto">
+          <TabsList className="grid w-full grid-cols-4 sm:w-auto rounded-lg border border-border bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/90">
             <TabsTrigger value="all" className="min-w-0 truncate">
               All
             </TabsTrigger>

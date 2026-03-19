@@ -1,7 +1,6 @@
 "use client"
 
 import { alertsList } from "@/lib/mock-data"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -46,7 +45,7 @@ export default function AlertsPage() {
             <Alert
               key={alert.id}
               variant={alert.priority === "High" ? "destructive" : "default"}
-              className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             >
               <div className="flex gap-3">
                 <HugeiconsIcon icon={Icon} className="size-5 shrink-0" strokeWidth={2} />
@@ -70,13 +69,13 @@ export default function AlertsPage() {
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 gap-1">
+                <Button size="sm" variant="ghost" className="text-primary">
+                  View Details
+                </Button>
                 <Button size="sm">Approve</Button>
                 <Button size="sm" variant="outline">
                   Cancel
-                </Button>
-                <Button size="sm" variant="ghost">
-                  View Details
                 </Button>
               </div>
             </Alert>
