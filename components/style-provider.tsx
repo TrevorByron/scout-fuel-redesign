@@ -40,11 +40,13 @@ export function StyleProvider({ children }: { children: React.ReactNode }) {
     const stored = readStoredStyle();
     setStyleState(stored);
     document.documentElement.setAttribute("data-style", stored);
+    document.body.setAttribute("data-font", stored === "5" ? "system" : "default");
   }, []);
 
   const setStyle = useCallback((id: StyleId) => {
     setStyleState(id);
     document.documentElement.setAttribute("data-style", id);
+    document.body.setAttribute("data-font", id === "5" ? "system" : "default");
     localStorage.setItem(STORAGE_KEY, id);
   }, []);
 

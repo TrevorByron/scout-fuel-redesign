@@ -3,6 +3,14 @@
   --swatch-5: oklch(0.562 0.219 264);
 }
 
+/* Override Next.js Inter — style 5 uses system/Helvetica stack. Apply to all descendants. */
+html[data-style="5"],
+html[data-style="5"] *,
+html[data-style="5"] *::before,
+html[data-style="5"] *::after {
+  font-family: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
 /* Light: white surfaces, #F7F7F7 fields, Base shadow/border language */
 html[data-style="5"] {
   --background: oklch(1 0 0);
@@ -63,9 +71,10 @@ html[data-style="5"] {
   --spacing: 0.25rem;
 }
 
-/* Next.js sets --font-sans on body; beat it so Base stack applies */
+/* Next.js Inter is applied via body class; override variable and font-family directly */
 html[data-style="5"] body {
-  --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-family: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 
 /* Flat main area (no dashboard gradient) */
@@ -123,6 +132,52 @@ html[data-style="5"] [data-slot="popover-trigger"] {
 html[data-style="5"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
   min-height: 40px;
   border-radius: 0;
+}
+
+/* Uber sidebar: Base Web–style — larger icons/text, subtle active state */
+html[data-style="5"] [data-slot="sidebar-wrapper"] {
+  --sidebar-width: 15rem !important;
+  --sidebar-width-icon: 3rem !important;
+}
+
+html[data-style="5"] [data-slot="sidebar-group-label"] {
+  display: none;
+}
+
+html[data-style="5"] [data-slot="sidebar-menu-button"] {
+  min-height: 40px;
+  height: 40px;
+  border-radius: 0;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+html[data-style="5"] [data-slot="sidebar-menu-button"] svg {
+  width: 20px;
+  height: 20px;
+}
+
+html[data-style="5"] [data-slot="sidebar-menu-button"][data-active],
+html[data-style="5"] [data-slot="sidebar-menu-button"][data-active]:hover {
+  background: transparent;
+  border-left: 2px solid var(--sidebar-primary);
+  padding-left: 6px;
+  font-weight: 500;
+}
+
+html[data-style="5"] [data-slot="sidebar-header"],
+html[data-style="5"] [data-slot="sidebar-footer"] {
+  padding: 0.5rem;
+}
+
+html[data-style="5"] [data-slot="sidebar-group"] {
+  padding: 0.5rem 0.5rem 0.25rem;
+}
+
+html[data-style="5"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"] {
+  min-height: 40px !important;
+  height: 40px !important;
+  width: 40px !important;
 }
 
 /* Dark: near-black chrome, same primary blue */

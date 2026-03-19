@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
+import { PilotRebateSidebarProgress } from "@/components/pilot-rebate-sidebar-progress"
 import { NavUser } from "@/components/nav-user"
 import { OrgSwitcher } from "@/components/org-switcher"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
@@ -122,6 +124,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMainWithActive} />
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <PilotRebateSidebarProgress />
+        </SidebarGroup>
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

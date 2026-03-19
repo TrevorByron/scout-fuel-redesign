@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { type PilotRebateSummary } from "@/lib/rebate"
+import { useStyle } from "@/components/style-provider"
 
 interface PilotRebateCardProps {
   summary: PilotRebateSummary
@@ -17,6 +18,7 @@ interface PilotRebateCardProps {
 }
 
 export function PilotRebateCard({ summary, className }: PilotRebateCardProps) {
+  const { style } = useStyle()
   const { previousMonth, currentMonth, nextTier, daysLeftInMonth, resetDateLabel, progressPctToNextTier, shortfallGallons } =
     summary
 
@@ -28,7 +30,7 @@ export function PilotRebateCard({ summary, className }: PilotRebateCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+            <CardTitle className={cn("flex items-center gap-1.5", style === "5" ? "text-sm font-medium" : "text-base")}>
               Pilot rebate — {currentMonth.monthLabel}
               <Tooltip>
                 <TooltipTrigger

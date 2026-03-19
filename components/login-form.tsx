@@ -10,6 +10,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useStyle } from "@/components/style-provider"
 
 export function LoginForm({
   className,
@@ -18,6 +19,8 @@ export function LoginForm({
 }: React.ComponentProps<"form"> & {
   onSubmit?: () => void
 }) {
+  const { style } = useStyle()
+  const isUber = style === "5"
   return (
     <form
       className={cn("flex flex-col gap-5", className)}
@@ -29,7 +32,10 @@ export function LoginForm({
     >
       <FieldGroup className="gap-5">
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <h1 className="text-xl font-medium tracking-tight sm:text-2xl">Login to your account</h1>
+          <h1 className={cn(
+            "tracking-tight",
+            isUber ? "text-xl font-medium sm:text-2xl" : "text-2xl font-bold"
+          )}>Login to your account</h1>
           <p className="text-sm text-balance text-muted-foreground">
             Enter your email below to login to your account
           </p>
@@ -43,7 +49,7 @@ export function LoginForm({
             <FieldLabel htmlFor="password">Password</FieldLabel>
             <a
               href="#"
-              className="ml-auto text-sm text-primary underline-offset-4 hover:underline"
+              className={cn("ml-auto text-sm underline-offset-4 hover:underline", isUber && "text-primary")}
             >
               Forgot your password?
             </a>
@@ -111,7 +117,7 @@ export function LoginForm({
           </div>
           <FieldDescription className="mt-1 text-center">
             Don&apos;t have an account?{" "}
-            <a href="#" className="text-primary underline underline-offset-4 hover:underline">
+            <a href="#" className={cn("underline underline-offset-4 hover:underline", isUber && "text-primary")}>
               Sign up
             </a>
           </FieldDescription>

@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { StyleProvider } from "@/components/style-provider";
 import { StyleSwitcher } from "@/components/style-switcher";
 import "./globals.css";
+import "./styles/style-5-font-override.css";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -51,7 +52,7 @@ export default function RootLayout({
       <body className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem("style-template");document.documentElement.setAttribute("data-style",(s==="1"||s==="2"||s==="3"||s==="4"||s==="5")?s:"4");})();`,
+            __html: `(function(){var s=localStorage.getItem("style-template");s=(s==="1"||s==="2"||s==="3"||s==="4"||s==="5")?s:"4";document.documentElement.setAttribute("data-style",s);document.body.setAttribute("data-font",s==="5"?"system":"default");})();`,
           }}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

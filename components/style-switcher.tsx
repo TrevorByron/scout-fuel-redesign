@@ -8,7 +8,7 @@ const STYLES = [
   { id: "1" as const, label: "Style 1", swatchVar: "var(--swatch-1)" },
   { id: "2" as const, label: "Style 2", swatchVar: "var(--swatch-2)" },
   { id: "3" as const, label: "Style 3", swatchVar: "var(--swatch-3)" },
-  { id: "4" as const, label: "Style 4 (WIP)", swatchVar: "var(--swatch-4)" },
+  { id: "4" as const, label: "Style 4", swatchVar: "var(--swatch-4)" },
   { id: "5" as const, label: "Uber", swatchVar: "var(--swatch-5)" },
 ] as const;
 

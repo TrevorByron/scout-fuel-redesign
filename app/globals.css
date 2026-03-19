@@ -66,9 +66,8 @@
 }
 
 @layer base {
-  /* Fallback: ensure theme variables are always defined so Tailwind theme resolves.
-     Style files override via html[data-style="1"], etc. when a style is active. */
-  :root {
+  /* Fallback only when no style is set; style files set variables when html[data-style] exists */
+  :root:not([data-style]) {
     --background: oklch(1.0000 0 0);
     --foreground: oklch(0.2686 0 0);
     --card: oklch(1.0000 0 0);
