@@ -247,3 +247,16 @@ html[data-style="5"].dark [data-slot="card"][data-size="sm"] {
   box-shadow: none;
   border: 1px solid hsla(0, 0%, 100%, 0.1);
 }
+
+/* Uber-style tooltips: square corners, light surface, minimal shadow */
+html[data-style="5"] [data-slot="tooltip-content"] {
+  border-radius: 0;
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow);
+  padding: 0.5rem 0.75rem;
+}
+
+html[data-style="5"] [data-slot="tooltip-content"] [class*="rotate-45"] {
+  display: none;
+}

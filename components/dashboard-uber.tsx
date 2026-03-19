@@ -905,28 +905,109 @@ export function DashboardUber() {
         </Card>
       </div>
 
-      {/* KPI strip: flat row, Uber-style */}
+      {/* KPI strip: flat row, Uber-style — tooltips show Diesel/Reefer/DEF breakdown */}
       <div className="order-1 px-4 lg:px-6">
         <StatStrip className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          <StatStripItem>
+          <StatStripItem
+            tooltip={
+              <div className="flex flex-col gap-0.5 text-xs">
+                {[
+                  { label: "Diesel", value: kpis.gallonsByType.Diesel },
+                  { label: "Reefer", value: kpis.gallonsByType.Reefer },
+                  { label: "DEF", value: kpis.gallonsByType.DEF },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="tabular-nums font-medium">
+                      {value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            }
+          >
             <StatStripLabel>Gallons Purchased</StatStripLabel>
             <StatStripValue>{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
           </StatStripItem>
-          <StatStripItem>
+          <StatStripItem
+            tooltip={
+              <div className="flex flex-col gap-0.5 text-xs">
+                {[
+                  { label: "Diesel", value: kpis.avgCostByType.Diesel },
+                  { label: "Reefer", value: kpis.avgCostByType.Reefer },
+                  { label: "DEF", value: kpis.avgCostByType.DEF },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
+                  </div>
+                ))}
+              </div>
+            }
+          >
             <StatStripLabel>Avg Cost / Gallon</StatStripLabel>
             <StatStripValue>${kpis.avgCostAll.toFixed(3)}</StatStripValue>
           </StatStripItem>
-          <StatStripItem>
+          <StatStripItem
+            tooltip={
+              <div className="flex flex-col gap-0.5 text-xs">
+                {[
+                  { label: "Diesel", value: kpis.avgSavingsByType.Diesel },
+                  { label: "Reefer", value: kpis.avgSavingsByType.Reefer },
+                  { label: "DEF", value: kpis.avgSavingsByType.DEF },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
+                  </div>
+                ))}
+              </div>
+            }
+          >
             <StatStripLabel>Avg Savings / Gallon</StatStripLabel>
             <StatStripValue>${kpis.avgSavingsAll.toFixed(3)}</StatStripValue>
           </StatStripItem>
-          <StatStripItem>
+          <StatStripItem
+            tooltip={
+              <div className="flex flex-col gap-0.5 text-xs">
+                {[
+                  { label: "Diesel", value: kpis.savingsByType.Diesel },
+                  { label: "Reefer", value: kpis.savingsByType.Reefer },
+                  { label: "DEF", value: kpis.savingsByType.DEF },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
+                      ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            }
+          >
             <StatStripLabel>Total Savings</StatStripLabel>
             <StatStripValue className="text-green-600 dark:text-green-500">
               ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </StatStripValue>
           </StatStripItem>
-          <StatStripItem>
+          <StatStripItem
+            tooltip={
+              <div className="flex flex-col gap-0.5 text-xs">
+                {[
+                  { label: "Diesel", value: kpis.spentByType.Diesel },
+                  { label: "Reefer", value: kpis.spentByType.Reefer },
+                  { label: "DEF", value: kpis.spentByType.DEF },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="tabular-nums font-medium">
+                      ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            }
+          >
             <StatStripLabel>Total Spent</StatStripLabel>
             <StatStripValue>${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
           </StatStripItem>

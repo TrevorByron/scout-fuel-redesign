@@ -1,5 +1,6 @@
 "use client"
 
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 const StatStrip = ({
@@ -27,10 +28,12 @@ const StatStripItem = ({
   children,
   onClick,
   active,
+  tooltip,
   ...props
 }: React.ComponentProps<"div"> & {
   onClick?: () => void
   active?: boolean
+  tooltip?: React.ReactNode
 }) => {
   const baseCn = cn(
     statStripItemClasses,
@@ -38,24 +41,32 @@ const StatStripItem = ({
       "cursor-pointer hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-primary data-[active=true]:bg-muted",
     className
   )
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        data-active={active}
-        className={baseCn}
-        {...(props as React.ComponentProps<"button">)}
-      >
-        {children}
-      </button>
-    )
-  }
-  return (
+  const content = onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      data-active={active}
+      className={baseCn}
+      {...(props as React.ComponentProps<"button">)}
+    >
+      {children}
+    </button>
+  ) : (
     <div data-active={active} className={baseCn} {...props}>
       {children}
     </div>
   )
+  if (tooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger render={content} />
+        <TooltipContent side="top" className="min-w-[8rem]">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+  return content
 }
 
 const StatStripLabel = ({
