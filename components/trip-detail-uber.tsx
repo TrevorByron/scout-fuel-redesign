@@ -1,26 +1,16 @@
 "use client"
 
 import * as React from "react"
-import dynamic from "next/dynamic"
 import Link from "next/link"
-import { useParams } from "next/navigation"
 import { format } from "date-fns"
-import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
 import { computeTripProgress } from "@/lib/trips"
 import { getFuelTransactions, drivers, trucks } from "@/lib/mock-data"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Fuel, ArrowLeft, Pencil, CheckCircle2, AlertCircle } from "lucide-react"
+import { MapPin, Fuel, ChevronLeft, Pencil, CheckCircle2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const RouteOptimizerMapDynamic = dynamic(
-  () =>
-    import("@/components/route-optimizer-map").then((m) => ({
-      default: m.RouteOptimizerMap,
-    })),
-  { ssr: false }
-)
 
 function getTripStatus(trip: TripPlan): "upcoming" | "in_progress" | "completed" {
   const now = Date.now()
@@ -31,33 +21,17 @@ function getTripStatus(trip: TripPlan): "upcoming" | "in_progress" | "completed"
   return "in_progress"
 }
 
-export function TripDetailUber() {
-  const params = useParams()
-  const id = typeof params?.id === "string" ? params.id : null
-  const { getTripPlan } = useTrips()
-  const trip = id ? getTripPlan(id) : null
+export interface TripDetailContentUberProps {
+  trip: TripPlan
+  onBack: () => void
+  /** When true, Back button is not rendered (used when parent renders it sticky) */
+  hideBackButton?: boolean
+}
+
+export function TripDetailContentUber({ trip, onBack, hideBackButton }: TripDetailContentUberProps) {
   const progress = React.useMemo(() => {
-    if (!trip) return null
     return computeTripProgress(trip, getFuelTransactions())
   }, [trip])
-
-  if (!id || !trip) {
-    return (
-      <main className="flex flex-1 flex-col min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
-        <div className="flex flex-col items-center justify-center min-h-[200px] text-center text-muted-foreground text-sm">
-          <p className="font-medium text-foreground">Trip not found</p>
-          <p className="mt-1">The trip may have been removed or the link is invalid.</p>
-          <Link
-            href="/trips"
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-muted hover:text-foreground mt-4"
-          >
-            <ArrowLeft className="size-4" />
-            Back to trips
-          </Link>
-        </div>
-      </main>
-    )
-  }
 
   const detailStatus = getTripStatus(trip)
   const driverDisplay =
@@ -68,107 +42,99 @@ export function TripDetailUber() {
     trucks.find((t) => t.id === trip.truckId)?.driverName
 
   return (
-    <main className="flex flex-1 flex-col min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
-      <div className="space-y-6">
-        <Link
-          href="/trips"
-          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs font-medium hover:bg-muted hover:text-foreground w-fit"
+    <div className="space-y-4">
+      {!hideBackButton && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2 justify-start gap-1 text-muted-foreground hover:text-foreground"
+          onClick={onBack}
         >
-          <ArrowLeft className="size-4" />
-          Back to trips
-        </Link>
+          <ChevronLeft className="size-4" />
+          Back
+        </Button>
+      )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold truncate">
-            {trip.name ?? `${trip.origin} → ${trip.destination}`}
-          </h1>
-          <Badge
-            variant={
-              detailStatus === "completed"
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-semibold truncate">
+          {trip.name ?? `${trip.origin} → ${trip.destination}`}
+        </h2>
+        <Badge
+          variant={
+            detailStatus === "completed"
+              ? "default"
+              : detailStatus === "in_progress"
                 ? "default"
-                : detailStatus === "in_progress"
-                  ? "default"
-                  : "outline"
-            }
-            className="text-[length:var(--text-2xs)]"
-          >
-            {detailStatus === "upcoming" && "Upcoming"}
-            {detailStatus === "in_progress" && "In progress"}
-            {detailStatus === "completed" && "Completed"}
-          </Badge>
-          <Link
-            href={`/route-optimizer?tripId=${trip.id}`}
-            className="ml-auto inline-flex h-6 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs font-medium hover:bg-muted hover:text-foreground"
-          >
-            <Pencil className="size-3.5" />
-            Edit trip
-          </Link>
-        </div>
+                : "outline"
+          }
+          className="text-[length:var(--text-2xs)]"
+        >
+          {detailStatus === "upcoming" && "Upcoming"}
+          {detailStatus === "in_progress" && "In progress"}
+          {detailStatus === "completed" && "Completed"}
+        </Badge>
+        <Link
+          href={`/route-optimizer?tripId=${trip.id}`}
+          className="ml-auto inline-flex h-6 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs font-medium hover:bg-muted hover:text-foreground"
+        >
+          <Pencil className="size-3.5" />
+          Edit trip
+        </Link>
+      </div>
 
-        {trip.routeCoordinates.length >= 2 && (
-          <div className="h-[280px] w-full min-w-0 rounded-lg border border-border overflow-hidden bg-muted/20">
-            <RouteOptimizerMapDynamic
-              originCoords={trip.routeCoordinates[0] ?? null}
-              destinationCoords={trip.routeCoordinates[trip.routeCoordinates.length - 1] ?? null}
-              routeCoordinates={trip.routeCoordinates}
-              fuelStopCoords={trip.stops.map((s) => [s.lng, s.lat] as [number, number])}
-            />
+      <Card variant="flat">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Trip plan</CardTitle>
+          <CardDescription>
+            {driverDisplay ? `${driverDisplay} · ` : ""}
+            {trip.truckId} · {format(new Date(trip.tripStart), "MMM d, yyyy")} – {format(new Date(trip.tripEnd), "MMM d, yyyy")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-3">
+            <div className="flex flex-col items-center pt-0.5">
+              <MapPin className="size-4 shrink-0 text-primary" />
+              {trip.stops.map((_, i) => (
+                <React.Fragment key={i}>
+                  <div className="w-px flex-1 min-h-3 border-l border-dashed border-border" />
+                  <Fuel className="size-4 shrink-0 text-primary" />
+                </React.Fragment>
+              ))}
+              <div className="w-px flex-1 min-h-3 border-l border-dashed border-border" />
+              <MapPin className="size-4 shrink-0 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Pickup</p>
+                <p className="text-sm font-medium truncate">{trip.origin}</p>
+              </div>
+              {trip.stops.map((stop, i) => (
+                <div key={i}>
+                  <p className="text-xs text-muted-foreground">Stop {i + 1}: {stop.station}</p>
+                  <p className="text-sm font-medium truncate">{stop.location}</p>
+                </div>
+              ))}
+              <div>
+                <p className="text-xs text-muted-foreground">Destination</p>
+                <p className="text-sm font-medium truncate">{trip.destination}</p>
+              </div>
+            </div>
           </div>
-        )}
-
-        <Card variant="flat">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Trip plan</CardTitle>
-            <CardDescription>
-              {driverDisplay ? `${driverDisplay} · ` : ""}
-              {trip.truckId} · {format(new Date(trip.tripStart), "MMM d, yyyy")} – {format(new Date(trip.tripEnd), "MMM d, yyyy")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-3">
-              <div className="flex flex-col items-center pt-0.5">
-                <MapPin className="size-4 shrink-0 text-primary" />
-                {trip.stops.map((_, i) => (
-                  <React.Fragment key={i}>
-                    <div className="w-px flex-1 min-h-3 border-l border-dashed border-border" />
-                    <Fuel className="size-4 shrink-0 text-primary" />
-                  </React.Fragment>
-                ))}
-                <div className="w-px flex-1 min-h-3 border-l border-dashed border-border" />
-                <MapPin className="size-4 shrink-0 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">Pickup</p>
-                  <p className="text-sm font-medium truncate">{trip.origin}</p>
-                </div>
-                {trip.stops.map((stop, i) => (
-                  <div key={i}>
-                    <p className="text-xs text-muted-foreground">Stop {i + 1}: {stop.station}</p>
-                    <p className="text-sm font-medium truncate">{stop.location}</p>
-                  </div>
-                ))}
-                <div>
-                  <p className="text-xs text-muted-foreground">Destination</p>
-                  <p className="text-sm font-medium truncate">{trip.destination}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs">
-              <p className="font-medium">
-                Total estimated fuel cost: ${trip.summary.totalCost.toLocaleString()}
-              </p>
-              <p className="text-[var(--success)] mt-0.5">
-                Savings vs alternative routes: ${trip.summary.savingsVsAlternate}
-              </p>
-            </div>
-          </CardContent>
-          <div className="border-t border-border px-4 pt-4 pb-4">
-            <h2 className="text-sm font-medium mb-3">Track progress</h2>
-            <p className="text-xs text-muted-foreground mb-4">
-              Fuel transactions for {trip.truckId} during the trip window.
+          <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs">
+            <p className="font-medium">
+              Total estimated fuel cost: ${trip.summary.totalCost.toLocaleString()}
             </p>
-            <div className="space-y-4">
+            <p className="text-[var(--success)] mt-0.5">
+              Savings vs alternative routes: ${trip.summary.savingsVsAlternate}
+            </p>
+          </div>
+        </CardContent>
+        <div className="border-t border-border px-4 pt-4 pb-4">
+          <h2 className="text-sm font-medium mb-3">Track progress</h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            Fuel transactions for {trip.truckId} during the trip window.
+          </p>
+          <div className="space-y-4">
             {progress && (
               <>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -240,10 +206,9 @@ export function TripDetailUber() {
                 )}
               </>
             )}
-            </div>
           </div>
-        </Card>
-      </div>
-    </main>
+        </div>
+      </Card>
+    </div>
   )
 }
