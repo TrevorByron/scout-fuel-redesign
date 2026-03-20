@@ -15,8 +15,9 @@ import { getFleetGrade } from "@/lib/fuelScore"
 import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
 import { getLocationListStats, locationToSlug } from "@/lib/location-utils"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
+import { ImprovementAttentionDrawer } from "@/components/improvement-attention-drawer"
 import { PilotRebateCard } from "@/components/pilot-rebate-card"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon, UserGroupIcon, Location01Icon } from "@hugeicons/core-free-icons"
@@ -371,6 +372,7 @@ export function DashboardDefault() {
   )
   /** Track which period tab is selected so clicks update UI immediately; null = derive from dateRange (e.g. after calendar pick). */
   const [periodTab, setPeriodTab] = React.useState<PeriodTabValue | null>("week")
+  const [missedSavingsDrawerOpen, setMissedSavingsDrawerOpen] = React.useState(false)
 
   const filteredByDateTransactions = React.useMemo(() => {
     return getFuelTransactions().filter((t) => isInDateRange(t, dateRange))
@@ -629,6 +631,12 @@ export function DashboardDefault() {
           value={fleetScoreProps.complianceRate}
           trendFromLastMonth={fleetScoreProps.optimizationTrend}
           trendLabel={fleetScoreProps.trendLabel}
+          improvementData={{
+            drivers: driversInNeedOfAttention,
+            locations: locationsInNeedOfAttention,
+          }}
+          periodLabel={periodLabel}
+          hasRoomForImprovement={fleetScoreProps.complianceRate < 90}
         />
         <Card size="sm" className="py-2">
           <CardHeader className="pb-0">
@@ -646,8 +654,8 @@ export function DashboardDefault() {
                     </button>
                   }
                 />
-                <TooltipContent side="top">
-                  Potential savings with better fill-up choices
+                <TooltipContent side="top" className="max-w-sm">
+                  Missed savings is the dollar amount overpaid when drivers could have filled up at a cheaper location. It counts only fill-ups where a better-priced option was available on the route.
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -711,6 +719,27 @@ export function DashboardDefault() {
               )
             })()}
           </CardContent>
+          {(fleetScoreProps.missedSavings > 0 || fleetScoreProps.overpaidFillUpCount > 0) &&
+            (driversInNeedOfAttention.length > 0 || locationsInNeedOfAttention.length > 0) && (
+            <CardFooter className="pt-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[44px] w-full"
+                onClick={() => setMissedSavingsDrawerOpen(true)}
+              >
+                How to improve
+              </Button>
+              <ImprovementAttentionDrawer
+                open={missedSavingsDrawerOpen}
+                onOpenChange={setMissedSavingsDrawerOpen}
+                drivers={driversInNeedOfAttention}
+                locations={locationsInNeedOfAttention}
+                periodLabel={periodLabel}
+                source="missedSavings"
+              />
+            </CardFooter>
+          )}
         </Card>
       </div>
 
