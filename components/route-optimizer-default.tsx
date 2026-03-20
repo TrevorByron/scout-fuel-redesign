@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { trucks, drivers, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
@@ -24,13 +24,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Card, CardContent } from "@/components/ui/card"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Loader2, MapPin, Plus, ChevronLeft, Trash2, Fuel } from "lucide-react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
 const RouteOptimizerMapDynamic = dynamic(
@@ -119,7 +132,8 @@ export function RouteOptimizerDefault() {
 
 function RouteOptimizerPageContent() {
   const searchParams = useSearchParams()
-  const { addTripPlan, getTripPlan } = useTrips()
+  const router = useRouter()
+  const { addTripPlan, updateTripPlan, removeTripPlan, getTripPlan } = useTrips()
   const [tripStart, setTripStart] = React.useState<Date | undefined>(undefined)
   const [tripEnd, setTripEnd] = React.useState<Date | undefined>(undefined)
   const [tripStartOpen, setTripStartOpen] = React.useState(false)
@@ -140,14 +154,33 @@ function RouteOptimizerPageContent() {
   const [planStops, setPlanStops] = React.useState<TripPlanStop[]>([])
   const [planSummary, setPlanSummary] = React.useState<TripPlanSummary | null>(null)
   const [sidebarWidth, setSidebarWidth] = React.useState(0)
+  const [containerHeight, setContainerHeight] = React.useState(0)
+  const [formContentHeight, setFormContentHeight] = React.useState(0)
   const sidebarRef = React.useRef<HTMLElement>(null)
+  const formContentRef = React.useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
+
+  /** Minimum visible map height (px) on mobile so route stays in view above the card */
+  const MIN_VISIBLE_MAP_PX = 140
 
   React.useEffect(() => {
     const el = sidebarRef.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
-      const { width } = entries[0]?.contentRect ?? { width: 0 }
+      const { width, height } = entries[0]?.contentRect ?? { width: 0, height: 0 }
       setSidebarWidth(Math.round(width))
+      setContainerHeight(Math.round(height))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  React.useEffect(() => {
+    const el = formContentRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const { height } = entries[0]?.contentRect ?? { height: 0 }
+      setFormContentHeight(Math.round(height))
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -219,7 +252,8 @@ function RouteOptimizerPageContent() {
     setRouteCoordinates(plan.routeCoordinates)
     setPlanStops(plan.stops)
     setPlanSummary(plan.summary)
-    setCalculated(true)
+    setCalculated(false)
+    setOpenSections(["where", "when", "who"])
   }, [tripIdParam, getTripPlan])
 
   const handleOptimize = () => {
@@ -296,7 +330,7 @@ function RouteOptimizerPageContent() {
     const end = tripEnd?.toISOString?.() ?? ""
     if (!start || !end || !planSummary) return
     const driverName = drivers.find((d) => d.driverId === driverId)?.driverName
-    addTripPlan({
+    const updates = {
       name: `${origin} → ${destination}`,
       origin,
       destination,
@@ -313,8 +347,22 @@ function RouteOptimizerPageContent() {
       })),
       summary: planSummary,
       routeCoordinates,
-    })
-    toast.success("Trip saved. View it in Trips.")
+    }
+    if (tripIdParam) {
+      updateTripPlan(tripIdParam, updates)
+      toast.success("Trip updated.")
+      router.push(`/trips?id=${tripIdParam}`)
+    } else {
+      addTripPlan(updates)
+      toast.success("Trip saved. View it in Trips.")
+    }
+  }
+
+  const handleDeleteTrip = () => {
+    if (!tripIdParam) return
+    removeTripPlan(tripIdParam)
+    toast.success("Trip deleted.")
+    router.push("/trips")
   }
 
   return (
@@ -334,7 +382,14 @@ function RouteOptimizerPageContent() {
             routeCoordinates={routeCoordinates}
             routeLoading={routeLoading}
             fuelStopCoords={fuelStopCoords}
-            mapLeftPadding={sidebarWidth}
+            mapLeftPadding={isMobile ? 0 : sidebarWidth}
+            mapBottomPadding={
+              isMobile && containerHeight > MIN_VISIBLE_MAP_PX
+                ? Math.min(formContentHeight, containerHeight - MIN_VISIBLE_MAP_PX)
+                : isMobile
+                  ? formContentHeight
+                  : 0
+            }
           />
         </div>
       </div>
@@ -349,92 +404,101 @@ function RouteOptimizerPageContent() {
       {/* Left overlay: blocks map interaction; contains floating card */}
       <aside
         ref={sidebarRef}
-        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-[23.75rem] flex-col p-4 md:max-w-xl md:w-[43%]"
+        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-0 flex-col pt-4 px-0 pb-0 md:p-4 md:min-w-[23.75rem] md:max-w-xl md:w-[43%]"
         aria-label="Route details"
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto justify-end md:justify-start md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
-          <div className="flex flex-col gap-4 p-0 pb-4 md:p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:justify-start md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
+          {/* Spacer pushes form to bottom on mobile; min-h reserves map peek so route stays visible */}
+          <div className="min-h-[140px] max-h-[33.333vh] flex-1 md:hidden" aria-hidden />
+          <div ref={formContentRef} className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-background/20 shadow-lg backdrop-blur-md md:border-0 md:rounded-none md:shadow-none">
           {calculated ? (
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-              <div className="space-y-4 p-4">
-              <div className="flex flex-col gap-1">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border shadow-sm">
+              <header className="shrink-0 border-b border-border p-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="-ml-2 w-fit justify-start gap-1.5 text-muted-foreground hover:text-foreground"
+                  className="-ml-2 min-h-11 w-fit justify-start gap-1.5 text-muted-foreground hover:text-foreground sm:min-h-0"
                   onClick={() => setCalculated(false)}
+                  aria-label="Back to form"
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-4" aria-hidden />
                   Back
                 </Button>
-                <h2 className="text-base font-semibold">
-                  Trip plan
-                </h2>
-              </div>
-              <div className="flex gap-3">
-                <div className="flex flex-col items-center pt-1 self-stretch">
-                  <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
-                  {displayStops.map((_, i) => (
-                    <React.Fragment key={i}>
-                      <div className="w-px flex-1 min-h-4 border-l border-dashed border-border" />
-                      <Fuel className="size-4 shrink-0 text-primary" aria-hidden />
-                    </React.Fragment>
-                  ))}
-                  <div className="w-px flex-1 min-h-4 border-l border-dashed border-border" />
-                  <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
-                </div>
-                <div className="flex flex-1 flex-col gap-3 min-w-0">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Pickup</p>
-                    <p className="text-xs font-medium truncate">{origin || "Starting location"}</p>
-                  </div>
-                  {displayStops.map((stop, i) => {
-                    const costAtStop = stop.pricePerGallon * stop.refuelGallons
-                    return (
-                      <div key={i}>
-                        <p className="text-xs font-medium text-muted-foreground">Stop {i + 1}: {stop.station}</p>
-                        <p className="text-xs font-medium truncate">{stop.location}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Estimated fuel at stop: {stop.fuelPct}% · ${costAtStop.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {stop.distanceFromPrev} mi from previous · ETA {stop.eta}
-                        </p>
+              </header>
+              <div className="min-h-0 flex-1 overflow-y-auto p-0 md:p-4">
+                <Card className="py-0">
+                  <CardContent className="p-4">
+                    <h2 className="text-base font-semibold mb-4">
+                      Trip plan
+                    </h2>
+                    <div className="flex gap-3">
+                      <div className="flex flex-col items-center pt-1 self-stretch">
+                        <MapPin className="size-5 shrink-0 text-primary sm:size-4" aria-hidden />
+                        {displayStops.map((_, i) => (
+                          <React.Fragment key={i}>
+                            <div className="w-px flex-1 min-h-5 border-l border-dashed border-border sm:min-h-4" />
+                            <Fuel className="size-5 shrink-0 text-primary sm:size-4" aria-hidden />
+                          </React.Fragment>
+                        ))}
+                        <div className="w-px flex-1 min-h-5 border-l border-dashed border-border sm:min-h-4" />
+                        <MapPin className="size-5 shrink-0 text-primary sm:size-4" aria-hidden />
                       </div>
-                    )
-                  })}
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Destination</p>
-                    <p className="text-xs font-medium truncate">{destination || "Ending location"}</p>
-                  </div>
-                </div>
+                      <div className="flex flex-1 flex-col gap-4 min-w-0 sm:gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground sm:text-xs">Pickup</p>
+                          <p className="text-sm font-medium truncate sm:text-xs">{origin || "Starting location"}</p>
+                        </div>
+                        {displayStops.map((stop, i) => {
+                          const costAtStop = stop.pricePerGallon * stop.refuelGallons
+                          return (
+                            <div key={i} className="space-y-0.5">
+                              <p className="text-sm font-medium text-muted-foreground sm:text-xs">Stop {i + 1}: {stop.station}</p>
+                              <p className="text-sm font-medium truncate sm:text-xs">{stop.location}</p>
+                              <p className="text-sm text-muted-foreground sm:text-xs">
+                                Estimated fuel at stop: {stop.fuelPct}% · ${costAtStop.toFixed(2)}
+                              </p>
+                              <p className="text-sm text-muted-foreground sm:text-xs">
+                                {stop.distanceFromPrev} mi from previous · ETA {stop.eta}
+                              </p>
+                            </div>
+                          )
+                        })}
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground sm:text-xs">Destination</p>
+                          <p className="text-sm font-medium truncate sm:text-xs">{destination || "Ending location"}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-sm sm:text-xs">
+                      <p className="font-medium text-foreground">
+                        Total estimated fuel cost: ${displaySummary.totalCost.toLocaleString()}
+                      </p>
+                      <p className="mt-0.5 text-[var(--success)]">
+                        Savings vs alternative routes: ${displaySummary.savingsVsAlternate}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
-                <p className="font-medium text-foreground">
-                  Total estimated fuel cost: ${displaySummary.totalCost.toLocaleString()}
-                </p>
-                <p className="mt-0.5 text-[var(--success)]">
-                  Savings vs alternative routes: ${displaySummary.savingsVsAlternate}
-                </p>
-              </div>
-              <Button
-                variant="default"
-                className="w-full"
-                onClick={handleSaveTrip}
-              >
-                Save trip
-              </Button>
-              </div>
+              <footer className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm md:bg-background/20">
+                <Button
+                  variant="default"
+                  className="min-h-11 w-full sm:min-h-0"
+                  onClick={handleSaveTrip}
+                >
+                  {tripIdParam ? "Save changes" : "Save trip"}
+                </Button>
+              </footer>
             </div>
           ) : (
-          <FieldGroup className="flex flex-col gap-4">
-            <div className="mb-4">
-              <div className="mb-4">
-                <h2 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">Optimize fuel purchases</h2>
-                <p className="text-muted-foreground text-xs mt-0.5">
-                  Trip location information
-                </p>
-              </div>
+          <>
+            <header className="shrink-0 border-b border-border p-4">
+              <h2 className="text-lg font-semibold tracking-tight md:text-2xl">Optimize fuel purchases</h2>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Trip location information
+              </p>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto p-0 md:p-4">
               <Accordion
               multiple
               className="w-full -space-y-px rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden"
@@ -453,7 +517,7 @@ function RouteOptimizerPageContent() {
                 value="where"
                 className="overflow-hidden border-0 border-b border-border bg-background first:rounded-t-lg last:rounded-b-lg last:border-b-0"
               >
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <AccordionTrigger className="min-h-11 px-4 py-3 hover:no-underline sm:min-h-0">
                   Where?
                 </AccordionTrigger>
                 <AccordionContent className="px-4">
@@ -473,6 +537,7 @@ function RouteOptimizerPageContent() {
                               value={origin}
                               onChange={(e) => setOrigin(e.target.value)}
                               aria-invalid={originGeocodeError}
+                              className="min-h-11 sm:min-h-0"
                             />
                             {originGeocodeLoading && (
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden>
@@ -496,13 +561,13 @@ function RouteOptimizerPageContent() {
                                   next[i] = e.target.value
                                   setWaypoints(next)
                                 }}
-                                className="pr-9"
+                                className="min-h-11 pr-12 sm:min-h-0 sm:pr-9"
                               />
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 size-7 opacity-0 group-hover/waypoint:opacity-100 text-muted-foreground hover:text-destructive focus:opacity-100"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 size-11 min-h-11 min-w-11 opacity-100 text-muted-foreground hover:text-destructive focus:opacity-100 sm:size-7 sm:min-h-0 sm:min-w-0 sm:opacity-0 sm:group-hover/waypoint:opacity-100"
                                 onClick={() => removeWaypoint(i)}
                                 aria-label={`Remove waypoint ${i + 1}`}
                               >
@@ -519,6 +584,7 @@ function RouteOptimizerPageContent() {
                               value={destination}
                               onChange={(e) => setDestination(e.target.value)}
                               aria-invalid={destinationGeocodeError}
+                              className="min-h-11 sm:min-h-0"
                             />
                             {destinationGeocodeLoading && (
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden>
@@ -532,7 +598,7 @@ function RouteOptimizerPageContent() {
                         </Field>
                       </div>
                     </div>
-                    <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={addWaypoint}>
+                    <Button type="button" variant="outline" size="sm" className="min-h-11 w-full gap-2 sm:min-h-0" onClick={addWaypoint}>
                       <Plus className="size-4" />
                       Add waypoint
                     </Button>
@@ -544,7 +610,7 @@ function RouteOptimizerPageContent() {
                 value="when"
                 className="overflow-hidden border-0 border-b border-border bg-background first:rounded-t-lg last:rounded-b-lg last:border-b-0"
               >
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <AccordionTrigger className="min-h-11 px-4 py-3 hover:no-underline sm:min-h-0">
                   When?
                 </AccordionTrigger>
                 <AccordionContent className="px-4">
@@ -557,7 +623,7 @@ function RouteOptimizerPageContent() {
                             <Button
                               variant="outline"
                               className={cn(
-                                "min-w-0 w-full justify-start truncate text-left font-normal",
+                                "min-h-11 min-w-0 w-full justify-start truncate text-left font-normal sm:min-h-0",
                                 !tripStart && "text-muted-foreground"
                               )}
                             >
@@ -568,7 +634,7 @@ function RouteOptimizerPageContent() {
                             </Button>
                           }
                         />
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto max-w-[min(100vw-2rem,288px)] p-0" align="start">
                           <Calendar
                             mode="single"
                             selected={tripStart}
@@ -577,6 +643,7 @@ function RouteOptimizerPageContent() {
                               setTripStartOpen(false)
                             }}
                             initialFocus
+                            className="[--cell-size:2.75rem] sm:[--cell-size:--spacing(6)]"
                           />
                         </PopoverContent>
                       </Popover>
@@ -589,7 +656,7 @@ function RouteOptimizerPageContent() {
                             <Button
                               variant="outline"
                               className={cn(
-                                "min-w-0 w-full justify-start truncate text-left font-normal",
+                                "min-h-11 min-w-0 w-full justify-start truncate text-left font-normal sm:min-h-0",
                                 !tripEnd && "text-muted-foreground"
                               )}
                             >
@@ -600,7 +667,7 @@ function RouteOptimizerPageContent() {
                             </Button>
                           }
                         />
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto max-w-[min(100vw-2rem,288px)] p-0" align="start">
                           <Calendar
                             mode="single"
                             selected={tripEnd}
@@ -609,6 +676,7 @@ function RouteOptimizerPageContent() {
                               setTripEndOpen(false)
                             }}
                             initialFocus
+                            className="[--cell-size:2.75rem] sm:[--cell-size:--spacing(6)]"
                           />
                         </PopoverContent>
                       </Popover>
@@ -621,7 +689,7 @@ function RouteOptimizerPageContent() {
                 value="who"
                 className="overflow-hidden border-0 border-b border-border bg-background first:rounded-t-lg last:rounded-b-lg last:border-b-0"
               >
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <AccordionTrigger className="min-h-11 px-4 py-3 hover:no-underline sm:min-h-0">
                   Who?
                 </AccordionTrigger>
                 <AccordionContent className="px-4">
@@ -632,7 +700,7 @@ function RouteOptimizerPageContent() {
                         value={driverId}
                         onValueChange={(v) => setDriverId(v ?? "")}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="min-h-11 w-full sm:min-h-0">
                           <SelectValue placeholder="Select driver" />
                         </SelectTrigger>
                         <SelectContent>
@@ -650,7 +718,7 @@ function RouteOptimizerPageContent() {
                         value={truckId}
                         onValueChange={(v) => setTruckId(v ?? "")}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="min-h-11 w-full sm:min-h-0">
                           <SelectValue placeholder="Select truck" />
                         </SelectTrigger>
                         <SelectContent>
@@ -666,7 +734,7 @@ function RouteOptimizerPageContent() {
                       <p className="text-xs font-medium text-muted-foreground">
                         Initial fuel tank level
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-h-11 items-center gap-2 sm:min-h-0">
                         <span className="text-xs font-medium text-muted-foreground shrink-0">E</span>
                         <Slider
                           className="min-w-0 flex-1"
@@ -689,6 +757,7 @@ function RouteOptimizerPageContent() {
                           placeholder="e.g. 120"
                           value={tankSize}
                           onChange={(e) => setTankSize(e.target.value)}
+                          className="min-h-11 sm:min-h-0"
                         />
                       </Field>
                       <Field>
@@ -698,6 +767,7 @@ function RouteOptimizerPageContent() {
                           placeholder="e.g. 7"
                           value={mpg}
                           onChange={(e) => setMpg(e.target.value)}
+                          className="min-h-11 sm:min-h-0"
                         />
                       </Field>
                     </div>
@@ -706,16 +776,48 @@ function RouteOptimizerPageContent() {
               </AccordionItem>
             </Accordion>
             </div>
-            <div className="shrink-0">
+            <footer className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm md:bg-background/20 flex flex-col gap-2">
               <Button
                 onClick={handleOptimize}
-                className="w-full"
+                className="min-h-11 w-full sm:min-h-0"
                 disabled={!origin?.trim() || !destination?.trim()}
               >
                 Optimize trip
               </Button>
-            </div>
-          </FieldGroup>
+              {tripIdParam && (
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    render={
+                      <Button
+                        variant="destructive"
+                        className="h-11 min-h-11 w-full sm:h-7 sm:min-h-0"
+                        aria-label="Delete trip"
+                      />
+                    }
+                  >
+                    Delete trip
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete trip?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This trip will be removed from your trips list. This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={handleDeleteTrip}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </footer>
+          </>
           )}
           </div>
         </div>
