@@ -48,11 +48,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-style="5" suppressHydrationWarning>
       <body className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem("style-template");s=(s==="1"||s==="2"||s==="3"||s==="4"||s==="5")?s:"5";document.documentElement.setAttribute("data-style",s);document.body.setAttribute("data-font",s==="5"?"system":"default");})();`,
+            __html: `(function(){var v="2";if(localStorage.getItem("style-version")!==v){localStorage.removeItem("style-template");localStorage.setItem("style-version",v);}var s=localStorage.getItem("style-template");s=(s==="1"||s==="2"||s==="3"||s==="4"||s==="5")?s:"5";document.documentElement.setAttribute("data-style",s);document.body.setAttribute("data-font",s==="5"?"system":"default");})();`,
           }}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

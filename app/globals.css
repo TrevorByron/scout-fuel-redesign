@@ -5,7 +5,6 @@
 @import "./styles/style-2.css";
 @import "./styles/style-3.css";
 @import "./styles/style-4.css";
-@import "./styles/style-5.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -208,3 +207,6 @@
     font-weight: var(--fw-normal);
   }
 }
+
+/* Style 5 (Uber) loads last so it overrides when data-style="5" */
+@import "./styles/style-5.css";
