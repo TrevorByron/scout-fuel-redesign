@@ -721,10 +721,12 @@ export function DashboardUber() {
             >
               <div className="flex items-center justify-between gap-2 w-full">
                 <TabsList className="h-8">
-                  <TabsTrigger value="drivers" className="text-xs">
+                  <TabsTrigger value="drivers" className="gap-1.5 text-xs">
+                    <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
                     Drivers
                   </TabsTrigger>
-                  <TabsTrigger value="locations" className="text-xs">
+                  <TabsTrigger value="locations" className="gap-1.5 text-xs">
+                    <HugeiconsIcon icon={Location01Icon} strokeWidth={2} className="size-3.5" />
                     Locations
                   </TabsTrigger>
                 </TabsList>
@@ -927,7 +929,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Gallons Purchased</StatStripLabel>
-            <StatStripValue>{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+            <StatStripValue className="text-xl">{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={
@@ -946,7 +948,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Avg Cost / Gallon</StatStripLabel>
-            <StatStripValue>${kpis.avgCostAll.toFixed(3)}</StatStripValue>
+            <StatStripValue className="text-xl">${kpis.avgCostAll.toFixed(3)}</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={
@@ -965,7 +967,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Avg Savings / Gallon</StatStripLabel>
-            <StatStripValue>${kpis.avgSavingsAll.toFixed(3)}</StatStripValue>
+            <StatStripValue className="text-xl">${kpis.avgSavingsAll.toFixed(3)}</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={
@@ -986,7 +988,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Total Savings</StatStripLabel>
-            <StatStripValue className="text-green-600 dark:text-green-500">
+            <StatStripValue className="text-xl text-green-600 dark:text-green-500">
               ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </StatStripValue>
           </StatStripItem>
@@ -1009,7 +1011,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Total Spent</StatStripLabel>
-            <StatStripValue>${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+            <StatStripValue className="text-xl">${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
           </StatStripItem>
         </StatStrip>
       </div>

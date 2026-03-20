@@ -45,10 +45,12 @@ export function TripsDefault() {
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-y-auto">
       <div className="flex flex-col gap-4 overflow-x-visible p-4 pb-10">
-        <h1 className="text-lg font-semibold">Trips</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Trip plans from the Optimizer. Select one to track progress.
-        </p>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Trips</h2>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Trip plans from the Optimizer. Select one to track progress.
+          </p>
+        </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="trips-driver-filter" className="text-xs font-medium text-muted-foreground">
             Driver
