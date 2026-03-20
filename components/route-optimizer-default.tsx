@@ -333,36 +333,44 @@ function RouteOptimizerPageContent() {
             destinationCoords={destinationCoords}
             routeCoordinates={routeCoordinates}
             routeLoading={routeLoading}
-            showOptimizingOverlay={isOptimizing}
             fuelStopCoords={fuelStopCoords}
             mapLeftPadding={sidebarWidth}
           />
         </div>
       </div>
 
+      {/* Optimizing overlay: covers map + form */}
+      {isOptimizing && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
+          <p className="text-sm font-medium text-foreground">Optimizing route</p>
+        </div>
+      )}
+
       {/* Left overlay: blocks map interaction; contains floating card */}
       <aside
         ref={sidebarRef}
-        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-[23.75rem] flex-col overflow-y-auto p-4 md:max-w-xl md:w-[43%]"
+        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-[23.75rem] flex-col p-4 md:max-w-xl md:w-[43%]"
         aria-label="Route details"
       >
-        <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto md:justify-start md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
-          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto p-0 md:flex-1 md:p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto justify-end md:justify-start md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
+          <div className="flex flex-col gap-4 p-0 pb-4 md:p-4">
           {calculated ? (
-            <div className="rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden md:rounded-none md:border-0 md:bg-transparent md:shadow-none md:ring-0">
-              <div className="space-y-4 p-4 md:p-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="-ml-2 justify-start gap-1 text-muted-foreground hover:text-foreground"
-                onClick={() => setCalculated(false)}
-              >
-                <ChevronLeft className="size-4" />
-                Back
-              </Button>
-              <h2 className="text-lg font-semibold">
-                Trip plan
-              </h2>
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="space-y-4 p-4">
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-2 w-fit justify-start gap-1.5 text-muted-foreground hover:text-foreground"
+                  onClick={() => setCalculated(false)}
+                >
+                  <ChevronLeft className="size-4" />
+                  Back
+                </Button>
+                <h2 className="text-base font-semibold">
+                  Trip plan
+                </h2>
+              </div>
               <div className="flex gap-3">
                 <div className="flex flex-col items-center pt-1 self-stretch">
                   <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
@@ -401,28 +409,26 @@ function RouteOptimizerPageContent() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-xs">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
                 <p className="font-medium text-foreground">
                   Total estimated fuel cost: ${displaySummary.totalCost.toLocaleString()}
                 </p>
-                <p className="text-[var(--success)]">
+                <p className="mt-0.5 text-[var(--success)]">
                   Savings vs alternative routes: ${displaySummary.savingsVsAlternate}
                 </p>
               </div>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="default"
-                  className="w-full gap-2"
-                  onClick={handleSaveTrip}
-                >
-                  Save trip
-                </Button>
-              </div>
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={handleSaveTrip}
+              >
+                Save trip
+              </Button>
               </div>
             </div>
           ) : (
-          <FieldGroup className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="mb-4 min-h-0 flex-1 overflow-visible">
+          <FieldGroup className="flex flex-col gap-4">
+            <div className="mb-4">
               <div className="mb-4">
                 <h2 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">Optimize fuel purchases</h2>
                 <p className="text-muted-foreground text-xs mt-0.5">

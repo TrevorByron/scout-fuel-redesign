@@ -94,7 +94,6 @@ export type RouteOptimizerMapProps = {
   destinationCoords: LngLat | null
   routeCoordinates: LngLat[]
   routeLoading?: boolean
-  showOptimizingOverlay?: boolean
   fuelStopCoords?: LngLat[]
   /** Left padding in px for fitBounds (e.g. sidebar width) so route stays visible. */
   mapLeftPadding?: number
@@ -108,7 +107,6 @@ export function RouteOptimizerMap({
   destinationCoords,
   routeCoordinates,
   routeLoading = false,
-  showOptimizingOverlay = false,
   fuelStopCoords = [],
   mapLeftPadding = 0,
 }: RouteOptimizerMapProps) {
@@ -199,11 +197,6 @@ export function RouteOptimizerMap({
         {routeLoading && !hasRoute && originCoords && destinationCoords && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60 pointer-events-none">
             <span className="text-xs text-muted-foreground">Loading route…</span>
-          </div>
-        )}
-        {showOptimizingOverlay && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-background/70 pointer-events-none">
-            <p className="text-sm font-medium text-foreground animate-pulse">Optimizing your trip</p>
           </div>
         )}
         {fuelStopCoords.map((coords, i) => (
