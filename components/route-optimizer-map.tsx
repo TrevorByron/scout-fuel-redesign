@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/map"
 
 const DEFAULT_CENTER: [number, number] = [-98.5, 39.5] // US center
-const DEFAULT_ZOOM = 4
-const SINGLE_POINT_ZOOM = 12
+const DEFAULT_ZOOM = 6
+const SINGLE_POINT_ZOOM = 13
 const FLY_DURATION_MS = 600
 
 type LngLat = [number, number]
@@ -39,12 +39,16 @@ function FitRouteBounds({
   originCoords,
   destinationCoords,
   routeCoordinates,
+  fuelStopCoords = [],
   mapLeftPadding = 0,
+  mapBottomPadding = 0,
 }: {
   originCoords: LngLat | null
   destinationCoords: LngLat | null
   routeCoordinates: LngLat[]
+  fuelStopCoords?: LngLat[]
   mapLeftPadding?: number
+  mapBottomPadding?: number
 }) {
   const { map, isLoaded } = useMap()
 
@@ -68,6 +72,13 @@ function FitRouteBounds({
       }
     }
 
+    for (const [lng, lat] of fuelStopCoords) {
+      minLng = Math.min(minLng, lng)
+      maxLng = Math.max(maxLng, lng)
+      minLat = Math.min(minLat, lat)
+      maxLat = Math.max(maxLat, lat)
+    }
+
     map.fitBounds(
       [
         [minLng, minLat],
@@ -78,13 +89,13 @@ function FitRouteBounds({
           left: mapLeftPadding,
           right: DEFAULT_PADDING,
           top: DEFAULT_PADDING,
-          bottom: DEFAULT_PADDING,
+          bottom: Math.max(DEFAULT_PADDING, mapBottomPadding),
         },
         maxZoom: 12,
         duration: FLY_DURATION_MS,
       }
     )
-  }, [map, isLoaded, originCoords, destinationCoords, routeCoordinates, mapLeftPadding])
+  }, [map, isLoaded, originCoords, destinationCoords, routeCoordinates, fuelStopCoords, mapLeftPadding, mapBottomPadding])
 
   return null
 }
@@ -97,6 +108,8 @@ export type RouteOptimizerMapProps = {
   fuelStopCoords?: LngLat[]
   /** Left padding in px for fitBounds (e.g. sidebar width) so route stays visible. */
   mapLeftPadding?: number
+  /** Bottom padding in px for fitBounds (e.g. form height on mobile) so route fits in visible area above form. */
+  mapBottomPadding?: number
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
@@ -109,6 +122,7 @@ export function RouteOptimizerMap({
   routeLoading = false,
   fuelStopCoords = [],
   mapLeftPadding = 0,
+  mapBottomPadding = 0,
 }: RouteOptimizerMapProps) {
   const [mounted, setMounted] = React.useState(false)
 
@@ -150,7 +164,9 @@ export function RouteOptimizerMap({
             originCoords={originCoords}
             destinationCoords={destinationCoords}
             routeCoordinates={routeCoordinates.length >= 2 ? routeCoordinates : []}
+            fuelStopCoords={fuelStopCoords}
             mapLeftPadding={mapLeftPadding}
+            mapBottomPadding={mapBottomPadding}
           />
         )}
         {originCoords && (
