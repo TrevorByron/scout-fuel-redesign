@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { format } from "date-fns"
 import type { TripPlan } from "@/lib/trips"
 import { computeTripProgress } from "@/lib/trips"
@@ -9,7 +8,7 @@ import { getFuelTransactions, drivers, trucks } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Fuel, ChevronLeft, Pencil, CheckCircle2, AlertCircle } from "lucide-react"
+import { MapPin, Fuel, ChevronLeft, CheckCircle2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function getTripStatus(trip: TripPlan): "upcoming" | "in_progress" | "completed" {
@@ -73,13 +72,6 @@ export function TripDetailContentDefault({ trip, onBack, hideBackButton }: TripD
           {detailStatus === "in_progress" && "In progress"}
           {detailStatus === "completed" && "Completed"}
         </Badge>
-        <Link
-          href={`/route-optimizer?tripId=${trip.id}`}
-          className="ml-auto inline-flex h-6 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs font-medium hover:bg-muted hover:text-foreground"
-        >
-          <Pencil className="size-3.5" />
-          Edit trip
-        </Link>
       </div>
 
       <Card>

@@ -44,7 +44,7 @@ export function DriverFuelMap({ transactions }: { transactions: FuelTransaction[
   return (
     <MapContainer
       center={center}
-      zoom={6}
+      zoom={8}
       className="h-[300px] w-full rounded-lg border"
       style={{ minHeight: 300 }}
     >

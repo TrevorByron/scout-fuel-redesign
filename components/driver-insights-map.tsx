@@ -268,7 +268,7 @@ export function DriverInsightsMap({
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
-        zoom={6}
+        zoom={8}
         popupPortalToBody
       >
         {isFocused && popupTransaction ? (

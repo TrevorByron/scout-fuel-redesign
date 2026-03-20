@@ -142,7 +142,7 @@ export function BetterOptionDetails({
           <MapView
             className="h-full w-full"
             center={[midLng, midLat]}
-            zoom={10}
+            zoom={12}
           >
             <FitTwoPoints
               lat1={transaction.lat}

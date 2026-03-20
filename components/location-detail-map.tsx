@@ -156,7 +156,7 @@ export function LocationDetailMap({
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
-        zoom={10}
+        zoom={12}
       >
         <FitBounds
           locationLat={locationLat}

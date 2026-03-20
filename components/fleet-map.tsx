@@ -80,7 +80,7 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
         center={[centerLng, centerLat]}
-        zoom={5}
+        zoom={7}
       >
         <FitBounds trucks={trucks} />
         {trucks.map((truck) => (
