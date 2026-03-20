@@ -422,11 +422,13 @@ function RouteOptimizerPageContent() {
             </div>
           ) : (
           <FieldGroup className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <h2 className="hidden text-lg font-semibold md:block">Optimize fuel purchases</h2>
-              <p className="text-xs font-medium text-muted-foreground">
-                Trip location information
-              </p>
+            <div className="mb-4 min-h-0 flex-1 overflow-visible">
+              <div>
+                <h2 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">Optimize fuel purchases</h2>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Trip location information
+                </p>
+              </div>
               <Accordion
               multiple
               className="w-full -space-y-px rounded-lg border bg-card/80 text-card-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-sm overflow-hidden"
