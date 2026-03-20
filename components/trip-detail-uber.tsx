@@ -43,7 +43,7 @@ export function TripDetailUber() {
 
   if (!id || !trip) {
     return (
-      <main className="flex flex-1 flex-col min-h-0 overflow-y-auto p-4">
+      <main className="flex flex-1 flex-col min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
         <div className="flex flex-col items-center justify-center min-h-[200px] text-center text-muted-foreground text-sm">
           <p className="font-medium text-foreground">Trip not found</p>
           <p className="mt-1">The trip may have been removed or the link is invalid.</p>
@@ -68,7 +68,7 @@ export function TripDetailUber() {
     trucks.find((t) => t.id === trip.truckId)?.driverName
 
   return (
-    <main className="flex flex-1 flex-col min-h-0 overflow-y-auto p-4">
+    <main className="flex flex-1 flex-col min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
       <div className="space-y-6">
         <Link
           href="/trips"

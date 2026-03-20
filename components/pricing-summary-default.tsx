@@ -73,10 +73,10 @@ export function PricingSummaryDefault() {
     <div className="flex min-h-0 flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-3 px-4 lg:px-6">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
             Pricing Summary
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-muted-foreground text-xs mt-0.5">
             View retail and discounted fuel prices by location
           </p>
         </div>

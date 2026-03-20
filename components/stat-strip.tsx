@@ -1,6 +1,8 @@
 "use client"
 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
 const StatStrip = ({
@@ -23,6 +25,9 @@ const StatStrip = ({
 const statStripItemClasses =
   "flex min-w-0 flex-1 flex-col gap-0.5 border-b-2 border-transparent px-3 py-2.5 text-left transition-colors"
 
+const tooltipContentClasses =
+  "min-w-[8rem] rounded-md bg-foreground px-3 py-1.5 text-xs text-background"
+
 const StatStripItem = ({
   className,
   children,
@@ -35,13 +40,16 @@ const StatStripItem = ({
   active?: boolean
   tooltip?: React.ReactNode
 }) => {
+  const isMobile = useIsMobile()
   const baseCn = cn(
     statStripItemClasses,
-    onClick &&
+    (onClick || (tooltip && isMobile)) &&
       "cursor-pointer hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-primary data-[active=true]:bg-muted",
+    tooltip && isMobile && "min-h-[44px]",
     className
   )
-  const content = onClick ? (
+  const useButton = onClick || (tooltip && isMobile)
+  const content = useButton ? (
     <button
       type="button"
       onClick={onClick}
@@ -57,10 +65,24 @@ const StatStripItem = ({
     </div>
   )
   if (tooltip) {
+    if (isMobile) {
+      return (
+        <Popover>
+          <PopoverTrigger render={content} />
+          <PopoverContent
+            side="top"
+            align="center"
+            className={cn("w-fit flex-col gap-0 p-0 ring-0", tooltipContentClasses)}
+          >
+            {tooltip}
+          </PopoverContent>
+        </Popover>
+      )
+    }
     return (
       <Tooltip>
         <TooltipTrigger render={content} />
-        <TooltipContent side="top" className="min-w-[8rem]">
+        <TooltipContent side="top" className={tooltipContentClasses}>
           {tooltip}
         </TooltipContent>
       </Tooltip>
@@ -71,19 +93,24 @@ const StatStripItem = ({
 
 const StatStripLabel = ({
   className,
+  count,
+  children,
   ...props
-}: React.ComponentProps<"span">) => (
+}: React.ComponentProps<"span"> & { count?: number }) => (
   <span
     className={cn("text-[length:var(--text-2xs)] font-medium text-muted-foreground", className)}
     {...props}
-  />
+  >
+    {children}
+    {count != null && ` (${count})`}
+  </span>
 )
 
 const StatStripValue = ({
   className,
   ...props
 }: React.ComponentProps<"span">) => (
-  <span className={cn("text-sm font-medium tabular-nums", className)} {...props} />
+  <span className={cn("text-xl font-medium tabular-nums", className)} {...props} />
 )
 
 export { StatStrip, StatStripItem, StatStripLabel, StatStripValue }

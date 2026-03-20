@@ -199,6 +199,7 @@ export function DriversUber() {
     // Use same gallon-based compliance as driverListStats so KPI count matches filtered list
     let driversNeedingAttention = 0
     let fullyCompliantCount = 0
+    let overpaidDriversCount = 0
     for (const [, txns] of byDriver.entries()) {
       if (txns.length === 0) continue
       const totalGallons = txns.reduce((s, t) => s + t.gallons, 0)
@@ -206,6 +207,9 @@ export function DriversUber() {
       const pct = totalGallons > 0 ? Math.round((inNetworkGallons / totalGallons) * 100) : 0
       if (pct < 60) driversNeedingAttention += 1
       if (pct >= 100) fullyCompliantCount += 1
+      const outOfNetworkTxns = txns.filter((t) => !t.inNetwork)
+      const rawMissedSavings = outOfNetworkTxns.reduce((s, t) => s + getOverpaidAmount(t), 0)
+      if (pct < 100 && rawMissedSavings > 0) overpaidDriversCount += 1
     }
     const prevFrom = dateFrom && dateTo ? new Date(dateFrom.getTime() - (dateTo.getTime() - dateFrom.getTime() + 86400000)) : null
     const prevTo = dateFrom ? new Date(dateFrom.getTime() - 86400000) : null
@@ -218,7 +222,9 @@ export function DriversUber() {
     return {
       fleetAvgScore,
       trendPts,
+      totalDrivers: byDriver.size,
       driversNeedingAttention,
+      overpaidDriversCount,
       totalOverpaid,
       badStopsCount,
       fullyCompliantCount,
@@ -386,7 +392,7 @@ export function DriversUber() {
               active={cardFilter === "all"}
               aria-label="Show all drivers"
             >
-              <StatStripLabel>All Drivers</StatStripLabel>
+              <StatStripLabel count={summaryStats.totalDrivers}>All Drivers</StatStripLabel>
               <StatStripValue className="text-amber-600 dark:text-amber-500">
                 {summaryStats.fleetAvgScore}%
               </StatStripValue>
@@ -396,7 +402,7 @@ export function DriversUber() {
               active={cardFilter === "overpaid"}
               aria-label="Filter to drivers with missed savings"
             >
-              <StatStripLabel>Missed Savings</StatStripLabel>
+              <StatStripLabel count={summaryStats.overpaidDriversCount}>Drivers with missed savings</StatStripLabel>
               <StatStripValue className="text-red-600 dark:text-red-500">
                 ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </StatStripValue>
@@ -406,7 +412,7 @@ export function DriversUber() {
               active={cardFilter === "needs_attention"}
               aria-label="Filter to drivers needing attention"
             >
-              <StatStripLabel>Needing Attention</StatStripLabel>
+              <StatStripLabel count={summaryStats.driversNeedingAttention}>Needing Attention</StatStripLabel>
               <StatStripValue className="text-red-600 dark:text-red-500">
                 {summaryStats.driversNeedingAttention}
               </StatStripValue>
@@ -416,7 +422,7 @@ export function DriversUber() {
               active={cardFilter === "fully_compliant"}
               aria-label="Filter to fully compliant drivers"
             >
-              <StatStripLabel>Fully Compliant</StatStripLabel>
+              <StatStripLabel count={summaryStats.fullyCompliantCount}>Fully Compliant</StatStripLabel>
               <StatStripValue className="text-green-600 dark:text-green-500">
                 {summaryStats.fullyCompliantCount}
               </StatStripValue>

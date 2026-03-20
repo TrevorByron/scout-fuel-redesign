@@ -423,7 +423,7 @@ function RouteOptimizerPageContent() {
           ) : (
           <FieldGroup className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="mb-4 min-h-0 flex-1 overflow-visible">
-              <div>
+              <div className="mb-4">
                 <h2 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">Optimize fuel purchases</h2>
                 <p className="text-muted-foreground text-xs mt-0.5">
                   Trip location information

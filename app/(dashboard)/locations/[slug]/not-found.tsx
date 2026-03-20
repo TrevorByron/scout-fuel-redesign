@@ -27,12 +27,14 @@ export default function LocationNotFound() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="flex flex-col items-start gap-4">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Location not found
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          The location you&apos;re looking for doesn&apos;t exist or has no transactions in the dataset.
-        </p>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+            Location not found
+          </h1>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            The location you&apos;re looking for doesn&apos;t exist or has no transactions in the dataset.
+          </p>
+        </div>
         <Link
           href="/locations"
           className={cn(buttonVariants({ variant: "default" }))}

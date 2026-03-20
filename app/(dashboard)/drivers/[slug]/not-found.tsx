@@ -27,12 +27,14 @@ export default function DriverNotFound() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="flex flex-col items-start gap-4">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Driver not found
-        </h1>
-        <p className="text-muted-foreground text-sm">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+            Driver not found
+          </h1>
+          <p className="text-muted-foreground text-xs mt-0.5">
           The driver you’re looking for doesn’t exist or isn’t in the fleet.
-        </p>
+          </p>
+        </div>
         <Link
           href="/drivers"
           className={cn(buttonVariants({ variant: "default" }))}

@@ -44,7 +44,7 @@ export function TripsDefault() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-y-auto">
-      <div className="flex flex-col gap-4 overflow-x-visible p-4 pb-10">
+      <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6 overflow-x-visible">
         <div>
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Trips</h2>
           <p className="text-muted-foreground text-xs mt-0.5">

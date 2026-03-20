@@ -528,10 +528,12 @@ export function TransactionsDefault() {
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <h2 className="text-lg font-semibold">Fuel Data</h2>
-        <p className="text-xs text-muted-foreground">
-          Filter and review recent fuel transactions
-        </p>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Fuel Data</h2>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Filter and review recent fuel transactions
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 px-4 md:grid-cols-2 lg:px-6">

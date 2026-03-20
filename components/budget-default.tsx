@@ -33,10 +33,12 @@ export function BudgetDefault() {
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <h2 className="text-lg font-semibold">Budget & Forecasting</h2>
-        <p className="text-sm text-muted-foreground">
-          Budget vs actual and forecast models
-        </p>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Budget & Forecasting</h2>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Budget vs actual and forecast models
+          </p>
+        </div>
       </div>
 
       <Tabs defaultValue="month" className="px-4 lg:px-6">
