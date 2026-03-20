@@ -20,7 +20,7 @@ type StyleContextValue = {
 const StyleContext = createContext<StyleContextValue | null>(null);
 
 function readStoredStyle(): StyleId {
-  if (typeof window === "undefined") return "4";
+  if (typeof window === "undefined") return "5";
   const stored = localStorage.getItem(STORAGE_KEY);
   if (
     stored === "1" ||
@@ -30,11 +30,11 @@ function readStoredStyle(): StyleId {
     stored === "5"
   )
     return stored;
-  return "4";
+  return "5";
 }
 
 export function StyleProvider({ children }: { children: React.ReactNode }) {
-  const [style, setStyleState] = useState<StyleId>("4");
+  const [style, setStyleState] = useState<StyleId>("5");
 
   useEffect(() => {
     const stored = readStoredStyle();
