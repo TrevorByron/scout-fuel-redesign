@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-03-16T20:09:57.043Z",
+  "capturedAt": "2026-03-20T21:37:04.119Z",
   "results": [
     {
-      "url": "https://scout-fuel-redesign.vercel.app",
-      "filename": "mar16-light-cards_scout_fuel_redesign_vercel_app.png",
-      "filepath": "public/client-summary-screenshots/mar16-light-cards_scout_fuel_redesign_vercel_app.png",
+      "url": "http://localhost:3000/route-optimizer?tripId=seed-trip-1",
+      "filename": "edit-form-footer_localhost_3000_route_optimizer_tripid_seed_trip_1.png",
+      "filepath": "public/client-summary-screenshots/edit-form-footer_localhost_3000_route_optimizer_tripid_seed_trip_1.png",
       "status": "ok"
     }
   ]
