@@ -26,14 +26,14 @@ export interface OptimizationGaugeCardProps {
   trendLabel?: string
   /** Card size: "sm" reduces padding and gap. */
   size?: "default" | "sm"
-  /** Data for the "How to improve" drawer. When provided with hasRoomForImprovement, shows the button. */
+  /** Data for the "How to save more" drawer. When provided with hasRoomForImprovement, shows the button. */
   improvementData?: {
     drivers: DriverNeedingAttention[]
     locations: LocationListStats[]
   }
   /** Period label for the improvement drawer (e.g. "week", "month"). */
   periodLabel?: string
-  /** When true and improvementData has drivers or locations, show "How to improve" button. */
+  /** When true and improvementData has drivers or locations, show "How to save more" button. */
   hasRoomForImprovement?: boolean
 }
 
@@ -173,7 +173,7 @@ export function OptimizationGaugeCard({
             className="min-h-[44px] w-full"
             onClick={() => setDrawerOpen(true)}
           >
-            How to improve
+            How to save more
           </Button>
           <ImprovementAttentionDrawer
             open={drawerOpen}
