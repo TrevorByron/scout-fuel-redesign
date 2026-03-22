@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { PilotRebateSidebarProgress } from "@/components/pilot-rebate-sidebar-progress"
+import { StyleSwitcher } from "@/components/style-switcher"
 import { NavUser } from "@/components/nav-user"
 import { OrgSwitcher } from "@/components/org-switcher"
 import {
@@ -127,7 +128,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <PilotRebateSidebarProgress />
         </SidebarGroup>
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary
+          items={data.navSecondary}
+          className="mt-auto"
+          footer={<StyleSwitcher inline />}
+        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

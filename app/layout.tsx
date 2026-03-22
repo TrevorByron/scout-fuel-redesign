@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { StyleProvider } from "@/components/style-provider";
-import { StyleSwitcher } from "@/components/style-switcher";
 import "./globals.css";
 import "./styles/style-5-font-override.css";
 
@@ -61,7 +60,6 @@ export default function RootLayout({
               {children}
               <Toaster />
             </TooltipProvider>
-            <StyleSwitcher />
           </StyleProvider>
         </ThemeProvider>
       </body>

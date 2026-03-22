@@ -13,6 +13,7 @@ import {
 
 export function NavSecondary({
   items,
+  footer,
   ...props
 }: {
   items: {
@@ -20,6 +21,7 @@ export function NavSecondary({
     url: string
     icon: React.ReactNode
   }[]
+  footer?: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
     <SidebarGroup {...props}>
@@ -33,6 +35,7 @@ export function NavSecondary({
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          {footer}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
