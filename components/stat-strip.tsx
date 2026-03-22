@@ -110,7 +110,7 @@ const StatStripValue = ({
   className,
   ...props
 }: React.ComponentProps<"span">) => (
-  <span className={cn("text-xl font-medium tabular-nums", className)} {...props} />
+  <span className={cn("text-2xl font-semibold tabular-nums", className)} {...props} />
 )
 
 export { StatStrip, StatStripItem, StatStripLabel, StatStripValue }

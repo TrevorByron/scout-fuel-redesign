@@ -958,7 +958,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Gallons Purchased</StatStripLabel>
-            <StatStripValue className="text-xl">{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+            <StatStripValue className="text-2xl">{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={
@@ -977,7 +977,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Avg Cost / Gallon</StatStripLabel>
-            <StatStripValue className="text-xl">${kpis.avgCostAll.toFixed(3)}</StatStripValue>
+            <StatStripValue className="text-2xl">${kpis.avgCostAll.toFixed(3)}</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={
@@ -996,7 +996,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Avg Savings / Gallon</StatStripLabel>
-            <StatStripValue className="text-xl">${kpis.avgSavingsAll.toFixed(3)}</StatStripValue>
+            <StatStripValue className="text-2xl">${kpis.avgSavingsAll.toFixed(3)}</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={
@@ -1017,7 +1017,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Total Savings</StatStripLabel>
-            <StatStripValue className="text-xl text-green-600 dark:text-green-500">
+            <StatStripValue className="text-2xl text-green-600 dark:text-green-500">
               ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </StatStripValue>
           </StatStripItem>
@@ -1040,7 +1040,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Total Spent</StatStripLabel>
-            <StatStripValue className="text-xl">${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+            <StatStripValue className="text-2xl">${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
           </StatStripItem>
         </StatStrip>
       </div>
