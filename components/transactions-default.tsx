@@ -5,6 +5,11 @@ import dynamic from "next/dynamic"
 import { getFuelTransactions, STATION_BRANDS } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
+import {
+  getCityStateFromLocation,
+  getLocationListStatsFromTransactions,
+  locationToSlug,
+} from "@/lib/location-utils"
 
 const FuelTransactionTable = dynamic(
   () =>
@@ -13,6 +18,15 @@ const FuelTransactionTable = dynamic(
     })),
   { ssr: false, loading: () => <div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">Loading table…</div> }
 )
+
+const FuelDataMap = dynamic(
+  () =>
+    import("@/components/fuel-data-map").then((m) => ({
+      default: m.FuelDataMap,
+    })),
+  { ssr: false }
+)
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ChartContainer,
@@ -49,6 +63,20 @@ import {
 
 type EfficiencyFilter = "all" | "efficient" | "needs_attention"
 type NetworkFilter = "all" | "in_network" | "out_of_network"
+
+type StationSortColumn = "name" | "totalGallons" | "transactions" | "totalCost"
+const SORT_BY_LABELS: Record<string, string> = {
+  "name-asc": "Name A–Z",
+  "name-desc": "Name Z–A",
+  "totalGallons-desc": "Gallons (high first)",
+  "totalGallons-asc": "Gallons (low first)",
+  "transactions-desc": "Transactions (high first)",
+  "transactions-asc": "Transactions (low first)",
+  "totalCost-desc": "Total cost (high first)",
+  "totalCost-asc": "Total cost (low first)",
+  "missedSavings-desc": "Missed savings (high first)",
+  "missedSavings-asc": "Missed savings (low first)",
+}
 
 const spendingChartConfig = {
   gallons: { label: "Gallons", color: "var(--chart-1)" },
@@ -450,18 +478,16 @@ function SpendingTrendsCard() {
 }
 
 const driverNames = [...new Set(getFuelTransactions().map((t) => t.driverName))].sort()
-const stateList = [
-  ...new Set(
-    getFuelTransactions().map((t) =>
-      t.location.includes(", ") ? (t.location.split(", ")[1] ?? t.location) : t.location
-    )
-  ),
-].sort()
 
 export function TransactionsDefault() {
   const [driverFilter, setDriverFilter] = React.useState<string>("all")
   const [stationFilter, setStationFilter] = React.useState<string>("all")
   const [stateFilter, setStateFilter] = React.useState<string>("all")
+  const [cityFilter, setCityFilter] = React.useState<string>("all")
+  const [stationSort, setStationSort] = React.useState<{
+    column: StationSortColumn | "missedSavings"
+    direction: "asc" | "desc"
+  }>({ column: "totalGallons", direction: "desc" })
   const [alertsOnly, setAlertsOnly] = React.useState(false)
   const [efficiencyFilter, setEfficiencyFilter] = React.useState<EfficiencyFilter>("all")
   const [networkFilter, setNetworkFilter] = React.useState<NetworkFilter>("all")
@@ -474,8 +500,12 @@ export function TransactionsDefault() {
       if (driverFilter !== "all" && t.driverName !== driverFilter) return false
       if (stationFilter !== "all" && t.stationBrand !== stationFilter) return false
       if (stateFilter !== "all") {
-        const state = t.location.includes(", ") ? (t.location.split(", ")[1] ?? t.location) : t.location
+        const { state } = getCityStateFromLocation(t.location)
         if (state !== stateFilter) return false
+      }
+      if (cityFilter !== "all") {
+        const { city } = getCityStateFromLocation(t.location)
+        if (city !== cityFilter) return false
       }
       if (efficiencyFilter !== "all") {
         const status = getEfficiencyStatus(t)
@@ -491,7 +521,73 @@ export function TransactionsDefault() {
       if (dateTo && tDate > new Date(dateTo).getTime() + 86400000) return false
       return true
     })
-  }, [driverFilter, stationFilter, stateFilter, alertsOnly, efficiencyFilter, networkFilter, dateFrom, dateTo])
+  }, [
+    driverFilter,
+    stationFilter,
+    stateFilter,
+    cityFilter,
+    alertsOnly,
+    efficiencyFilter,
+    networkFilter,
+    dateFrom,
+    dateTo,
+  ])
+
+  const { uniqueStates, uniqueCities } = React.useMemo(() => {
+    const base = getFuelTransactions().filter((t) => {
+      if (alertsOnly && !t.alert) return false
+      if (driverFilter !== "all" && t.driverName !== driverFilter) return false
+      if (stationFilter !== "all" && t.stationBrand !== stationFilter) return false
+      if (efficiencyFilter !== "all") {
+        const status = getEfficiencyStatus(t)
+        if (efficiencyFilter === "efficient" && status !== "efficient") return false
+        if (efficiencyFilter === "needs_attention" && status !== "needs_attention") return false
+      }
+      if (networkFilter !== "all") {
+        if (networkFilter === "in_network" && !t.inNetwork) return false
+        if (networkFilter === "out_of_network" && t.inNetwork) return false
+      }
+      const tDate = new Date(t.dateTime).getTime()
+      if (dateFrom && tDate < new Date(dateFrom).getTime()) return false
+      if (dateTo && tDate > new Date(dateTo).getTime() + 86400000) return false
+      return true
+    })
+    const states = new Set<string>()
+    const cities = new Set<string>()
+    for (const t of base) {
+      const { city, state } = getCityStateFromLocation(t.location)
+      if (state) states.add(state)
+      if (city) cities.add(city)
+    }
+    return {
+      uniqueStates: [...states].sort(),
+      uniqueCities: [...cities].sort(),
+    }
+  }, [dateFrom, dateTo, driverFilter, stationFilter, alertsOnly, efficiencyFilter, networkFilter])
+
+  const mapItems = React.useMemo(
+    () =>
+      getLocationListStatsFromTransactions(filtered).map((loc) => ({
+        displayName: loc.displayName,
+        slug: locationToSlug(loc.displayName),
+        locationKey: loc.locationKey,
+        lat: loc.lat,
+        lng: loc.lng,
+        efficiencyPct: loc.efficiencyPct,
+        missedSavings: loc.missedSavings,
+      })),
+    [filtered]
+  )
+
+  const sortSelectValue = `${stationSort.column}-${stationSort.direction}`
+
+  function handleSortSelectChange(value: string | null) {
+    if (value == null) return
+    const [column, direction] = value.split("-") as [StationSortColumn | "missedSavings", "asc" | "desc"]
+    if (column && (direction === "asc" || direction === "desc")) {
+      setStationSort({ column, direction })
+    }
+  }
 
   const hasActiveFilters =
     !!dateFrom ||
@@ -499,6 +595,7 @@ export function TransactionsDefault() {
     driverFilter !== "all" ||
     stationFilter !== "all" ||
     stateFilter !== "all" ||
+    cityFilter !== "all" ||
     networkFilter !== "all" ||
     efficiencyFilter !== "all" ||
     alertsOnly
@@ -509,6 +606,7 @@ export function TransactionsDefault() {
     driverFilter !== "all",
     stationFilter !== "all",
     stateFilter !== "all",
+    cityFilter !== "all",
     networkFilter !== "all",
     efficiencyFilter !== "all",
     alertsOnly,
@@ -520,6 +618,7 @@ export function TransactionsDefault() {
     setDriverFilter("all")
     setStationFilter("all")
     setStateFilter("all")
+    setCityFilter("all")
     setNetworkFilter("all")
     setEfficiencyFilter("all")
     setAlertsOnly(false)
@@ -705,6 +804,73 @@ export function TransactionsDefault() {
         </Card>
       </div>
 
+      <div className="flex flex-col gap-4 px-4 lg:px-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:items-end">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="state-filter" className="text-xs font-medium text-muted-foreground">
+              State
+            </Label>
+            <Select value={stateFilter} onValueChange={(v) => setStateFilter(v ?? "all")}>
+              <SelectTrigger id="state-filter" className="h-9 w-full">
+                <SelectValue placeholder="All states" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All states</SelectItem>
+                {uniqueStates.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="city-filter" className="text-xs font-medium text-muted-foreground">
+              City
+            </Label>
+            <Select value={cityFilter} onValueChange={(v) => setCityFilter(v ?? "all")}>
+              <SelectTrigger id="city-filter" className="h-9 w-full">
+                <SelectValue placeholder="All cities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All cities</SelectItem>
+                {uniqueCities.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label className="text-xs font-medium text-muted-foreground">Sort by</Label>
+            <Select value={sortSelectValue} onValueChange={handleSortSelectChange}>
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="Sort by">
+                  {SORT_BY_LABELS[sortSelectValue] ?? sortSelectValue}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name-asc">{SORT_BY_LABELS["name-asc"]}</SelectItem>
+                <SelectItem value="name-desc">{SORT_BY_LABELS["name-desc"]}</SelectItem>
+                <SelectItem value="totalGallons-desc">{SORT_BY_LABELS["totalGallons-desc"]}</SelectItem>
+                <SelectItem value="totalGallons-asc">{SORT_BY_LABELS["totalGallons-asc"]}</SelectItem>
+                <SelectItem value="transactions-desc">{SORT_BY_LABELS["transactions-desc"]}</SelectItem>
+                <SelectItem value="transactions-asc">{SORT_BY_LABELS["transactions-asc"]}</SelectItem>
+                <SelectItem value="totalCost-desc">{SORT_BY_LABELS["totalCost-desc"]}</SelectItem>
+                <SelectItem value="totalCost-asc">{SORT_BY_LABELS["totalCost-asc"]}</SelectItem>
+                <SelectItem value="missedSavings-desc">{SORT_BY_LABELS["missedSavings-desc"]}</SelectItem>
+                <SelectItem value="missedSavings-asc">{SORT_BY_LABELS["missedSavings-asc"]}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border">
+          <FuelDataMap locations={mapItems} transactions={filtered} />
+        </div>
+      </div>
+
       {/* Fuel transactions table */}
       <Card className="mx-4 md:col-span-2 lg:mx-6">
         <div className="flex flex-col gap-2 border-b px-4 pt-0 pb-4 lg:px-6">
@@ -741,7 +907,7 @@ export function TransactionsDefault() {
                 <SheetHeader>
                   <SheetTitle>Filters</SheetTitle>
                   <SheetDescription>
-                    Narrow by date, driver, station, state, network, or alerts
+                    Narrow by date, driver, station, network, or alerts. State and city are set above the map.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="min-h-0 flex-1 overflow-y-auto">
@@ -791,22 +957,6 @@ export function TransactionsDefault() {
                         {STATION_BRANDS.map((b) => (
                           <SelectItem key={b} value={b}>
                             {b}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-2">
-                    <Label className="text-xs">State</Label>
-                    <Select value={stateFilter} onValueChange={(v) => setStateFilter(v ?? "all")}>
-                      <SelectTrigger className="w-full min-w-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All states</SelectItem>
-                        {stateList.map((state) => (
-                          <SelectItem key={state} value={state}>
-                            {state}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -878,6 +1028,7 @@ export function TransactionsDefault() {
             maxRows={50}
             emptyTitle="No transactions match your filters"
             emptyDescription="Try a broader date range or different filters."
+            stationSort={{ column: stationSort.column, direction: stationSort.direction }}
           />
         </CardContent>
       </Card>

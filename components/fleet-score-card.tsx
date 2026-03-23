@@ -11,14 +11,14 @@ export interface FleetScoreCardProps {
   grade: string
   gradeSuffix?: string
   weekDate: string
-  complianceRate: number
+  efficiencyRate: number
   totalTransactions: number
   previousGrade: string
   targetGrade: string
   targetDate: string
   missedSavings: number
-  /** Optional: target compliance % and estimated additional monthly savings at that level. Shows "At X% you save an additional ~$Y/mo" below the alert. */
-  targetCompliancePercent?: number
+  /** Optional: target efficiency % and estimated additional monthly savings at that level. Shows "At X% you save an additional ~$Y/mo" below the alert. */
+  targetEfficiencyPercent?: number
   additionalSavingsAtTarget?: number
   trendData: {
     month: string
@@ -30,13 +30,13 @@ export function FleetScoreCard({
   grade,
   gradeSuffix,
   weekDate,
-  complianceRate,
+  efficiencyRate,
   totalTransactions,
   previousGrade,
   targetGrade,
   targetDate,
   missedSavings,
-  targetCompliancePercent = 80,
+  targetEfficiencyPercent = 80,
   additionalSavingsAtTarget,
   trendData,
 }: FleetScoreCardProps) {
@@ -58,10 +58,10 @@ export function FleetScoreCard({
         {/* Middle column — Score metadata */}
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
           <p className="text-sm font-medium">
-            Fleet fuel compliance — week of {weekDate}
+            Fleet fuel efficiency — week of {weekDate}
           </p>
           <p className="text-sm text-muted-foreground">
-            {complianceRate}% of fill-ups at optimized locations ·{" "}
+            {efficiencyRate}% of fill-ups at optimized locations ·{" "}
             {totalTransactions.toLocaleString("en-US")} total transactions
           </p>
           <p className="text-sm font-medium text-[var(--success)]">
@@ -80,12 +80,12 @@ export function FleetScoreCard({
                   maximumFractionDigits: 0,
                 })}
               </span>{" "}
-              left on the table this week from non-compliant fill-ups.
+              left on the table this week from fill-ups outside optimized locations.
             </p>
           </div>
           {additionalSavingsAtTarget != null && (
             <p className="text-sm text-foreground">
-              At {targetCompliancePercent}% you save an additional{" "}
+              At {targetEfficiencyPercent}% you save an additional{" "}
               <span className="font-semibold tabular-nums text-[var(--success)]">
                 ~$
                 {additionalSavingsAtTarget.toLocaleString("en-US", {
@@ -121,7 +121,7 @@ export function FleetScoreCard({
                 )
               })}
             </div>
-            <span className="mb-1 ml-1 text-xs font-medium">Compliance trend</span>
+            <span className="mb-1 ml-1 text-xs font-medium">Efficiency trend</span>
           </div>
         </div>
       </CardContent>

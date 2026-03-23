@@ -20,6 +20,14 @@ function parseLocationKey(key: string): [string, string] | null {
   return [key.slice(0, i), key.slice(i + 1)]
 }
 
+/** Parse "City, ST" from transaction location string. */
+export function getCityStateFromLocation(location: string): { city: string; state: string } {
+  const comma = location.indexOf(", ")
+  const city = comma >= 0 ? location.slice(0, comma).trim() : location
+  const state = comma >= 0 ? location.slice(comma + 2).trim() : ""
+  return { city, state }
+}
+
 /** All unique locations (chain + city) from transactions, sorted by display name. */
 const ALL_LOCATION_KEYS = (() => {
   const set = new Set<string>()
@@ -101,11 +109,11 @@ export interface LocationListStats {
   displayName: string
   totalGallons: number
   transactionCount: number
-  compliancePct: number
+  efficiencyPct: number
   missedSavings: number
-  /** Number of non-compliant fill-ups (bad stops) at this location. */
+  /** Number of fill-ups outside optimized locations (bad stops) at this location. */
   badStopsCount: number
-  /** Average missed savings per non-compliant fill-up (bad stops only). */
+  /** Average missed savings per fill-up outside optimized locations (bad stops only). */
   avgMissedSavingsPerBadStop: number
   needsAttention: boolean
   lat: number
@@ -147,7 +155,7 @@ function aggregateLocationStats(
     const txns = data.txns
     const totalGallons = txns.reduce((s, t) => s + t.gallons, 0)
     const inNetworkCount = txns.filter((t) => t.inNetwork).length
-    const compliancePct =
+    const efficiencyPct =
       txns.length > 0 ? Math.round((inNetworkCount / txns.length) * 100) : 0
     const badStops = txns.filter((t) => !t.inNetwork && getOverpaidAmount(t) > 0)
     const badStopsCount = badStops.length
@@ -156,7 +164,7 @@ function aggregateLocationStats(
     )
     const avgMissedSavingsPerBadStop =
       badStopsCount > 0 ? Math.round(missedSavings / badStopsCount) : 0
-    // Needs attention when drivers regularly use this location when not compliant (2+ bad stops) and there is enough volume (5+ transactions).
+    // Needs attention when drivers regularly use this location when not optimized (2+ bad stops) and there is enough volume (5+ transactions).
     const needsAttention = badStopsCount >= 2 && txns.length >= 5
 
     result.push({
@@ -164,7 +172,7 @@ function aggregateLocationStats(
       displayName: data.displayName,
       totalGallons: Math.round(totalGallons * 10) / 10,
       transactionCount: txns.length,
-      compliancePct,
+      efficiencyPct,
       missedSavings,
       badStopsCount,
       avgMissedSavingsPerBadStop,
@@ -198,11 +206,11 @@ export interface LocationSummaryStats {
   thisPeriodScorePct: number
   lastPeriodScorePct: number
   overpaidThisPeriod: number
-  nonCompliantStopsThisPeriod: number
+  outOfNetworkStopsThisPeriod: number
   avgCpgPaid: number
   totalGallons: number
   fuelTypeLabel: string
-  /** Average missed savings per non-compliant fill-up this period. */
+  /** Average missed savings per fill-up outside optimized locations this period. */
   avgMissedSavingsPerBadStop: number
 }
 
@@ -258,7 +266,7 @@ export function getLocationSummaryStats(
     thisPeriodScorePct,
     lastPeriodScorePct,
     overpaidThisPeriod,
-    nonCompliantStopsThisPeriod: badStopsThisPeriod.length,
+    outOfNetworkStopsThisPeriod: badStopsThisPeriod.length,
     avgCpgPaid,
     totalGallons: Math.round(totalGallons * 10) / 10,
     fuelTypeLabel,
@@ -270,7 +278,7 @@ export interface DriverAtLocation {
   driverName: string
   transactionCount: number
   missedSavings: number
-  compliancePct: number
+  efficiencyPct: number
 }
 
 /** Drivers who used this location in the range, with stats. Sorted by missed savings desc. */
@@ -304,34 +312,32 @@ export function getDriversAtLocation(
 
   const list: DriverAtLocation[] = []
   for (const [driverName, data] of byDriver.entries()) {
-    const compliancePct =
+    const efficiencyPct =
       data.count > 0 ? Math.round((data.inNetwork / data.count) * 100) : 0
     list.push({
       driverName,
       transactionCount: data.count,
       missedSavings: Math.round(data.missedSavings),
-      compliancePct,
+      efficiencyPct,
     })
   }
   return list.sort((a, b) => b.missedSavings - a.missedSavings)
 }
 
-export const NEEDS_ATTENTION_COMPLIANCE_THRESHOLD = 60
-
-export interface LocationComplianceTrendPoint {
+export interface LocationEfficiencyTrendPoint {
   weekLabel: string
   scorePct: number
 }
 
-/** Compliance score by week for this location (last N weeks). */
-export function getLocationComplianceTrend(
+/** Efficiency score by week for this location (last N weeks). */
+export function getLocationEfficiencyTrend(
   locationKey: string,
   numberOfWeeks = 8
-): LocationComplianceTrendPoint[] {
+): LocationEfficiencyTrendPoint[] {
   const atLocation = getFuelTransactions().filter((t) =>
     transactionMatchesLocation(t, locationKey)
   )
-  const result: LocationComplianceTrendPoint[] = []
+  const result: LocationEfficiencyTrendPoint[] = []
   const now = new Date()
   const thisWeekStart = new Date(now)
   thisWeekStart.setDate(now.getDate() - now.getDay())

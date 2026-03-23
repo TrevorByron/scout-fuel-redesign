@@ -5,13 +5,20 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useParams, notFound } from "next/navigation"
 import { type DateRange } from "react-day-picker"
+import {
+  getThisMonthRange,
+  getThisWeekRange,
+  getYesterdayRange,
+  isExactlyYesterdayRange,
+  rangeMatches,
+} from "@/lib/date-range-presets"
 import { getFuelTransactions } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
 import {
   getDriverNameBySlug,
   getDriverSummaryStats,
   getDriverProfile,
-  getDriverComplianceTrend,
+  getDriverEfficiencyTrend,
   type DateRange as DriverDateRange,
 } from "@/lib/driver-utils"
 import {
@@ -92,39 +99,6 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
-/** True when range is exactly "today" (from and to are the same moment at start of today). Distinguishes Today from This Week on Sunday. */
-function isExactlyTodayRange(range: DateRange | undefined): boolean {
-  if (!range?.from) return false
-  const to = range.to ?? range.from
-  return (
-    to.getTime() === range.from.getTime() &&
-    range.from.toDateString() === new Date().toDateString()
-  )
-}
-
-function getTodayRange(): DateRange {
-  const now = new Date()
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  )
-  return { from: startOfToday, to: startOfToday }
-}
-
-function getThisWeekRange(): DateRange {
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-  return { from, to }
-}
-
-function getThisMonthRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to.getFullYear(), to.getMonth(), 1)
-  return { from, to }
-}
-
 function getLastWeekRange(): DateRange {
   const thisWeek = getThisWeekRange()
   const to = new Date(thisWeek.from!)
@@ -132,36 +106,6 @@ function getLastWeekRange(): DateRange {
   const from = new Date(to)
   from.setDate(from.getDate() - 6)
   return { from, to }
-}
-
-function rangeMatches(
-  range: DateRange | undefined,
-  preset: "today" | "week" | "month"
-): boolean {
-  if (!range?.from) return false
-  const fromStr = range.from.toDateString()
-  const toStr = (range.to ?? range.from).toDateString()
-  if (preset === "today") {
-    const todayStr = new Date().toDateString()
-    return fromStr === todayStr && toStr === todayStr
-  }
-  if (preset === "week") {
-    const week = getThisWeekRange()
-    if (!week.from || !week.to) return false
-    return (
-      range.from.toDateString() === week.from.toDateString() &&
-      (range.to ?? range.from).toDateString() === week.to.toDateString()
-    )
-  }
-  if (preset === "month") {
-    const month = getThisMonthRange()
-    if (!month.from || !month.to) return false
-    return (
-      range.from.toDateString() === month.from.toDateString() &&
-      (range.to ?? range.from).toDateString() === month.to.toDateString()
-    )
-  }
-  return false
 }
 
 function isInDateRange(
@@ -185,14 +129,14 @@ function getInitials(driverName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-function complianceScoreColorClass(pct: number): string {
+function efficiencyScoreColorClass(pct: number): string {
   if (pct >= 90) return "text-green-600 dark:text-green-500"
   if (pct >= 50) return "text-yellow-600 dark:text-yellow-500"
   return "text-red-600 dark:text-red-500"
 }
 
-/** Bar fill color by compliance %: green 90%+, yellow 50–89%, red below 50%. */
-function getComplianceBarFill(scorePct: number): string {
+/** Bar fill color by efficiency %: green 90%+, yellow 50–89%, red below 50%. */
+function getEfficiencyBarFill(scorePct: number): string {
   if (scorePct >= 90) return "#22c55e"
   if (scorePct >= 50) return "#eab308"
   return "var(--destructive)"
@@ -232,13 +176,13 @@ export function DriverDetailUber() {
     previousPeriodRange as DriverDateRange
   )
   const profile = getDriverProfile(driverName)
-  const complianceTrendData = React.useMemo(
-    () => getDriverComplianceTrend(driverName, 8),
+  const efficiencyTrendData = React.useMemo(
+    () => getDriverEfficiencyTrend(driverName, 8),
     [driverName]
   )
-  const complianceChartConfig = {
+  const efficiencyChartConfig = {
     scorePct: {
-      label: "Compliance score",
+      label: "Efficiency score",
       color: "var(--chart-1)",
     },
   } satisfies ChartConfig
@@ -261,8 +205,8 @@ export function DriverDetailUber() {
   )
 
   const activePreset =
-    isExactlyTodayRange(dateRange)
-      ? "today"
+    isExactlyYesterdayRange(dateRange)
+      ? "yesterday"
       : rangeMatches(dateRange, "week")
         ? "week"
         : rangeMatches(dateRange, "month")
@@ -315,7 +259,7 @@ export function DriverDetailUber() {
                 <div className="flex flex-wrap gap-2">
                   {profile.badges.map((b) => {
                     const isWarning =
-                      b === "3 consecutive non-compliant weeks" ||
+                      b === "3 consecutive weeks below efficiency target" ||
                       b === "Worst CA corridor offender"
                     return (
                       <Badge
@@ -338,11 +282,11 @@ export function DriverDetailUber() {
 
           <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-muted-foreground text-xs">Compliance score</p>
+              <p className="text-muted-foreground text-xs">Efficiency score</p>
               <p
                 className={[
                   "text-2xl font-bold tabular-nums",
-                  complianceScoreColorClass(summaryStats.thisWeekScorePct),
+                  efficiencyScoreColorClass(summaryStats.thisWeekScorePct),
                 ].join(" ")}
               >
                 {summaryStats.thisWeekScorePct}%
@@ -364,7 +308,7 @@ export function DriverDetailUber() {
                 ${summaryStats.overpaidThisWeek.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </p>
               <p className="text-muted-foreground text-xs">
-                {summaryStats.nonCompliantStopsThisWeek} non-compliant stops
+                {summaryStats.outOfNetworkStopsThisWeek} stops outside optimized locations
               </p>
             </div>
             <div>
@@ -390,17 +334,17 @@ export function DriverDetailUber() {
             </div>
           </div>
 
-          {/* Compliance score over time — inline */}
+          {/* Efficiency score over time — inline */}
           <div className="border-t border-border pt-4">
             <p className="text-muted-foreground text-xs font-medium mb-2">
-              Compliance score over time (last 8 weeks)
+              Efficiency score over time (last 8 weeks)
             </p>
             <ChartContainer
-              config={complianceChartConfig}
+              config={efficiencyChartConfig}
               className="h-[140px] w-full [&_.recharts-cartesian-axis-tick_text]:text-[10px]"
             >
               <BarChart
-                data={complianceTrendData}
+                data={efficiencyTrendData}
                 margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="2 2" />
@@ -427,8 +371,8 @@ export function DriverDetailUber() {
                   }
                 />
                 <Bar dataKey="scorePct" name="scorePct" radius={[2, 2, 0, 0]} barSize={20}>
-                  {complianceTrendData.map((entry, index) => (
-                    <Cell key={index} fill={getComplianceBarFill(entry.scorePct)} />
+                  {efficiencyTrendData.map((entry, index) => (
+                    <Cell key={index} fill={getEfficiencyBarFill(entry.scorePct)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -446,17 +390,17 @@ export function DriverDetailUber() {
           <Tabs
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
-              if (v === "today") setDateRange(getTodayRange())
+              if (v === "yesterday") setDateRange(getYesterdayRange())
               if (v === "week") setDateRange(getThisWeekRange())
               if (v === "month") setDateRange(getThisMonthRange())
             }}
           >
             <TabsList className="h-10 min-h-10 bg-card text-card-foreground">
               <TabsTrigger
-                value="today"
+                value="yesterday"
                 className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground"
               >
-                Today
+                Yesterday
               </TabsTrigger>
               <TabsTrigger
                 value="week"

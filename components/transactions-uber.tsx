@@ -3,10 +3,18 @@
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { type DateRange } from "react-day-picker"
+import {
+  getThisMonthRange,
+  getThisWeekRange,
+  getYesterdayRange,
+  isExactlyYesterdayRange,
+  rangeMatches,
+} from "@/lib/date-range-presets"
 import { getFuelTransactions, STATION_BRANDS } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
 import {
+  getCityStateFromLocation,
   getLocationListStatsFromTransactions,
   locationToSlug,
 } from "@/lib/location-utils"
@@ -91,55 +99,6 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
-function isExactlyTodayRange(range: DateRange | undefined): boolean {
-  if (!range?.from) return false
-  const to = range.to ?? range.from
-  return (
-    to.getTime() === range.from.getTime() &&
-    range.from.toDateString() === new Date().toDateString()
-  )
-}
-
-function getTodayRange(): DateRange {
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return { from: startOfToday, to: startOfToday }
-}
-
-function getThisWeekRange(): DateRange {
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-  return { from, to }
-}
-
-function getThisMonthRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to.getFullYear(), to.getMonth(), 1)
-  return { from, to }
-}
-
-function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
-  if (!range?.from) return false
-  const fromStr = range.from.toDateString()
-  const toStr = (range.to ?? range.from).toDateString()
-  if (preset === "today") {
-    const todayStr = new Date().toDateString()
-    return fromStr === todayStr && toStr === todayStr
-  }
-  if (preset === "week") {
-    const week = getThisWeekRange()
-    if (!week.from || !week.to) return false
-    return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
-  }
-  if (preset === "month") {
-    const month = getThisMonthRange()
-    if (!month.from || !month.to) return false
-    return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
-  }
-  return false
-}
-
 function isInDateRange(t: FuelTransaction, range: DateRange | undefined): boolean {
   if (!range?.from) return true
   const tDate = new Date(t.dateTime).getTime()
@@ -149,14 +108,6 @@ function isInDateRange(t: FuelTransaction, range: DateRange | undefined): boolea
     : range.from.getTime() + 86400000
   if (tDate > toEnd) return false
   return true
-}
-
-/** Parse "City, ST" from location string. */
-function getCityStateFromLocation(location: string): { city: string; state: string } {
-  const comma = location.indexOf(", ")
-  const city = comma >= 0 ? location.slice(0, comma).trim() : location
-  const state = comma >= 0 ? location.slice(comma + 2).trim() : ""
-  return { city, state }
 }
 
 type StationSortColumn = "name" | "totalGallons" | "transactions" | "totalCost"
@@ -655,7 +606,7 @@ export function TransactionsUber() {
         locationKey: loc.locationKey,
         lat: loc.lat,
         lng: loc.lng,
-        compliancePct: loc.compliancePct,
+        efficiencyPct: loc.efficiencyPct,
         missedSavings: loc.missedSavings,
       })),
     [filtered]
@@ -671,8 +622,8 @@ export function TransactionsUber() {
   )
 
   const activePreset =
-    isExactlyTodayRange(dateRange)
-      ? "today"
+    isExactlyYesterdayRange(dateRange)
+      ? "yesterday"
       : rangeMatches(dateRange, "week")
         ? "week"
         : rangeMatches(dateRange, "month")
@@ -734,14 +685,14 @@ export function TransactionsUber() {
           <Tabs
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
-              if (v === "today") setDateRange(getTodayRange())
+              if (v === "yesterday") setDateRange(getYesterdayRange())
               if (v === "week") setDateRange(getThisWeekRange())
               if (v === "month") setDateRange(getThisMonthRange())
             }}
           >
             <TabsList className="h-10 min-h-10 bg-card text-card-foreground">
-              <TabsTrigger value="today" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                Today
+              <TabsTrigger value="yesterday" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                Yesterday
               </TabsTrigger>
               <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
                 This Week

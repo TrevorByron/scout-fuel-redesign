@@ -30,7 +30,7 @@ type LocationDetailMapProps = {
   /** Center of the location (e.g. first transaction's coords). */
   locationLat: number
   locationLng: number
-  /** Average $ lost per non-compliant fill-up at this location. */
+  /** Average $ lost per fill-up outside optimized locations at this location. */
   avgMissedSavingsPerBadStop: number
   /** Most frequent better option from transactions, or null. */
   representativeBetterOption: RepresentativeBetterOption | null

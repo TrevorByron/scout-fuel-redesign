@@ -18,7 +18,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { AlertCircleIcon, InformationCircleIcon, UserGroupIcon, Location01Icon } from "@hugeicons/core-free-icons"
 import { useIsMobile } from "@/hooks/use-mobile"
 
-export type ImprovementAttentionSource = "compliance" | "missedSavings"
+export type ImprovementAttentionSource = "efficiency" | "missedSavings"
 
 export interface ImprovementAttentionDrawerProps {
   open: boolean
@@ -31,7 +31,13 @@ export interface ImprovementAttentionDrawerProps {
 }
 
 const periodBadgeLabel = (periodLabel: string) =>
-  periodLabel === "today" ? "today" : periodLabel === "week" ? "this week" : periodLabel === "month" ? "this month" : "this period"
+  periodLabel === "yesterday"
+    ? "yesterday"
+    : periodLabel === "week"
+      ? "this week"
+      : periodLabel === "month"
+        ? "this month"
+        : "this period"
 
 export function ImprovementAttentionDrawer({
   open,
@@ -53,7 +59,7 @@ export function ImprovementAttentionDrawer({
         <DrawerHeader className="shrink-0">
           <DrawerTitle>Drivers and locations that need attention</DrawerTitle>
           <DrawerDescription>
-            Focus on these to improve compliance and capture more savings.
+            Focus on these to improve efficiency and capture more savings.
           </DrawerDescription>
         </DrawerHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
@@ -221,9 +227,9 @@ export function ImprovementAttentionDrawer({
             <CardContent className="flex gap-2 py-3">
               <HugeiconsIcon icon={InformationCircleIcon} className="size-4 shrink-0 text-muted-foreground" strokeWidth={2} />
               <div className="min-w-0">
-                {source === "compliance" && (
+                {source === "efficiency" && (
                   <p className="text-muted-foreground text-xs">
-                    Compliance is the percentage of fill-ups at optimized locations—places that offer the best price for the route. A higher score means more drivers are fueling where they get the best price.
+                    Efficiency is the percentage of fill-ups at optimized locations—places that offer the best price for the route. A higher score means more drivers are fueling where they get the best price.
                   </p>
                 )}
                 {source === "missedSavings" && (

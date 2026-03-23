@@ -76,21 +76,21 @@ export function OptimizationGaugeCard({
     <Card size={size} className={cn(isCompact && "gap-2 py-2")}>
       <CardHeader className={cn("pb-1", isCompact && "pb-0")}>
         <div className="flex items-center gap-1.5">
-          <CardTitle className="text-base">Fleet Compliance</CardTitle>
+          <CardTitle className="text-base">Fleet efficiency</CardTitle>
           <Tooltip>
             <TooltipTrigger
               render={
                 <button
                   type="button"
                   className="inline-flex shrink-0 rounded text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="What is fleet compliance?"
+                  aria-label="What is fleet efficiency?"
                 >
                   <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" strokeWidth={2} />
                 </button>
               }
             />
             <TooltipContent side="top" className="max-w-sm">
-              Compliance is the percentage of fill-ups at optimized locations—places that offer the best price for the route. A higher score means more drivers are fueling where they get the best price.
+              Efficiency is the percentage of fill-ups at optimized locations—places that offer the best price for the route. A higher score means more drivers are fueling where they get the best price.
             </TooltipContent>
           </Tooltip>
         </div>
@@ -160,7 +160,7 @@ export function OptimizationGaugeCard({
               {pctRounded}%
             </span>
             <span className="text-center text-sm font-normal text-muted-foreground">
-              Compliance score
+              Efficiency score
             </span>
           </figcaption>
         </figure>
@@ -181,7 +181,7 @@ export function OptimizationGaugeCard({
             drivers={improvementData.drivers}
             locations={improvementData.locations}
             periodLabel={periodLabel}
-            source="compliance"
+            source="efficiency"
           />
         </CardFooter>
       )}

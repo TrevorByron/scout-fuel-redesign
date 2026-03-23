@@ -16,7 +16,7 @@ export const STATION_BRANDS = [
 /** Station brands that are in the fleet's preferred network. Used for in-network vs out-of-network reporting. */
 export const IN_NETWORK_BRANDS = ["TA/Petro", "Pilot Flying J", "Love's"] as const
 
-/** Out-of-network brands (all others). Used to assign compliance by driver tier. */
+/** Out-of-network brands (all others). Used to assign in-network mix by driver tier. */
 const OUT_OF_NETWORK_BRANDS = STATION_BRANDS.filter(
   (b) => !(IN_NETWORK_BRANDS as readonly string[]).includes(b)
 ) as readonly string[]
@@ -31,7 +31,7 @@ function isBadStop(t: FuelTransaction): boolean {
   return t.inNetwork === false && (t.betterOption?.potentialSavings ?? 0) > 0
 }
 
-/** Ensure at least minLocations distinct (stationBrand, location) pairs have at least minBadStops non-compliant transactions each. */
+/** Ensure at least minLocations distinct (stationBrand, location) pairs have at least minBadStops transactions outside optimized locations each. */
 function ensureMinimumLocationsWithBadStops(
   list: FuelTransaction[],
   minLocations: number,
@@ -62,7 +62,7 @@ function ensureMinimumLocationsWithBadStops(
     const need = minBadStops - badCount
     const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
     if (inNetworkTxns.length < need) continue
-    /** Prefer flipping txns outside the week of Jan 1 so that week stays at 98% compliance. */
+    /** Prefer flipping txns outside the week of Jan 1 so that week stays at 98% efficiency. */
     const toFlip = [...inNetworkTxns].sort((a, b) =>
       isInWeekOfJan1(a) === isInWeekOfJan1(b) ? 0 : isInWeekOfJan1(a) ? 1 : -1
     ).slice(0, need)
@@ -87,7 +87,7 @@ function ensureMinimumLocationsWithBadStops(
   }
 }
 
-/** Week of Jan 1 2026 (Sun Dec 28 – Sat Jan 3). Used so we don't flip txns in this week and break 98% compliance. */
+/** Week of Jan 1 2026 (Sun Dec 28 – Sat Jan 3). Used so we don't flip txns in this week and break 98% efficiency. */
 function isInWeekOfJan1(t: FuelTransaction): boolean {
   const weekStart = new Date(2025, 11, 28).getTime()
   const weekEnd = new Date(2026, 0, 3, 23, 59, 59, 999).getTime()
@@ -113,7 +113,7 @@ function ensureAtLeastOneLocationNeedsAttention(list: FuelTransaction[]): void {
     if (txns.length < minTotalTxns) continue
     const inNetworkTxns = txns.filter((t) => t.inNetwork === true)
     if (inNetworkTxns.length < minBadStops) continue
-    /** Prefer flipping txns outside the week of Jan 1 so that week stays at 98% compliance. */
+    /** Prefer flipping txns outside the week of Jan 1 so that week stays at 98% efficiency. */
     const toFlip = [...inNetworkTxns].sort((a, b) =>
       isInWeekOfJan1(a) === isInWeekOfJan1(b) ? 0 : isInWeekOfJan1(a) ? 1 : -1
     ).slice(0, minBadStops)
@@ -138,7 +138,7 @@ function ensureAtLeastOneLocationNeedsAttention(list: FuelTransaction[]): void {
   }
 }
 
-/** Ensure at least one location has 2+ bad stops on refDate so "today", "this week", and "this month" always show at least one location needing attention. */
+/** Ensure at least one location has 2+ bad stops on refDate so "yesterday", "this week", and "this month" always show at least one location needing attention. */
 function ensureAtLeastOneLocationNeedsAttentionOnDay(
   list: FuelTransaction[],
   refDate: Date
@@ -535,23 +535,11 @@ const FUEL_TYPES: FuelType[] = ["Diesel", "Reefer", "DEF"]
 const TRANSACTIONS_PER_DRIVER_PER_DAY = 3
 
 /**
- * Compliance by driver: a few fully compliant, most high, five needing attention.
- * driverIndex 0–2: 100% in-network (fully compliant)
- * driverIndex 3–10: ~88% in-network (good)
- * driverIndex 11–15: ~18% in-network (needing attention — below 60%)
- */
-function getComplianceTier(driverIndex: number): { inNetworkPct: number; alwaysInNetwork: boolean } {
-  if (driverIndex <= 2) return { inNetworkPct: 100, alwaysInNetwork: true }
-  if (driverIndex <= 10) return { inNetworkPct: 88, alwaysInNetwork: false }
-  return { inNetworkPct: 18, alwaysInNetwork: false }
-}
-
-/**
  * Target in-network % by location index so that for any date range the map shows
  * all three colors: red (<50%), yellow (50–89%), green (≥90%).
  * Uses index % 3 to scale to any number of locations: ~1/3 each band.
  */
-function getLocationComplianceTarget(locationIndex: number): number {
+function getLocationEfficiencyTarget(locationIndex: number): number {
   const band = locationIndex % 3
   if (band === 0) return 25
   if (band === 1) return 65
@@ -585,7 +573,7 @@ function getLocationCoordOffset(stationBrand: string, location: string): { lat: 
 
 /**
  * In-memory cache of transactions by date (YYYY-MM-DD). Ensures we always have
- * transactions for "today" when the app is used on any calendar day, without
+ * transactions for the current calendar day when the app is used on any day, without
  * rebuilding on every request.
  */
 const transactionsByDateCache = new Map<string, FuelTransaction[]>()
@@ -593,7 +581,7 @@ const transactionsByDateCache = new Map<string, FuelTransaction[]>()
 /**
  * Build fuel transactions from the given date going back 365 days.
  * Fleet has 16 drivers; each driver has 3 transactions per day.
- * @param asOfDate - "Today" for the range; defaults to current date so every login sees data for that day.
+ * @param asOfDate - Anchor calendar day for the range; defaults to current date so every login sees data for that day.
  */
 function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
   const now = asOfDate
@@ -606,9 +594,9 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
     if (date.getTime() > now.getTime()) continue
     for (let driverIndex = 0; driverIndex < NUM_FLEET_DRIVERS; driverIndex++) {
       for (let k = 0; k < TRANSACTIONS_PER_DRIVER_PER_DAY; k++) {
-      /** On the build date (today), pin the first 5 transactions to the same location so at least one location has 5+ txns and can be given 2+ bad stops for "needs attention". */
-      const isFirstFiveOfToday = daysAgo === 0 && driverIndex * TRANSACTIONS_PER_DRIVER_PER_DAY + k < 5
-      const locationIndex = isFirstFiveOfToday ? 0 : i % LOCATIONS.length
+      /** On calendar yesterday, pin the first 5 transactions to the same location so at least one location has 5+ txns and can be given 2+ bad stops for "needs attention" (Yesterday preset). */
+      const isFirstFiveOfDemoDay = daysAgo === 1 && driverIndex * TRANSACTIONS_PER_DRIVER_PER_DAY + k < 5
+      const locationIndex = isFirstFiveOfDemoDay ? 0 : i % LOCATIONS.length
       const location = LOCATIONS[locationIndex]
       const coords = LOCATION_COORDINATES[location] ?? { lat: 35 + (i % 10) * 0.5, lng: -100 - (i % 10) * 0.5 }
       const fuelType = k < FUEL_TYPES.length ? FUEL_TYPES[k] : FUEL_TYPE_SEQUENCE[i % 10]
@@ -631,23 +619,23 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       const txnDate = new Date(date)
       txnDate.setHours(6 + ((i + k) % 14), ((i + k) % 4) * 15, 0, 0)
 
-      /** Week of Jan 1 2026 (Sun Dec 28 – Sat Jan 3): show 98% compliance when this week is selected. */
+      /** Week of Jan 1 2026 (Sun Dec 28 – Sat Jan 3): show 98% efficiency when this week is selected. */
       const weekOfJan1Start = new Date(2025, 11, 28).getTime()
       const weekOfJan1End = new Date(2026, 0, 3, 23, 59, 59, 999).getTime()
       const inWeekOfJan1 =
         txnDate.getTime() >= weekOfJan1Start && txnDate.getTime() <= weekOfJan1End
 
-      /** Location-based compliance band so any date range shows red/yellow/green on the map; roll keeps it deterministic. For "today" seed location, force out-of-network so one key has 5+ txns. */
-      const locationTargetPct = getLocationComplianceTarget(locationIndex)
+      /** Location-based efficiency band so any date range shows red/yellow/green on the map; roll keeps it deterministic. For yesterday seed location, force out-of-network so one key has 5+ txns. */
+      const locationTargetPct = getLocationEfficiencyTarget(locationIndex)
       const roll = (i * 13 + daysAgo * 17 + k * 7) % 100
-      const inNetwork = isFirstFiveOfToday
+      const inNetwork = isFirstFiveOfDemoDay
         ? false
         : inWeekOfJan1
           ? roll < 98
           : roll < locationTargetPct
       const stationBrand = inNetwork
         ? IN_NETWORK_BRANDS[(i + daysAgo + k) % IN_NETWORK_BRANDS.length]
-        : OUT_OF_NETWORK_BRANDS[isFirstFiveOfToday ? 0 : (i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
+        : OUT_OF_NETWORK_BRANDS[isFirstFiveOfDemoDay ? 0 : (i + daysAgo * 3 + k) % OUT_OF_NETWORK_BRANDS.length]
       const offset = getLocationCoordOffset(stationBrand, location)
       const lat = coords.lat + offset.lat
       const lng = coords.lng + offset.lng
@@ -655,8 +643,8 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       const betterOptionStation = IN_NETWORK_BRANDS[i % IN_NETWORK_BRANDS.length]
       const differentStation = betterOptionStation !== stationBrand
       const baseSavings = hasBetterOption && differentStation ? 8 + (i % 38) : 0
-      const complianceMultiplier = inNetwork ? 0 : 1
-      const potentialSavings = Math.round(baseSavings * complianceMultiplier)
+      const outOfNetworkMultiplier = inNetwork ? 0 : 1
+      const potentialSavings = Math.round(baseSavings * outOfNetworkMultiplier)
       const discount = 0.05 + (i % 4) * 0.008
       const betterPrice = hasBetterOption
         ? Math.round((pricePerGallon * (1 - discount)) * 100) / 100
@@ -702,6 +690,9 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
   ensureMinimumLocationsWithBadStops(list, 11, 5)
   ensureAtLeastOneLocationNeedsAttention(list)
   ensureAtLeastOneLocationNeedsAttentionOnDay(list, anchor)
+  const yesterdayAnchor = new Date(anchor)
+  yesterdayAnchor.setDate(yesterdayAnchor.getDate() - 1)
+  ensureAtLeastOneLocationNeedsAttentionOnDay(list, yesterdayAnchor)
   return list.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
 }
 
@@ -789,7 +780,7 @@ export const costOpportunities: CostOpportunity[] = [
   },
   {
     id: "5",
-    title: "Trucks T033–T038: Shift to TA/Petro preferred. Current compliance 62%.",
+    title: "Trucks T033–T038: Shift to TA/Petro preferred. Current efficiency 62%.",
     estimatedSavings: 890,
     priority: "medium",
   },
@@ -976,7 +967,7 @@ export const alertsList: AlertItem[] = [
   },
 ]
 
-/** Mock data for FleetScoreCard: week label, target, and 3-month compliance trend. */
+/** Mock data for FleetScoreCard: week label, target, and 3-month efficiency trend. */
 export const fleetScoreCardMock = {
   weekDate: "Jan 8",
   previousGrade: "A",

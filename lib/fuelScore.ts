@@ -1,18 +1,18 @@
 /**
- * Fleet fuel compliance grading: map 0–100% to letter grade and theme color.
+ * Fleet fuel efficiency grading: map 0–100% to letter grade and theme color.
  */
 
-export function getFleetGrade(complianceRate: number): string {
-  if (complianceRate >= 95) return "A+"
-  if (complianceRate >= 90) return "A"
-  if (complianceRate >= 85) return "A-"
-  if (complianceRate >= 80) return "B+"
-  if (complianceRate >= 75) return "B"
-  if (complianceRate >= 70) return "B-"
-  if (complianceRate >= 65) return "C+"
-  if (complianceRate >= 60) return "C"
-  if (complianceRate >= 55) return "C-"
-  if (complianceRate >= 40) return "D"
+export function getFleetGrade(efficiencyRate: number): string {
+  if (efficiencyRate >= 95) return "A+"
+  if (efficiencyRate >= 90) return "A"
+  if (efficiencyRate >= 85) return "A-"
+  if (efficiencyRate >= 80) return "B+"
+  if (efficiencyRate >= 75) return "B"
+  if (efficiencyRate >= 70) return "B-"
+  if (efficiencyRate >= 65) return "C+"
+  if (efficiencyRate >= 60) return "C"
+  if (efficiencyRate >= 55) return "C-"
+  if (efficiencyRate >= 40) return "D"
   return "F"
 }
 

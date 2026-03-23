@@ -56,7 +56,7 @@ export interface DriverSummaryStats {
   thisWeekScorePct: number
   lastWeekScorePct: number
   overpaidThisWeek: number
-  nonCompliantStopsThisWeek: number
+  outOfNetworkStopsThisWeek: number
   avgCpgPaid: number
   totalGallons: number
   fuelTypeLabel: string
@@ -86,7 +86,7 @@ export function getDriverSummaryStats(
       ? Math.round((lastWeekInNetwork / lastWeek.length) * 100)
       : 0
 
-  const nonCompliantStopsThisWeek = thisWeek.filter((t) => !t.inNetwork).length
+  const outOfNetworkStopsThisWeek = thisWeek.filter((t) => !t.inNetwork).length
   const overpaidThisWeek = Math.round(
     thisWeek
       .filter((t) => !t.inNetwork)
@@ -110,7 +110,7 @@ export function getDriverSummaryStats(
     thisWeekScorePct,
     lastWeekScorePct,
     overpaidThisWeek,
-    nonCompliantStopsThisWeek,
+    outOfNetworkStopsThisWeek,
     avgCpgPaid,
     totalGallons: Math.round(totalGallons * 10) / 10,
     fuelTypeLabel,
@@ -175,7 +175,7 @@ export function getDriverProfile(driverName: string): DriverProfile {
         ? (inNetworkThisWeek / thisWeek.length) * 100
         : 100
     if (pct < 60 && thisWeek.length >= 3) {
-      badges.push("3 consecutive non-compliant weeks")
+      badges.push("3 consecutive weeks below efficiency target")
       badges.push("Worst CA corridor offender")
     }
   }
@@ -183,18 +183,18 @@ export function getDriverProfile(driverName: string): DriverProfile {
   return { unit, fuelCardLast4, corridor, status, badges }
 }
 
-export interface DriverComplianceTrendPoint {
+export interface DriverEfficiencyTrendPoint {
   weekLabel: string
   scorePct: number
 }
 
-/** Compliance score by calendar week (Sun–Sat) for the last N weeks (oldest first, for chart). */
-export function getDriverComplianceTrend(
+/** Efficiency score by calendar week (Sun–Sat) for the last N weeks (oldest first, for chart). */
+export function getDriverEfficiencyTrend(
   driverName: string,
   numberOfWeeks = 12
-): DriverComplianceTrendPoint[] {
+): DriverEfficiencyTrendPoint[] {
   const driverTxns = getFuelTransactions().filter((t) => t.driverName === driverName)
-  const result: DriverComplianceTrendPoint[] = []
+  const result: DriverEfficiencyTrendPoint[] = []
   const now = new Date()
   const thisWeekStart = new Date(now)
   thisWeekStart.setDate(now.getDate() - now.getDay())
@@ -229,17 +229,17 @@ export function getDriverComplianceTrend(
 }
 
 /** Threshold below which a driver is "needing attention" (same as Driver Insights page). */
-export const NEEDS_ATTENTION_COMPLIANCE_THRESHOLD = 60
+export const NEEDS_ATTENTION_EFFICIENCY_THRESHOLD = 60
 
 export interface DriverNeedingAttention {
   driverName: string
   missedSavings: number
   badStops: number
-  compliancePct: number
+  efficiencyPct: number
 }
 
 /**
- * Drivers with compliance below 60% in the given period (same definition as Driver Insights).
+ * Drivers with efficiency below 60% in the given period (same definition as Driver Insights).
  * Sorted by missed savings desc. Use for dashboard card and any "drivers needing attention" count.
  */
 export function getDriversNeedingAttention(
@@ -271,16 +271,16 @@ export function getDriversNeedingAttention(
   }
   const list: DriverNeedingAttention[] = []
   for (const [driverName, data] of byDriver.entries()) {
-    const compliancePct =
+    const efficiencyPct =
       data.txns.length > 0
         ? Math.round((data.inNetwork / data.txns.length) * 100)
         : 100
-    if (compliancePct < NEEDS_ATTENTION_COMPLIANCE_THRESHOLD) {
+    if (efficiencyPct < NEEDS_ATTENTION_EFFICIENCY_THRESHOLD) {
       list.push({
         driverName,
         missedSavings: Math.round(data.missedSavings),
         badStops: data.badStops,
-        compliancePct,
+        efficiencyPct,
       })
     }
   }

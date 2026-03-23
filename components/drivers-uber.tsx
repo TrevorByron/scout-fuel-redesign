@@ -3,6 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { type DateRange } from "react-day-picker"
+import {
+  getThisMonthRange,
+  getThisWeekRange,
+  getYesterdayRange,
+  isExactlyYesterdayRange,
+  rangeMatches,
+} from "@/lib/date-range-presets"
 import { getFuelTransactions } from "@/lib/mock-data"
 import { driverNameToSlug } from "@/lib/driver-utils"
 import type { FuelTransaction } from "@/lib/mock-data"
@@ -52,56 +59,6 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
-/** True when range is exactly "today" (from and to are the same moment at start of today). Distinguishes Today from This Week on Sunday. */
-function isExactlyTodayRange(range: DateRange | undefined): boolean {
-  if (!range?.from) return false
-  const to = range.to ?? range.from
-  return (
-    to.getTime() === range.from.getTime() &&
-    range.from.toDateString() === new Date().toDateString()
-  )
-}
-
-function getTodayRange(): DateRange {
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return { from: startOfToday, to: startOfToday }
-}
-
-function getThisWeekRange(): DateRange {
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-  return { from, to }
-}
-
-function getThisMonthRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to.getFullYear(), to.getMonth(), 1)
-  return { from, to }
-}
-
-function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
-  if (!range?.from) return false
-  const fromStr = range.from.toDateString()
-  const toStr = (range.to ?? range.from).toDateString()
-  if (preset === "today") {
-    const todayStr = new Date().toDateString()
-    return fromStr === todayStr && toStr === todayStr
-  }
-  if (preset === "week") {
-    const week = getThisWeekRange()
-    if (!week.from || !week.to) return false
-    return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
-  }
-  if (preset === "month") {
-    const month = getThisMonthRange()
-    if (!month.from || !month.to) return false
-    return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
-  }
-  return false
-}
-
 /** Amount overpaid: could have gotten same fuel for less. Matches dashboard logic. */
 function getOverpaidAmount(t: FuelTransaction): number {
   if (t.betterOption?.potentialSavings != null && t.betterOption.potentialSavings > 0) {
@@ -127,15 +84,15 @@ function getInitials(driverName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-/** Color class for compliance/optimization score — matches dashboard Fuel optimization (green 90%+, yellow 50%+, red below). */
-function complianceScoreColorClass(pct: number): string {
+/** Color class for efficiency score — matches dashboard Fuel optimization (green 90%+, yellow 50%+, red below). */
+function efficiencyScoreColorClass(pct: number): string {
   if (pct >= 90) return "text-green-600 dark:text-green-500"
   if (pct >= 50) return "text-yellow-600 dark:text-yellow-500"
   return "text-red-600 dark:text-red-500"
 }
 
-/** Background color class for compliance progress bar fill. */
-function complianceScoreBgClass(pct: number): string {
+/** Background color class for efficiency progress bar fill. */
+function efficiencyScoreBgClass(pct: number): string {
   if (pct >= 90) return "bg-green-600 dark:bg-green-500"
   if (pct >= 50) return "bg-yellow-600 dark:bg-yellow-500"
   return "bg-red-600 dark:bg-red-500"
@@ -147,7 +104,7 @@ const ALL_FLEET_DRIVERS = [...new Set(getFuelTransactions().map((t) => t.driverN
 type DriverListSortColumn = "name" | "totalGallons" | "transactions" | "missedSavings" | "pct"
 type NeedsAttentionFilter = "all" | "yes" | "no"
 /** Active KPI card filter for the driver list below; "all" = no card filter. */
-type CardFilter = "all" | "fully_compliant" | "needs_attention" | "overpaid"
+type CardFilter = "all" | "fully_efficient" | "needs_attention" | "overpaid"
 
 /** Human-readable labels for the sort-by dropdown (value -> label). */
 const SORT_BY_LABELS: Record<string, string> = {
@@ -159,8 +116,8 @@ const SORT_BY_LABELS: Record<string, string> = {
   "totalGallons-asc": "Total gallons (low first)",
   "transactions-desc": "Transactions (high first)",
   "transactions-asc": "Transactions (low first)",
-  "pct-desc": "Compliance % (high first)",
-  "pct-asc": "Compliance % (low first)",
+  "pct-desc": "Efficiency % (high first)",
+  "pct-asc": "Efficiency % (low first)",
 }
 
 export function DriversUber() {
@@ -196,9 +153,9 @@ export function DriversUber() {
       list.push(t)
       byDriver.set(t.driverName, list)
     }
-    // Use same gallon-based compliance as driverListStats so KPI count matches filtered list
+    // Use same gallon-based efficiency as driverListStats so KPI count matches filtered list
     let driversNeedingAttention = 0
-    let fullyCompliantCount = 0
+    let fullyEfficientCount = 0
     let overpaidDriversCount = 0
     for (const [, txns] of byDriver.entries()) {
       if (txns.length === 0) continue
@@ -206,7 +163,7 @@ export function DriversUber() {
       const inNetworkGallons = txns.filter((t) => t.inNetwork).reduce((s, t) => s + t.gallons, 0)
       const pct = totalGallons > 0 ? Math.round((inNetworkGallons / totalGallons) * 100) : 0
       if (pct < 60) driversNeedingAttention += 1
-      if (pct >= 100) fullyCompliantCount += 1
+      if (pct >= 100) fullyEfficientCount += 1
       const outOfNetworkTxns = txns.filter((t) => !t.inNetwork)
       const rawMissedSavings = outOfNetworkTxns.reduce((s, t) => s + getOverpaidAmount(t), 0)
       if (pct < 100 && rawMissedSavings > 0) overpaidDriversCount += 1
@@ -227,7 +184,7 @@ export function DriversUber() {
       overpaidDriversCount,
       totalOverpaid,
       badStopsCount,
-      fullyCompliantCount,
+      fullyEfficientCount,
     }
   }, [txnsInRange, dateFrom, dateTo])
 
@@ -243,7 +200,7 @@ export function DriversUber() {
       const totalGallons = txns.reduce((s, t) => s + t.gallons, 0)
       const inNetworkGallons = txns.filter((t) => t.inNetwork).reduce((s, t) => s + t.gallons, 0)
       const pct = totalGallons > 0 ? Math.round((inNetworkGallons / totalGallons) * 100) : 0
-      // Missed savings = overpaid amount on out-of-network fill-ups only (fully compliant => $0)
+      // Missed savings = overpaid amount on out-of-network fill-ups only (100% efficiency => $0)
       const outOfNetworkTxns = txns.filter((t) => !t.inNetwork)
       const rawMissedSavings = Math.round(outOfNetworkTxns.reduce((s, t) => s + getOverpaidAmount(t), 0))
       const missedSavings = pct >= 100 ? 0 : rawMissedSavings
@@ -267,7 +224,7 @@ export function DriversUber() {
       }
       if (needsAttentionFilter === "yes" && !d.needsAttention) return false
       if (needsAttentionFilter === "no" && d.needsAttention) return false
-      if (cardFilter === "fully_compliant" && d.pct !== 100) return false
+      if (cardFilter === "fully_efficient" && d.pct !== 100) return false
       if (cardFilter === "needs_attention" && !d.needsAttention) return false
       if (cardFilter === "overpaid" && d.missedSavings <= 0) return false
       return true
@@ -308,8 +265,8 @@ export function DriversUber() {
   }
 
   const activePreset =
-    isExactlyTodayRange(dateRange)
-      ? "today"
+    isExactlyYesterdayRange(dateRange)
+      ? "yesterday"
       : rangeMatches(dateRange, "week")
         ? "week"
         : rangeMatches(dateRange, "month")
@@ -323,21 +280,21 @@ export function DriversUber() {
         <div>
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Driver Insights</h2>
           <p className="text-muted-foreground text-xs mt-0.5">
-            View driver performance, compliance, and fuel activity by period.
+            View driver performance, efficiency, and fuel activity by period.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Tabs
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
-              if (v === "today") setDateRange(getTodayRange())
+              if (v === "yesterday") setDateRange(getYesterdayRange())
               if (v === "week") setDateRange(getThisWeekRange())
               if (v === "month") setDateRange(getThisMonthRange())
             }}
           >
             <TabsList className="h-10 min-h-10 group-data-horizontal/tabs:h-10 bg-card text-card-foreground">
-              <TabsTrigger value="today" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                Today
+              <TabsTrigger value="yesterday" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                Yesterday
               </TabsTrigger>
               <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
                 This Week
@@ -418,13 +375,13 @@ export function DriversUber() {
               </StatStripValue>
             </StatStripItem>
             <StatStripItem
-              onClick={() => setCardFilter((prev) => (prev === "fully_compliant" ? "all" : "fully_compliant"))}
-              active={cardFilter === "fully_compliant"}
-              aria-label="Filter to fully compliant drivers"
+              onClick={() => setCardFilter((prev) => (prev === "fully_efficient" ? "all" : "fully_efficient"))}
+              active={cardFilter === "fully_efficient"}
+              aria-label="Filter to drivers with 100% efficiency"
             >
-              <StatStripLabel count={summaryStats.fullyCompliantCount}>Fully Compliant</StatStripLabel>
+              <StatStripLabel count={summaryStats.fullyEfficientCount}>100% efficiency</StatStripLabel>
               <StatStripValue className="text-green-600 dark:text-green-500">
-                {summaryStats.fullyCompliantCount}
+                {summaryStats.fullyEfficientCount}
               </StatStripValue>
             </StatStripItem>
           </StatStrip>
@@ -495,17 +452,17 @@ export function DriversUber() {
                                 {d.driverName}
                               </span>
                             </div>
-                            {/* Compliance score — % of purchases optimized; color-coded like dashboard */}
+                            {/* Efficiency score — % of purchases optimized; color-coded like dashboard */}
                             <div className="space-y-1.5">
                               <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">Compliance score</span>
-                                <span className={["tabular-nums font-semibold", complianceScoreColorClass(d.pct)].join(" ")}>
+                                <span className="text-muted-foreground">Efficiency score</span>
+                                <span className={["tabular-nums font-semibold", efficiencyScoreColorClass(d.pct)].join(" ")}>
                                   {d.pct}%
                                 </span>
                               </div>
                               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                 <div
-                                  className={["h-full rounded-full transition-[width] duration-300", complianceScoreBgClass(d.pct)].join(" ")}
+                                  className={["h-full rounded-full transition-[width] duration-300", efficiencyScoreBgClass(d.pct)].join(" ")}
                                   style={{ width: `${Math.min(100, Math.max(0, d.pct))}%` }}
                                 />
                               </div>

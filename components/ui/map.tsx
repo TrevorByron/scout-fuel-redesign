@@ -1293,7 +1293,7 @@ type MapClusterLayerProps<
   pointColor?: string;
   /** When set, unclustered points use this feature property for circle color (e.g. "color" for green/red per point) */
   pointColorProperty?: string;
-  /** When set, unclustered points use a step expression: [threshold, color][] with defaultColor for values below first threshold. E.g. { property: "compliancePct", defaultColor: "#ef4444", stops: [[50, "#eab308"], [90, "#22c55e"]] } */
+  /** When set, unclustered points use a step expression: [threshold, color][] with defaultColor for values below first threshold. E.g. { property: "efficiencyPct", defaultColor: "#ef4444", stops: [[50, "#eab308"], [90, "#22c55e"]] } */
   pointColorStep?: {
     property: string;
     defaultColor: string;

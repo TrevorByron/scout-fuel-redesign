@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation"
 import { type DateRange } from "react-day-picker"
 import dynamic from "next/dynamic"
 import {
+  getThisMonthRange,
+  getThisWeekRange,
+  getYesterdayRange,
+  isExactlyYesterdayRange,
+  rangeMatches,
+} from "@/lib/date-range-presets"
+import {
   getLocationListStats,
   locationToSlug,
   type DateRange as LocationDateRange,
@@ -88,63 +95,13 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
-/** True when range is exactly "today" (from and to are the same moment at start of today). Distinguishes Today from This Week on Sunday. */
-function isExactlyTodayRange(range: DateRange | undefined): boolean {
-  if (!range?.from) return false
-  const to = range.to ?? range.from
-  return (
-    to.getTime() === range.from.getTime() &&
-    range.from.toDateString() === new Date().toDateString()
-  )
-}
-
-function getTodayRange(): DateRange {
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return { from: startOfToday, to: startOfToday }
-}
-
-function getThisWeekRange(): DateRange {
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-  return { from, to }
-}
-
-function getThisMonthRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to.getFullYear(), to.getMonth(), 1)
-  return { from, to }
-}
-
-function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
-  if (!range?.from) return false
-  const fromStr = range.from.toDateString()
-  const toStr = (range.to ?? range.from).toDateString()
-  if (preset === "today") {
-    const todayStr = new Date().toDateString()
-    return fromStr === todayStr && toStr === todayStr
-  }
-  if (preset === "week") {
-    const week = getThisWeekRange()
-    if (!week.from || !week.to) return false
-    return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
-  }
-  if (preset === "month") {
-    const month = getThisMonthRange()
-    if (!month.from || !month.to) return false
-    return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
-  }
-  return false
-}
-
-function complianceScoreColorClass(pct: number): string {
+function efficiencyScoreColorClass(pct: number): string {
   if (pct >= 90) return "text-green-600 dark:text-green-500"
   if (pct >= 50) return "text-yellow-600 dark:text-yellow-500"
   return "text-red-600 dark:text-red-500"
 }
 
-function complianceScoreBgClass(pct: number): string {
+function efficiencyScoreBgClass(pct: number): string {
   if (pct >= 90) return "bg-green-600 dark:bg-green-500"
   if (pct >= 50) return "bg-yellow-600 dark:bg-yellow-500"
   return "bg-red-600 dark:bg-red-500"
@@ -152,7 +109,7 @@ function complianceScoreBgClass(pct: number): string {
 
 type LocationListSortColumn = "name" | "totalGallons" | "transactions" | "missedSavings" | "pct" | "avgPerBadStop"
 type NeedsAttentionFilter = "all" | "yes" | "no"
-type CardFilter = "all" | "fully_compliant" | "needs_attention" | "overpaid"
+type CardFilter = "all" | "fully_efficient" | "needs_attention" | "overpaid"
 
 /** Parse "Chain City, ST" → { city, state }. */
 function getCityStateFromDisplayName(displayName: string): { city: string; state: string } {
@@ -173,8 +130,8 @@ const SORT_BY_LABELS: Record<string, string> = {
   "totalGallons-asc": "Total gallons (low first)",
   "transactions-desc": "Transactions (high first)",
   "transactions-asc": "Transactions (low first)",
-  "pct-desc": "Compliance (compliant first)",
-  "pct-asc": "Compliance (not compliant first)",
+  "pct-desc": "Efficiency (optimized first)",
+  "pct-asc": "Efficiency (not optimized first)",
   "avgPerBadStop-desc": "Avg per bad stop (high first)",
   "avgPerBadStop-asc": "Avg per bad stop (low first)",
 }
@@ -209,20 +166,20 @@ export function LocationsDefault() {
         locationsNeedingAttention: 0,
         totalOverpaid: 0,
         badStopsCount: 0,
-        fullyCompliantCount: 0,
+        fullyEfficientCount: 0,
       }
     }
     const totalGallons = locationListStats.reduce((s, l) => s + l.totalGallons, 0)
     const totalOverpaid = locationListStats.reduce((s, l) => s + l.missedSavings, 0)
     const badStopsCount = locationListStats.reduce((s, l) => s + l.badStopsCount, 0)
     const locationsNeedingAttention = locationListStats.filter((l) => l.needsAttention).length
-    const fullyCompliantCount = locationListStats.filter((l) => l.compliancePct === 100).length
+    const fullyEfficientCount = locationListStats.filter((l) => l.efficiencyPct === 100).length
     return {
       totalGallons,
       locationsNeedingAttention,
       totalOverpaid,
       badStopsCount,
-      fullyCompliantCount,
+      fullyEfficientCount,
     }
   }, [locationListStats])
 
@@ -252,7 +209,7 @@ export function LocationsDefault() {
       }
       if (needsAttentionFilter === "yes" && !loc.needsAttention) return false
       if (needsAttentionFilter === "no" && loc.needsAttention) return false
-      if (cardFilter === "fully_compliant" && loc.compliancePct !== 100) return false
+      if (cardFilter === "fully_efficient" && loc.efficiencyPct !== 100) return false
       if (cardFilter === "needs_attention" && !loc.needsAttention) return false
       if (cardFilter === "overpaid" && loc.missedSavings <= 0) return false
       return true
@@ -274,7 +231,7 @@ export function LocationsDefault() {
           cmp = a.missedSavings - b.missedSavings
           break
         case "pct":
-          cmp = a.compliancePct - b.compliancePct
+          cmp = a.efficiencyPct - b.efficiencyPct
           break
         case "avgPerBadStop":
           cmp = a.avgMissedSavingsPerBadStop - b.avgMissedSavingsPerBadStop
@@ -310,15 +267,15 @@ export function LocationsDefault() {
         slug: locationToSlug(loc.displayName),
         lat: loc.lat,
         lng: loc.lng,
-        compliancePct: loc.compliancePct,
+        efficiencyPct: loc.efficiencyPct,
         missedSavings: loc.missedSavings,
       })),
     [filteredAndSorted]
   )
 
   const activePreset =
-    isExactlyTodayRange(dateRange)
-      ? "today"
+    isExactlyYesterdayRange(dateRange)
+      ? "yesterday"
       : rangeMatches(dateRange, "week")
         ? "week"
         : rangeMatches(dateRange, "month")
@@ -370,21 +327,21 @@ export function LocationsDefault() {
         <div>
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Location Insights</h2>
           <p className="text-muted-foreground text-xs mt-0.5">
-            Each location is a fuel chain at a city (e.g. Love&apos;s Los Angeles, CA). View compliance and missed savings by location.
+            Each location is a fuel chain at a city (e.g. Love&apos;s Los Angeles, CA). View efficiency and missed savings by location.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Tabs
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
-              if (v === "today") setDateRange(getTodayRange())
+              if (v === "yesterday") setDateRange(getYesterdayRange())
               if (v === "week") setDateRange(getThisWeekRange())
               if (v === "month") setDateRange(getThisMonthRange())
             }}
           >
             <TabsList className="h-10 min-h-10 bg-card text-card-foreground">
-              <TabsTrigger value="today" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                Today
+              <TabsTrigger value="yesterday" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                Yesterday
               </TabsTrigger>
               <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
                 This Week
@@ -493,26 +450,26 @@ export function LocationsDefault() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">Often used non-compliant</p>
+                <p className="text-xs text-muted-foreground">Often used when not optimized</p>
               </CardContent>
             </Card>
           </button>
           <button
             type="button"
-            onClick={() => setCardFilter((prev) => (prev === "fully_compliant" ? "all" : "fully_compliant"))}
-            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_compliant" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
-            aria-pressed={cardFilter === "fully_compliant"}
-            aria-label="Filter to fully compliant locations"
+            onClick={() => setCardFilter((prev) => (prev === "fully_efficient" ? "all" : "fully_efficient"))}
+            className={`min-w-0 block w-full h-full text-left rounded-lg transition-[box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${cardFilter === "fully_efficient" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:ring-2 hover:ring-muted-foreground/20 hover:ring-offset-2 hover:ring-offset-background"}`}
+            aria-pressed={cardFilter === "fully_efficient"}
+            aria-label="Filter to locations with 100% efficiency"
           >
             <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Fully Compliant</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">100% efficiency</CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
-                  {summaryStats.fullyCompliantCount}
+                  {summaryStats.fullyEfficientCount}
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">100% compliant this period</p>
+                <p className="text-xs text-muted-foreground">100% at optimized locations this period</p>
               </CardContent>
             </Card>
           </button>
@@ -743,7 +700,7 @@ export function LocationsDefault() {
                         onClick={() => handleSortByColumn("pct")}
                         className="ml-auto flex items-center gap-1 font-medium hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded px-1 -mx-1"
                       >
-                        Compliance
+                        Efficiency
                         {sort.column === "pct" &&
                           (sort.direction === "asc" ? (
                             <ArrowUp className="size-3.5" aria-hidden />
@@ -833,12 +790,12 @@ export function LocationsDefault() {
                       <TableCell className="text-right">
                         <span
                           className={
-                            loc.compliancePct === 100
+                            loc.efficiencyPct === 100
                               ? "font-medium text-green-600 dark:text-green-500"
                               : "text-muted-foreground"
                           }
                         >
-                          {loc.compliancePct === 100 ? "Compliant" : "Not compliant"}
+                          {loc.efficiencyPct === 100 ? "Optimized" : "Not optimized"}
                         </span>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">

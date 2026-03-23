@@ -30,20 +30,20 @@ export type FuelDataMapItem = {
   locationKey: string
   lat: number
   lng: number
-  compliancePct: number
+  efficiencyPct: number
   missedSavings: number
 }
 
-const COMPLIANCE_COLORS = {
+const EFFICIENCY_COLORS = {
   red: "#ef4444",
   yellow: "#eab308",
   green: "#22c55e",
 } as const
 
-function complianceToColor(pct: number, missedSavings: number): string {
-  if (pct < 50 && missedSavings > 0) return COMPLIANCE_COLORS.red
-  if (pct < 90) return COMPLIANCE_COLORS.yellow
-  return COMPLIANCE_COLORS.green
+function efficiencyToColor(pct: number, missedSavings: number): string {
+  if (pct < 50 && missedSavings > 0) return EFFICIENCY_COLORS.red
+  if (pct < 90) return EFFICIENCY_COLORS.yellow
+  return EFFICIENCY_COLORS.green
 }
 
 function locationsToGeoJSON(locations: FuelDataMapItem[]) {
@@ -59,8 +59,8 @@ function locationsToGeoJSON(locations: FuelDataMapItem[]) {
         slug: loc.slug,
         displayName: loc.displayName,
         locationKey: loc.locationKey,
-        compliancePct: loc.compliancePct,
-        color: complianceToColor(loc.compliancePct, loc.missedSavings),
+        efficiencyPct: loc.efficiencyPct,
+        color: efficiencyToColor(loc.efficiencyPct, loc.missedSavings),
       },
     })),
   }
@@ -189,7 +189,7 @@ export function FuelDataMap({ locations, transactions }: FuelDataMapProps) {
           slug?: string
           displayName?: string
           locationKey?: string
-          compliancePct?: number
+          efficiencyPct?: number
         }
       >,
       _coordinates: [number, number]

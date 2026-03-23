@@ -10,13 +10,20 @@ import {
   type FuelPricePoint,
   type FuelTransaction,
 } from "@/lib/mock-data"
-import { getPilotRebateSummary } from "@/lib/rebate"
+import {
+  getComparisonPeriod,
+  getThisMonthRange,
+  getThisWeekRange,
+  getYesterdayRange,
+  isExactlyYesterdayRange,
+  rangeMatches,
+  type PeriodTabValue,
+} from "@/lib/date-range-presets"
 import { getFleetGrade } from "@/lib/fuelScore"
 import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
 import { getLocationListStats, locationToSlug } from "@/lib/location-utils"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { ImprovementAttentionDrawer } from "@/components/improvement-attention-drawer"
-import { PilotRebateCard } from "@/components/pilot-rebate-card"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -247,103 +254,12 @@ function getPresetRange(days: number): DateRange {
   return { from, to }
 }
 
-function getTodayRange(): DateRange {
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return { from: startOfToday, to: startOfToday }
-}
-
-function getThisWeekRange(): DateRange {
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
-  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-  return { from, to }
-}
-
-function getThisMonthRange(): DateRange {
-  const to = new Date()
-  const from = new Date(to.getFullYear(), to.getMonth(), 1)
-  return { from, to }
-}
-
 function formatRangeLabel(range: DateRange | undefined): string {
   if (!range?.from) return "Pick a date range"
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   if (!range.to) return fmt(range.from)
   return `${fmt(range.from)} – ${fmt(range.to)}`
-}
-
-/** True when range is exactly "today" (from and to are the same moment at start of today). Distinguishes Today from This Week on Sunday. */
-function isExactlyTodayRange(range: DateRange | undefined): boolean {
-  if (!range?.from) return false
-  const to = range.to ?? range.from
-  return (
-    to.getTime() === range.from.getTime() &&
-    range.from.toDateString() === new Date().toDateString()
-  )
-}
-
-function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
-  if (!range?.from) return false
-  const fromStr = range.from.toDateString()
-  const toStr = (range.to ?? range.from).toDateString()
-  if (preset === "today") {
-    const todayStr = new Date().toDateString()
-    return fromStr === todayStr && toStr === todayStr
-  }
-  if (preset === "week") {
-    const week = getThisWeekRange()
-    if (!week.from || !week.to) return false
-    const rangeTo = range.to ?? range.from
-    return (
-      range.from.toDateString() === week.from.toDateString() &&
-      rangeTo.getTime() >= week.from.getTime() &&
-      rangeTo.getTime() <= week.to.getTime()
-    )
-  }
-  if (preset === "month") {
-    const month = getThisMonthRange()
-    if (!month.from || !month.to) return false
-    const rangeTo = range.to ?? range.from
-    return (
-      range.from.toDateString() === month.from.toDateString() &&
-      rangeTo.getTime() >= month.from.getTime() &&
-      rangeTo.getTime() <= month.to.getTime()
-    )
-  }
-  return false
-}
-
-/** Comparison period label and range for trend badges. Reflects the selected date range above. */
-function getComparisonPeriod(dateRange: DateRange | undefined): { label: string; range: DateRange } | null {
-  if (!dateRange?.from) return null
-  const to = dateRange.to ?? dateRange.from
-  if (rangeMatches(dateRange, "today")) {
-    const yesterday = new Date(to)
-    yesterday.setDate(yesterday.getDate() - 1)
-    return { label: "yesterday", range: { from: yesterday, to: yesterday } }
-  }
-  if (rangeMatches(dateRange, "week")) {
-    const weekEnd = new Date(to)
-    weekEnd.setDate(weekEnd.getDate() + 1)
-    const prevWeekEnd = new Date(weekEnd)
-    prevWeekEnd.setDate(prevWeekEnd.getDate() - 7)
-    const prevWeekStart = new Date(prevWeekEnd)
-    prevWeekStart.setDate(prevWeekStart.getDate() - 6)
-    return { label: "last week", range: { from: prevWeekStart, to: prevWeekEnd } }
-  }
-  if (rangeMatches(dateRange, "month")) {
-    const prevMonthEnd = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), 0)
-    const prevMonthStart = new Date(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), 1)
-    return { label: "last month", range: { from: prevMonthStart, to: prevMonthEnd } }
-  }
-  const fromMs = dateRange.from.getTime()
-  const toMs = to.getTime()
-  const spanMs = toMs - fromMs + 86400000
-  const prevTo = new Date(fromMs - 86400000)
-  const prevFrom = new Date(prevTo.getTime() - spanMs + 86400000)
-  return { label: "previous period", range: { from: prevFrom, to: prevTo } }
 }
 
 function isInDateRange(t: FuelTransaction, range: DateRange | undefined): boolean {
@@ -364,8 +280,6 @@ function getOverpaidAmount(t: FuelTransaction): number {
   return 0
 }
 
-type PeriodTabValue = "today" | "week" | "month"
-
 export function DashboardDefault() {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
     () => getThisWeekRange()
@@ -378,7 +292,7 @@ export function DashboardDefault() {
     return getFuelTransactions().filter((t) => isInDateRange(t, dateRange))
   }, [dateRange])
 
-  /** Drivers needing attention = below 60% compliance in period (same definition as Driver Insights). Top 5 by missed savings. */
+  /** Drivers needing attention = below 60% efficiency in period (same definition as Driver Insights). Top 5 by missed savings. */
   const driversInNeedOfAttention = React.useMemo(() => {
     const week = getThisWeekRange()
     const range = dateRange?.from
@@ -406,8 +320,8 @@ export function DashboardDefault() {
   }, [dateRange])
 
   const activePreset =
-    isExactlyTodayRange(dateRange)
-      ? "today"
+    isExactlyYesterdayRange(dateRange)
+      ? "yesterday"
       : rangeMatches(dateRange, "week")
         ? "week"
         : rangeMatches(dateRange, "month")
@@ -415,9 +329,21 @@ export function DashboardDefault() {
           : null
 
   const periodLabel =
-    isExactlyTodayRange(dateRange) ? "today" : rangeMatches(dateRange, "week") ? "week" : rangeMatches(dateRange, "today") ? "today" : rangeMatches(dateRange, "month") ? "month" : "period"
+    isExactlyYesterdayRange(dateRange)
+      ? "yesterday"
+      : rangeMatches(dateRange, "week")
+        ? "week"
+        : rangeMatches(dateRange, "month")
+          ? "month"
+          : "period"
   const periodBadgeLabel =
-    periodLabel === "today" ? "today" : periodLabel === "week" ? "this week" : periodLabel === "month" ? "this month" : "this period"
+    periodLabel === "yesterday"
+      ? "yesterday"
+      : periodLabel === "week"
+        ? "this week"
+        : periodLabel === "month"
+          ? "this month"
+          : "this period"
 
   const kpis = React.useMemo(() => {
     const byType = (type: "Diesel" | "Reefer" | "DEF") =>
@@ -474,23 +400,18 @@ export function DashboardDefault() {
     [filteredByDateTransactions]
   )
 
-  const pilotRebateSummary = React.useMemo(
-    () => getPilotRebateSummary(getFuelTransactions(), new Date()),
-    []
-  )
-
   const fleetScoreProps = React.useMemo(() => {
     const total = filteredByDateTransactions.length
     // Optimization score: TBD formula to include in-network vs out-of-network AND better location on route within tank range
     const inNetworkCount = filteredByDateTransactions.filter((t) => t.inNetwork).length
-    const complianceRate =
+    const efficiencyRate =
       total > 0 ? Math.round((inNetworkCount / total) * 100) : 0
-    const fullGrade = getFleetGrade(complianceRate)
+    const fullGrade = getFleetGrade(efficiencyRate)
     const gradeMatch = fullGrade.match(/^([A-F])([+-])?$/)
     const grade = gradeMatch ? gradeMatch[1] : "F"
     const gradeSuffix = gradeMatch?.[2]
 
-    /** Missed savings = overpaid $ on out-of-network fill-ups only (matches Drivers page). High compliance => small missed $ */
+    /** Missed savings = overpaid $ on out-of-network fill-ups only (matches Drivers page). High efficiency => small missed $ */
     const overpaidTxns = filteredByDateTransactions.filter(
       (t) => !t.inNetwork && getOverpaidAmount(t) > 0
     )
@@ -516,18 +437,18 @@ export function DashboardDefault() {
       ? getFuelTransactions().filter((t) => isInDateRange(t, comparison.range))
       : []
     const prevInNetwork = prevPeriodTxns.filter((t) => t.inNetwork).length
-    const prevComplianceRate =
-      prevPeriodTxns.length > 0 ? Math.round((prevInNetwork / prevPeriodTxns.length) * 100) : complianceRate
-    const optimizationTrend = comparison ? complianceRate - prevComplianceRate : undefined
+    const prevEfficiencyRate =
+      prevPeriodTxns.length > 0 ? Math.round((prevInNetwork / prevPeriodTxns.length) * 100) : efficiencyRate
+    const optimizationTrend = comparison ? efficiencyRate - prevEfficiencyRate : undefined
 
     const trendData = [...fleetScoreCardMock.trendData]
-    if (trendData.length > 0) trendData[trendData.length - 1] = { ...trendData[trendData.length - 1]!, value: complianceRate }
+    if (trendData.length > 0) trendData[trendData.length - 1] = { ...trendData[trendData.length - 1]!, value: efficiencyRate }
 
     return {
       grade,
       gradeSuffix,
       weekDate: fleetScoreCardMock.weekDate,
-      complianceRate,
+      efficiencyRate,
       totalTransactions: total,
       previousGrade: fleetScoreCardMock.previousGrade,
       targetGrade: fleetScoreCardMock.targetGrade,
@@ -538,7 +459,7 @@ export function DashboardDefault() {
       missedSavingsTrend,
       trendLabel,
       optimizationTrend,
-      targetCompliancePercent: 80,
+      targetEfficiencyPercent: 80,
       additionalSavingsAtTarget: 8200,
       trendData,
     }
@@ -561,16 +482,16 @@ export function DashboardDefault() {
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
               const period = String(v) as PeriodTabValue
-              if (period !== "today" && period !== "week" && period !== "month") return
+              if (period !== "yesterday" && period !== "week" && period !== "month") return
               setPeriodTab(period)
-              if (period === "today") setDateRange(getTodayRange())
+              if (period === "yesterday") setDateRange(getYesterdayRange())
               else if (period === "week") setDateRange(getThisWeekRange())
               else setDateRange(getThisMonthRange())
             }}
           >
             <TabsList className="h-10 min-h-10 group-data-horizontal/tabs:h-10 bg-card text-card-foreground">
-              <TabsTrigger value="today" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                Today
+              <TabsTrigger value="yesterday" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                Yesterday
               </TabsTrigger>
               <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
                 This Week
@@ -628,7 +549,7 @@ export function DashboardDefault() {
       <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:px-6">
         <OptimizationGaugeCard
           size="sm"
-          value={fleetScoreProps.complianceRate}
+          value={fleetScoreProps.efficiencyRate}
           trendFromLastMonth={fleetScoreProps.optimizationTrend}
           trendLabel={fleetScoreProps.trendLabel}
           improvementData={{
@@ -636,7 +557,7 @@ export function DashboardDefault() {
             locations: locationsInNeedOfAttention,
           }}
           periodLabel={periodLabel}
-          hasRoomForImprovement={fleetScoreProps.complianceRate < 90}
+          hasRoomForImprovement={fleetScoreProps.efficiencyRate < 90}
         />
         <Card size="sm" className="py-2">
           <CardHeader className="pb-0">
@@ -672,9 +593,9 @@ export function DashboardDefault() {
               <>
                 <p
                   className={
-                    fleetScoreProps.complianceRate >= 90
+                    fleetScoreProps.efficiencyRate >= 90
                       ? "text-center text-3xl font-semibold tabular-nums text-green-600 dark:text-green-500"
-                      : fleetScoreProps.complianceRate >= 50
+                      : fleetScoreProps.efficiencyRate >= 50
                         ? "text-center text-3xl font-semibold tabular-nums text-yellow-600 dark:text-yellow-500"
                         : "text-center text-3xl font-semibold tabular-nums text-red-600 dark:text-red-500"
                   }
@@ -694,22 +615,22 @@ export function DashboardDefault() {
               const totalPotential = kpis.totalSavings + fleetScoreProps.missedSavings
               const savingsCapturePct = totalPotential > 0 ? (kpis.totalSavings / totalPotential) * 100 : 0
               if (totalPotential <= 0) return null
-              const compliance = fleetScoreProps.complianceRate
+              const efficiency = fleetScoreProps.efficiencyRate
               const trackClass =
-                compliance >= 90
+                efficiency >= 90
                   ? "bg-green-600 dark:bg-green-500"
-                  : compliance >= 50
+                  : efficiency >= 50
                     ? "bg-yellow-600 dark:bg-yellow-500"
                     : "bg-red-600 dark:bg-red-500"
               return (
                 <div className="space-y-1 pt-2 w-[320px] max-w-full mx-auto shrink-0">
                   <Progress
-                    value={compliance}
+                    value={efficiency}
                     className={cn(
                       "h-2 w-full overflow-hidden rounded-full [&>div:last-child]:bg-green-600 [&>div:last-child]:dark:bg-green-500 [&>div:last-child]:border-r-2 [&>div:last-child]:border-white",
                       trackClass
                     )}
-                    aria-label={`Compliance ${compliance}%; $${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} captured, $${fleetScoreProps.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} missed`}
+                    aria-label={`Efficiency ${efficiency}%; $${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} captured, $${fleetScoreProps.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} missed`}
                   />
                   <div className="flex items-center justify-between text-[length:var(--text-2xs)] text-muted-foreground">
                     <span>${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })} captured</span>
@@ -879,7 +800,7 @@ export function DashboardDefault() {
           <CardHeader className="flex flex-row items-start justify-between gap-2">
             <CardTitle className="flex items-center gap-2">
               <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
-              Drivers in need of attention this {periodLabel}
+              Drivers in need of attention {periodBadgeLabel}
             </CardTitle>
             <Link
               href="/drivers"
@@ -938,7 +859,7 @@ export function DashboardDefault() {
           <CardHeader className="flex flex-row items-start justify-between gap-2">
             <CardTitle className="flex items-center gap-2">
               <HugeiconsIcon icon={Location01Icon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
-              Locations that need attention this {periodLabel}
+              Locations that need attention {periodBadgeLabel}
             </CardTitle>
             <Link
               href="/locations"
@@ -1072,7 +993,6 @@ export function DashboardDefault() {
             </div>
           </CardContent>
         </Card>
-        <PilotRebateCard summary={pilotRebateSummary} />
 
       </div>
     </div>
