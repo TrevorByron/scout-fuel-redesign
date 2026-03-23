@@ -6,6 +6,7 @@ import { getPilotRebateSummary } from "@/lib/rebate"
 import { PilotRebateCard } from "@/components/pilot-rebate-card"
 import { Progress } from "@/components/ui/progress"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { SidebarMenuButton } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
 export function PilotRebateSidebarProgress() {
@@ -22,30 +23,40 @@ export function PilotRebateSidebarProgress() {
     <Popover>
       <PopoverTrigger
         render={
-          <button
-            type="button"
+          <SidebarMenuButton
             className={cn(
-              "flex w-full min-h-[44px] cursor-pointer flex-col gap-1.5 rounded-[calc(var(--radius-sm)+2px)] p-2 text-left text-xs",
-              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              "h-auto min-h-[44px] w-full cursor-pointer flex-col items-stretch gap-1.5 py-2",
+              "data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
             )}
             aria-label="Pilot rebate progress — click for details"
           />
         }
       >
-        <span className="font-medium text-sidebar-foreground">Pilot rebate</span>
+        <span className="font-medium">Pilot rebate</span>
         {hasNextTier ? (
           <>
             <Progress
               value={progressPctToNextTier}
               className="h-2 bg-emerald-100/80 dark:bg-emerald-900/30"
             />
-            <span className="text-[length:var(--text-2xs)] text-sidebar-foreground/70">
+            <span
+              className={cn(
+                "text-[length:var(--text-2xs)] text-sidebar-foreground/70",
+                "group-hover/menu-button:text-sidebar-accent-foreground/80",
+                "group-data-open/menu-button:text-sidebar-accent-foreground/80"
+              )}
+            >
               {currentMonth.gallons.toLocaleString("en-US", { maximumFractionDigits: 0 })} gal · {daysLeftInMonth}d left
             </span>
           </>
         ) : (
-          <span className="text-[length:var(--text-2xs)] text-sidebar-foreground/70">
+          <span
+            className={cn(
+              "text-[length:var(--text-2xs)] text-sidebar-foreground/70",
+              "group-hover/menu-button:text-sidebar-accent-foreground/80",
+              "group-data-open/menu-button:text-sidebar-accent-foreground/80"
+            )}
+          >
             On track · {daysLeftInMonth}d left
           </span>
         )}
