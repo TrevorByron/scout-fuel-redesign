@@ -112,14 +112,10 @@ export interface LocationListStats {
   lng: number
 }
 
-/** List stats per location for the given date range. */
-export function getLocationListStats(
-  range: DateRange | undefined
+/** Aggregation logic shared by getLocationListStats and getLocationListStatsFromTransactions. */
+function aggregateLocationStats(
+  transactions: FuelTransaction[]
 ): LocationListStats[] {
-  const inRange = range
-    ? getFuelTransactions().filter((t) => isInDateRange(t, range))
-    : getFuelTransactions()
-
   const byLocation = new Map<
     string,
     {
@@ -130,7 +126,7 @@ export function getLocationListStats(
     }
   >()
 
-  for (const t of inRange) {
+  for (const t of transactions) {
     const key = getLocationKey(t.stationBrand, t.location)
     const display = getLocationDisplayName(t.stationBrand, t.location)
     const existing = byLocation.get(key)
@@ -179,6 +175,23 @@ export function getLocationListStats(
   }
 
   return result.sort((a, b) => a.displayName.localeCompare(b.displayName))
+}
+
+/** List stats per location for the given date range. */
+export function getLocationListStats(
+  range: DateRange | undefined
+): LocationListStats[] {
+  const inRange = range
+    ? getFuelTransactions().filter((t) => isInDateRange(t, range))
+    : getFuelTransactions()
+  return aggregateLocationStats(inRange)
+}
+
+/** List stats per location from a pre-filtered transaction list. Use when filters (driver, station, etc.) are applied elsewhere. */
+export function getLocationListStatsFromTransactions(
+  transactions: FuelTransaction[]
+): LocationListStats[] {
+  return aggregateLocationStats(transactions)
 }
 
 export interface LocationSummaryStats {

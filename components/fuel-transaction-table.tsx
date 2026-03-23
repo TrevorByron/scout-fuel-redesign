@@ -12,6 +12,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
@@ -21,15 +28,17 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
 
 /** Group key: Chain + Location (e.g. "Chevron · Oklahoma City, OK") */
 function getStationGroupKey(t: FuelTransaction): string {
   return `${t.stationBrand} · ${t.location}`
 }
 
+export type StationSortColumn = "name" | "totalGallons" | "transactions" | "totalCost" | "missedSavings"
+
 function groupTransactionsByStation(
-  transactions: FuelTransaction[]
+  transactions: FuelTransaction[],
+  stationSort?: { column: StationSortColumn; direction: "asc" | "desc" }
 ): { key: string; stationBrand: string; location: string; transactions: FuelTransaction[] }[] {
   const map = new Map<string, FuelTransaction[]>()
   for (const t of transactions) {
@@ -38,26 +47,59 @@ function groupTransactionsByStation(
     list.push(t)
     map.set(key, list)
   }
-  return [...map.entries()]
-    .map(([key, list]) => {
-      const first = list[0]
-      return {
-        key,
-        stationBrand: first.stationBrand,
-        location: first.location,
-        transactions: list.sort(
-          (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
-        ),
-      }
-    })
-    .sort((a, b) => {
-      const gallonsA = a.transactions.reduce((s, t) => s + t.gallons, 0)
-      const gallonsB = b.transactions.reduce((s, t) => s + t.gallons, 0)
-      return gallonsB - gallonsA
-    })
-}
+  const groups = [...map.entries()].map(([key, list]) => {
+    const first = list[0]
+    return {
+      key,
+      stationBrand: first.stationBrand,
+      location: first.location,
+      transactions: list.sort(
+        (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+      ),
+    }
+  })
 
-export { getEfficiencyStatus }
+  const sortConfig = stationSort ?? { column: "totalGallons" as StationSortColumn, direction: "desc" as const }
+  const { column, direction } = sortConfig
+  const mult = direction === "asc" ? 1 : -1
+
+  return groups.sort((a, b) => {
+    let cmp = 0
+    switch (column) {
+      case "name":
+        cmp = a.key.localeCompare(b.key)
+        break
+      case "totalGallons": {
+        const gallonsA = a.transactions.reduce((s, t) => s + t.gallons, 0)
+        const gallonsB = b.transactions.reduce((s, t) => s + t.gallons, 0)
+        cmp = gallonsA - gallonsB
+        break
+      }
+      case "transactions":
+        cmp = a.transactions.length - b.transactions.length
+        break
+      case "totalCost": {
+        const costA = a.transactions.reduce((s, t) => s + t.totalCost, 0)
+        const costB = b.transactions.reduce((s, t) => s + t.totalCost, 0)
+        cmp = costA - costB
+        break
+      }
+      case "missedSavings": {
+        const missedA = a.transactions.reduce(
+          (s, t) => s + (t.betterOption?.potentialSavings ?? 0),
+          0
+        )
+        const missedB = b.transactions.reduce(
+          (s, t) => s + (t.betterOption?.potentialSavings ?? 0),
+          0
+        )
+        cmp = missedA - missedB
+        break
+      }
+    }
+    return mult * cmp
+  })
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -136,7 +178,7 @@ export function BetterOptionDetails({
   const midLat = (transaction.lat + option.lat) / 2
 
   return (
-    <div className="flex flex-col min-w-[380px] text-xs">
+    <div className="flex min-w-0 w-full max-w-[380px] flex-col text-xs">
       <div className="relative h-[240px] w-full overflow-hidden rounded-t-md border-b border-border">
         {mounted ? (
           <MapView
@@ -299,6 +341,7 @@ function TransactionRow({
   hideDriverColumn,
   selectedTransactionId,
   onSelectTransaction,
+  onBetterOptionClick,
 }: {
   t: FuelTransaction
   /** When true, render an empty first cell (for alignment in grouped view). */
@@ -306,23 +349,29 @@ function TransactionRow({
   hideDriverColumn?: boolean
   selectedTransactionId?: string | null
   onSelectTransaction?: (t: FuelTransaction | null) => void
+  onBetterOptionClick?: (t: FuelTransaction) => void
 }) {
-  const status = getEfficiencyStatus(t)
-  const hasBetterOption = status === "needs_attention" && !!t.betterOption
+  const hasBetterOption =
+    !!t.betterOption && (t.betterOption.potentialSavings ?? 0) > 0
   const isSelected = selectedTransactionId != null && selectedTransactionId === t.id
+  const handleRowClick = () => {
+    if (hasBetterOption && onBetterOptionClick) {
+      onBetterOptionClick(t)
+      return
+    }
+    if (onSelectTransaction) {
+      onSelectTransaction(isSelected ? null : t)
+    }
+  }
   return (
     <TableRow
       key={t.id}
       className={cn(
-        status === "needs_attention" && "bg-destructive/10",
+        hasBetterOption && "bg-destructive/10",
         isSelected && "bg-primary/10 ring-1 ring-primary/30",
-        onSelectTransaction && "cursor-pointer"
+        (onSelectTransaction || (hasBetterOption && onBetterOptionClick)) && "cursor-pointer"
       )}
-      onClick={
-        onSelectTransaction
-          ? () => onSelectTransaction(isSelected ? null : t)
-          : undefined
-      }
+      onClick={(hasBetterOption && onBetterOptionClick) || onSelectTransaction ? handleRowClick : undefined}
     >
       {leadingCell ? <TableCell className="w-0" /> : null}
       <TableCell className="whitespace-nowrap">{formatDate(t.dateTime)}</TableCell>
@@ -393,7 +442,7 @@ function TransactionRow({
             variant="secondary"
             className={cn(
               "font-mono tabular-nums text-[var(--text-2xs)]",
-              status === "needs_attention"
+              hasBetterOption
                 ? "border-destructive/30 bg-destructive/10 text-destructive"
                 : "border-muted-foreground/20 bg-muted text-muted-foreground"
             )}
@@ -416,6 +465,7 @@ export function FuelTransactionTable({
   hideDriverColumn = false,
   selectedTransactionId = null,
   onSelectTransaction,
+  stationSort,
 }: {
   transactions: FuelTransaction[]
   maxRows?: number
@@ -429,8 +479,11 @@ export function FuelTransactionTable({
   /** When set, syncs with map: highlights row and supports row click to select. */
   selectedTransactionId?: string | null
   onSelectTransaction?: (t: FuelTransaction | null) => void
+  /** Sort order for grouped stations. */
+  stationSort?: { column: StationSortColumn; direction: "asc" | "desc" }
 }) {
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set())
+  const [betterOptionTransaction, setBetterOptionTransaction] = React.useState<FuelTransaction | null>(null)
 
   const toggleGroup = React.useCallback((key: string) => {
     setExpandedGroups((prev) => {
@@ -442,14 +495,18 @@ export function FuelTransactionTable({
   }, [])
 
   const groups = React.useMemo(
-    () => (groupByStation ? groupTransactionsByStation(transactions) : null),
-    [transactions, groupByStation]
+    () =>
+      groupByStation
+        ? groupTransactionsByStation(transactions, stationSort)
+        : null,
+    [transactions, groupByStation, stationSort]
   )
 
   const rows = transactions.slice(0, maxRows)
   const columnCount = (groupByStation ? 1 : 0) + TABLE_COLUMN_COUNT - (hideDriverColumn ? 1 : 0)
 
   return (
+    <>
     <Table>
       <TableHeader>
         <TableRow>
@@ -530,6 +587,7 @@ export function FuelTransactionTable({
                             hideDriverColumn={hideDriverColumn}
                             selectedTransactionId={selectedTransactionId}
                             onSelectTransaction={onSelectTransaction}
+                            onBetterOptionClick={setBetterOptionTransaction}
                           />
                         ))
                       : null}
@@ -556,10 +614,34 @@ export function FuelTransactionTable({
               hideDriverColumn={hideDriverColumn}
               selectedTransactionId={selectedTransactionId}
               onSelectTransaction={onSelectTransaction}
+              onBetterOptionClick={setBetterOptionTransaction}
             />
           ))
         )}
       </TableBody>
     </Table>
+    <Drawer
+      open={betterOptionTransaction != null}
+      onOpenChange={(open) => !open && setBetterOptionTransaction(null)}
+      direction="bottom"
+    >
+      <DrawerContent className="flex max-h-[85vh] min-h-0 flex-col overflow-hidden">
+        <DrawerHeader className="shrink-0 px-4">
+          <DrawerTitle>Better fuel option</DrawerTitle>
+          <DrawerDescription>
+            Compare the actual purchase with a nearby in-network option.
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          {betterOptionTransaction?.betterOption && (
+            <BetterOptionDetails
+              option={betterOptionTransaction.betterOption}
+              transaction={betterOptionTransaction}
+            />
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
+    </>
   )
 }

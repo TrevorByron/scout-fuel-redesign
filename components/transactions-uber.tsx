@@ -2,9 +2,14 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
+import { type DateRange } from "react-day-picker"
 import { getFuelTransactions, STATION_BRANDS } from "@/lib/mock-data"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { getEfficiencyStatus } from "@/lib/fuel-transaction-utils"
+import {
+  getLocationListStatsFromTransactions,
+  locationToSlug,
+} from "@/lib/location-utils"
 
 const FuelTransactionTable = dynamic(
   () =>
@@ -13,6 +18,15 @@ const FuelTransactionTable = dynamic(
     })),
   { ssr: false, loading: () => <div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">Loading table…</div> }
 )
+
+const FuelDataMap = dynamic(
+  () =>
+    import("@/components/fuel-data-map").then((m) => ({
+      default: m.FuelDataMap,
+    })),
+  { ssr: false }
+)
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ChartContainer,
@@ -31,11 +45,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import {
   Sheet,
   SheetTrigger,
@@ -46,6 +68,110 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
+
+const PRESETS = [
+  { label: "Last 7 days", days: 7 },
+  { label: "Last 30 days", days: 30 },
+  { label: "Last 90 days", days: 90 },
+] as const
+
+function getPresetRange(days: number): DateRange {
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  return { from, to }
+}
+
+function formatRangeLabel(range: DateRange | undefined): string {
+  if (!range?.from) return "Pick a date range"
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  if (!range.to) return fmt(range.from)
+  return `${fmt(range.from)} – ${fmt(range.to)}`
+}
+
+function isExactlyTodayRange(range: DateRange | undefined): boolean {
+  if (!range?.from) return false
+  const to = range.to ?? range.from
+  return (
+    to.getTime() === range.from.getTime() &&
+    range.from.toDateString() === new Date().toDateString()
+  )
+}
+
+function getTodayRange(): DateRange {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return { from: startOfToday, to: startOfToday }
+}
+
+function getThisWeekRange(): DateRange {
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+  return { from, to }
+}
+
+function getThisMonthRange(): DateRange {
+  const to = new Date()
+  const from = new Date(to.getFullYear(), to.getMonth(), 1)
+  return { from, to }
+}
+
+function rangeMatches(range: DateRange | undefined, preset: "today" | "week" | "month"): boolean {
+  if (!range?.from) return false
+  const fromStr = range.from.toDateString()
+  const toStr = (range.to ?? range.from).toDateString()
+  if (preset === "today") {
+    const todayStr = new Date().toDateString()
+    return fromStr === todayStr && toStr === todayStr
+  }
+  if (preset === "week") {
+    const week = getThisWeekRange()
+    if (!week.from || !week.to) return false
+    return range.from.toDateString() === week.from.toDateString() && (range.to ?? range.from).toDateString() === week.to.toDateString()
+  }
+  if (preset === "month") {
+    const month = getThisMonthRange()
+    if (!month.from || !month.to) return false
+    return range.from.toDateString() === month.from.toDateString() && (range.to ?? range.from).toDateString() === month.to.toDateString()
+  }
+  return false
+}
+
+function isInDateRange(t: FuelTransaction, range: DateRange | undefined): boolean {
+  if (!range?.from) return true
+  const tDate = new Date(t.dateTime).getTime()
+  if (tDate < range.from.getTime()) return false
+  const toEnd = range.to
+    ? range.to.getTime() + 86400000
+    : range.from.getTime() + 86400000
+  if (tDate > toEnd) return false
+  return true
+}
+
+/** Parse "City, ST" from location string. */
+function getCityStateFromLocation(location: string): { city: string; state: string } {
+  const comma = location.indexOf(", ")
+  const city = comma >= 0 ? location.slice(0, comma).trim() : location
+  const state = comma >= 0 ? location.slice(comma + 2).trim() : ""
+  return { city, state }
+}
+
+type StationSortColumn = "name" | "totalGallons" | "transactions" | "totalCost"
+const SORT_BY_LABELS: Record<string, string> = {
+  "name-asc": "Name A–Z",
+  "name-desc": "Name Z–A",
+  "totalGallons-desc": "Gallons (high first)",
+  "totalGallons-asc": "Gallons (low first)",
+  "transactions-desc": "Transactions (high first)",
+  "transactions-asc": "Transactions (low first)",
+  "totalCost-desc": "Total cost (high first)",
+  "totalCost-asc": "Total cost (low first)",
+  "missedSavings-desc": "Missed savings (high first)",
+  "missedSavings-asc": "Missed savings (low first)",
+}
 
 type EfficiencyFilter = "all" | "efficient" | "needs_attention"
 type NetworkFilter = "all" | "in_network" | "out_of_network"
@@ -69,9 +195,9 @@ function brandKey(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "")
 }
 
-function buildGallonsByChainData() {
+function buildGallonsByChainData(transactions: FuelTransaction[]) {
   const map = new Map<string, number>()
-  for (const t of getFuelTransactions()) {
+  for (const t of transactions) {
     map.set(t.stationBrand, (map.get(t.stationBrand) ?? 0) + t.gallons)
   }
   const sorted = [...map.entries()].sort((a, b) => b[1] - a[1])
@@ -95,9 +221,9 @@ function buildGallonsByChainData() {
   return { data, config, total: data.reduce((s, d) => s + d.gallons, 0) }
 }
 
-function buildGallonsByStateData(): { state: string; gallons: number }[] {
+function buildGallonsByStateData(transactions: FuelTransaction[]): { state: string; gallons: number }[] {
   const map = new Map<string, number>()
-  for (const t of getFuelTransactions()) {
+  for (const t of transactions) {
     const state = t.location.includes(", ") ? t.location.split(", ")[1] ?? t.location : t.location
     map.set(state, (map.get(state) ?? 0) + t.gallons)
   }
@@ -105,9 +231,6 @@ function buildGallonsByStateData(): { state: string; gallons: number }[] {
     .map(([state, gallons]) => ({ state, gallons: Math.round(gallons) }))
     .sort((a, b) => b.gallons - a.gallons)
 }
-
-const chainChartData = buildGallonsByChainData()
-const stateChartData = buildGallonsByStateData()
 const stateChartConfig = {
   gallons: { label: "Gallons", color: "var(--chart-1)" },
 } satisfies ChartConfig
@@ -353,11 +476,11 @@ function getSpendingData(
   return result
 }
 
-function SpendingTrendsCard() {
+function SpendingTrendsCard({ transactions }: { transactions: FuelTransaction[] }) {
   const [range, setRange] = React.useState<SpendingRange>("1Y")
   const data = React.useMemo(
-    () => getSpendingData(getFuelTransactions(), range),
-    [range]
+    () => getSpendingData(transactions, range),
+    [transactions, range]
   )
 
   return (
@@ -450,32 +573,36 @@ function SpendingTrendsCard() {
 }
 
 const driverNames = [...new Set(getFuelTransactions().map((t) => t.driverName))].sort()
-const stateList = [
-  ...new Set(
-    getFuelTransactions().map((t) =>
-      t.location.includes(", ") ? (t.location.split(", ")[1] ?? t.location) : t.location
-    )
-  ),
-].sort()
 
 export function TransactionsUber() {
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
+    () => getThisWeekRange()
+  )
+  const [stateFilter, setStateFilter] = React.useState("")
+  const [cityFilter, setCityFilter] = React.useState("")
+  const [stationSort, setStationSort] = React.useState<{
+    column: StationSortColumn | "missedSavings"
+    direction: "asc" | "desc"
+  }>({ column: "totalGallons", direction: "desc" })
   const [driverFilter, setDriverFilter] = React.useState<string>("all")
   const [stationFilter, setStationFilter] = React.useState<string>("all")
-  const [stateFilter, setStateFilter] = React.useState<string>("all")
   const [alertsOnly, setAlertsOnly] = React.useState(false)
   const [efficiencyFilter, setEfficiencyFilter] = React.useState<EfficiencyFilter>("all")
   const [networkFilter, setNetworkFilter] = React.useState<NetworkFilter>("all")
-  const [dateFrom, setDateFrom] = React.useState("")
-  const [dateTo, setDateTo] = React.useState("")
 
   const filtered = React.useMemo(() => {
     return getFuelTransactions().filter((t) => {
+      if (!isInDateRange(t, dateRange)) return false
       if (alertsOnly && !t.alert) return false
       if (driverFilter !== "all" && t.driverName !== driverFilter) return false
       if (stationFilter !== "all" && t.stationBrand !== stationFilter) return false
-      if (stateFilter !== "all") {
-        const state = t.location.includes(", ") ? (t.location.split(", ")[1] ?? t.location) : t.location
+      if (stateFilter) {
+        const { state } = getCityStateFromLocation(t.location)
         if (state !== stateFilter) return false
+      }
+      if (cityFilter) {
+        const { city } = getCityStateFromLocation(t.location)
+        if (city !== cityFilter) return false
       }
       if (efficiencyFilter !== "all") {
         const status = getEfficiencyStatus(t)
@@ -486,58 +613,184 @@ export function TransactionsUber() {
         if (networkFilter === "in_network" && !t.inNetwork) return false
         if (networkFilter === "out_of_network" && t.inNetwork) return false
       }
-      const tDate = new Date(t.dateTime).getTime()
-      if (dateFrom && tDate < new Date(dateFrom).getTime()) return false
-      if (dateTo && tDate > new Date(dateTo).getTime() + 86400000) return false
       return true
     })
-  }, [driverFilter, stationFilter, stateFilter, alertsOnly, efficiencyFilter, networkFilter, dateFrom, dateTo])
+  }, [dateRange, driverFilter, stationFilter, stateFilter, cityFilter, alertsOnly, efficiencyFilter, networkFilter])
+
+  const { uniqueStates, uniqueCities } = React.useMemo(() => {
+    const base = getFuelTransactions().filter((t) => {
+      if (!isInDateRange(t, dateRange)) return false
+      if (alertsOnly && !t.alert) return false
+      if (driverFilter !== "all" && t.driverName !== driverFilter) return false
+      if (stationFilter !== "all" && t.stationBrand !== stationFilter) return false
+      if (efficiencyFilter !== "all") {
+        const status = getEfficiencyStatus(t)
+        if (efficiencyFilter === "efficient" && status !== "efficient") return false
+        if (efficiencyFilter === "needs_attention" && status !== "needs_attention") return false
+      }
+      if (networkFilter !== "all") {
+        if (networkFilter === "in_network" && !t.inNetwork) return false
+        if (networkFilter === "out_of_network" && t.inNetwork) return false
+      }
+      return true
+    })
+    const states = new Set<string>()
+    const cities = new Set<string>()
+    for (const t of base) {
+      const { city, state } = getCityStateFromLocation(t.location)
+      if (state) states.add(state)
+      if (city) cities.add(city)
+    }
+    return {
+      uniqueStates: [...states].sort(),
+      uniqueCities: [...cities].sort(),
+    }
+  }, [dateRange, driverFilter, stationFilter, alertsOnly, efficiencyFilter, networkFilter])
+
+  const mapItems = React.useMemo(
+    () =>
+      getLocationListStatsFromTransactions(filtered).map((loc) => ({
+        displayName: loc.displayName,
+        slug: locationToSlug(loc.displayName),
+        locationKey: loc.locationKey,
+        lat: loc.lat,
+        lng: loc.lng,
+        compliancePct: loc.compliancePct,
+        missedSavings: loc.missedSavings,
+      })),
+    [filtered]
+  )
+
+  const chainChartData = React.useMemo(
+    () => buildGallonsByChainData(filtered),
+    [filtered]
+  )
+  const stateChartData = React.useMemo(
+    () => buildGallonsByStateData(filtered),
+    [filtered]
+  )
+
+  const activePreset =
+    isExactlyTodayRange(dateRange)
+      ? "today"
+      : rangeMatches(dateRange, "week")
+        ? "week"
+        : rangeMatches(dateRange, "month")
+          ? "month"
+          : null
 
   const hasActiveFilters =
-    !!dateFrom ||
-    !!dateTo ||
+    activePreset === null ||
+    stateFilter !== "" ||
+    cityFilter !== "" ||
     driverFilter !== "all" ||
     stationFilter !== "all" ||
-    stateFilter !== "all" ||
     networkFilter !== "all" ||
     efficiencyFilter !== "all" ||
     alertsOnly
 
   const activeFilterCount = [
-    dateFrom,
-    dateTo,
+    activePreset === null,
+    stateFilter !== "",
+    cityFilter !== "",
     driverFilter !== "all",
     stationFilter !== "all",
-    stateFilter !== "all",
     networkFilter !== "all",
     efficiencyFilter !== "all",
     alertsOnly,
   ].filter(Boolean).length
 
+  const sortSelectValue = `${stationSort.column}-${stationSort.direction}`
+
+  function handleSortSelectChange(value: string | null) {
+    if (value == null) return
+    const [column, direction] = value.split("-") as [StationSortColumn | "missedSavings", "asc" | "desc"]
+    if (column && (direction === "asc" || direction === "desc")) {
+      setStationSort({ column, direction })
+    }
+  }
+
   function clearAllFilters() {
-    setDateFrom("")
-    setDateTo("")
+    setDateRange(getThisWeekRange())
+    setStateFilter("")
+    setCityFilter("")
     setDriverFilter("all")
     setStationFilter("all")
-    setStateFilter("all")
     setNetworkFilter("all")
     setEfficiencyFilter("all")
     setAlertsOnly(false)
   }
 
   return (
-    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="px-4 lg:px-6">
+    <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Fuel Data</h2>
           <p className="text-muted-foreground text-xs mt-0.5">
             Filter and review recent fuel transactions
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Tabs
+            value={activePreset ?? "custom"}
+            onValueChange={(v) => {
+              if (v === "today") setDateRange(getTodayRange())
+              if (v === "week") setDateRange(getThisWeekRange())
+              if (v === "month") setDateRange(getThisMonthRange())
+            }}
+          >
+            <TabsList className="h-10 min-h-10 bg-card text-card-foreground">
+              <TabsTrigger value="today" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                Today
+              </TabsTrigger>
+              <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                This Week
+              </TabsTrigger>
+              <TabsTrigger value="month" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
+                This Month
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button
+                  variant={activePreset === null ? "default" : "outline"}
+                  className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
+                />
+              }
+            >
+              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={1.5} className={cn("size-4", activePreset === null ? "text-primary-foreground" : "text-muted-foreground")} />
+              {formatRangeLabel(dateRange)}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="flex gap-1 border-b px-3 py-2">
+                {PRESETS.map((p) => (
+                  <Button
+                    key={p.days}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setDateRange(getPresetRange(p.days))}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      <div className="grid gap-4 px-4 md:grid-cols-2 lg:px-6">
-        <SpendingTrendsCard />
+      <div className="grid gap-4 md:grid-cols-2">
+        <SpendingTrendsCard transactions={filtered} />
 
         {/* Gallons by chain — pie chart */}
         <Card variant="flat" className="@container/card flex flex-col min-h-0">
@@ -705,8 +958,74 @@ export function TransactionsUber() {
         </Card>
       </div>
 
-      {/* Fuel transactions table */}
-      <Card variant="flat" className="mx-4 md:col-span-2 lg:mx-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:items-end">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="state-filter" className="text-xs font-medium text-muted-foreground">
+            State
+          </Label>
+          <Select value={stateFilter || "All states"} onValueChange={(v) => setStateFilter(v === "All states" ? "" : (v ?? ""))}>
+            <SelectTrigger id="state-filter" className="h-9 w-full">
+              <SelectValue placeholder="All states" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All states">All states</SelectItem>
+              {uniqueStates.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="city-filter" className="text-xs font-medium text-muted-foreground">
+            City
+          </Label>
+          <Select value={cityFilter || "All cities"} onValueChange={(v) => setCityFilter(v === "All cities" ? "" : (v ?? ""))}>
+            <SelectTrigger id="city-filter" className="h-9 w-full">
+              <SelectValue placeholder="All cities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All cities">All cities</SelectItem>
+              {uniqueCities.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs font-medium text-muted-foreground">Sort by</Label>
+          <Select value={sortSelectValue} onValueChange={handleSortSelectChange}>
+            <SelectTrigger className="h-9 w-full">
+              <SelectValue placeholder="Sort by">
+                {SORT_BY_LABELS[sortSelectValue] ?? sortSelectValue}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">{SORT_BY_LABELS["name-asc"]}</SelectItem>
+              <SelectItem value="name-desc">{SORT_BY_LABELS["name-desc"]}</SelectItem>
+              <SelectItem value="totalGallons-desc">{SORT_BY_LABELS["totalGallons-desc"]}</SelectItem>
+              <SelectItem value="totalGallons-asc">{SORT_BY_LABELS["totalGallons-asc"]}</SelectItem>
+              <SelectItem value="transactions-desc">{SORT_BY_LABELS["transactions-desc"]}</SelectItem>
+              <SelectItem value="transactions-asc">{SORT_BY_LABELS["transactions-asc"]}</SelectItem>
+              <SelectItem value="totalCost-desc">{SORT_BY_LABELS["totalCost-desc"]}</SelectItem>
+              <SelectItem value="totalCost-asc">{SORT_BY_LABELS["totalCost-asc"]}</SelectItem>
+              <SelectItem value="missedSavings-desc">{SORT_BY_LABELS["missedSavings-desc"]}</SelectItem>
+              <SelectItem value="missedSavings-asc">{SORT_BY_LABELS["missedSavings-asc"]}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border">
+        <FuelDataMap locations={mapItems} transactions={filtered} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Fuel transactions table */}
+        <Card variant="flat" className="md:col-span-2">
         <div className="flex flex-col gap-2 border-b px-4 pt-0 pb-4 lg:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1">
@@ -741,29 +1060,11 @@ export function TransactionsUber() {
                 <SheetHeader>
                   <SheetTitle>Filters</SheetTitle>
                   <SheetDescription>
-                    Narrow by date, driver, station, state, network, or alerts
+                    Narrow by driver, station, network, or alerts. Date range is set above.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="min-h-0 flex-1 overflow-y-auto">
                 <div className="grid grid-cols-1 gap-4 px-[18px] py-6 sm:grid-cols-2">
-                  <div className="flex min-w-0 flex-col gap-2">
-                    <Label className="text-xs">Date from</Label>
-                    <Input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="w-full min-w-0"
-                    />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-2">
-                    <Label className="text-xs">Date to</Label>
-                    <Input
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="w-full min-w-0"
-                    />
-                  </div>
                   <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
                     <Label className="text-xs">Driver</Label>
                     <Select value={driverFilter} onValueChange={(v) => setDriverFilter(v ?? "all")}>
@@ -791,22 +1092,6 @@ export function TransactionsUber() {
                         {STATION_BRANDS.map((b) => (
                           <SelectItem key={b} value={b}>
                             {b}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-2">
-                    <Label className="text-xs">State</Label>
-                    <Select value={stateFilter} onValueChange={(v) => setStateFilter(v ?? "all")}>
-                      <SelectTrigger className="w-full min-w-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All states</SelectItem>
-                        {stateList.map((state) => (
-                          <SelectItem key={state} value={state}>
-                            {state}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -878,9 +1163,11 @@ export function TransactionsUber() {
             maxRows={50}
             emptyTitle="No transactions match your filters"
             emptyDescription="Try a broader date range or different filters."
+            stationSort={{ column: stationSort.column, direction: stationSort.direction }}
           />
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }
