@@ -28,7 +28,7 @@ function usePageTitle(): string {
       return title
     }
   }
-  return "FuelCommand"
+  return "ScoutFuel"
 }
 
 export function SiteHeader() {

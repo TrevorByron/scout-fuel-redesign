@@ -30,7 +30,7 @@ const fontRaleway = Raleway({
 });
 
 export const metadata: Metadata = {
-  title: "FuelCommand",
+  title: "ScoutFuel",
   description: "Fleet fuel management dashboard",
 };
 

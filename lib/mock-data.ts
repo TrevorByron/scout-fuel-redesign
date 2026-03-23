@@ -1,4 +1,4 @@
-// FuelCommand mock data - fleet fuel management
+// ScoutFuel mock data - fleet fuel management
 
 export const STATION_BRANDS = [
   "TA/Petro",
