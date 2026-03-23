@@ -131,9 +131,10 @@ html[data-style="5"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
   border-radius: 0;
 }
 
-/* Uber sidebar: Base Web–style — larger icons/text, subtle active state */
+/* Uber sidebar: Base Web–style — larger icons/text, subtle active state.
+   Use 16rem so org switcher logo + text fit without clipping. */
 html[data-style="5"] [data-slot="sidebar-wrapper"] {
-  --sidebar-width: 15rem !important;
+  --sidebar-width: 16rem !important;
   --sidebar-width-icon: 3rem !important;
 }
 
@@ -169,6 +170,33 @@ html[data-style="5"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-butt
 html[data-style="5"] [data-slot="sidebar-header"],
 html[data-style="5"] [data-slot="sidebar-footer"] {
   padding: 0.5rem;
+}
+
+/* Ensure sidebar header content (logo, org name) isn’t clipped — min-w-0 lets flex children shrink correctly */
+html[data-style="5"] [data-slot="sidebar-header"] {
+  min-width: 0;
+}
+
+/* Header org switcher: keep logo visible, let text truncate instead of clipping logo */
+html[data-style="5"] [data-slot="sidebar-header"] [data-sidebar="menu-button"],
+html[data-style="5"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-width: 0;
+}
+
+/* Logo holder in org switcher — never shrink below intrinsic size */
+html[data-style="5"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+html[data-style="5"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+}
+
+/* Collapsed: scale logo down so it fits in 40px header button without clipping */
+html[data-style="5"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+html[data-style="5"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
 }
 
 html[data-style="5"] [data-slot="sidebar-group"] {
