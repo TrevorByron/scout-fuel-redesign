@@ -1,0 +1,12 @@
+---
+description: All UI and layout edits in this project are for phone viewports only (not tablets).
+globs: 
+alwaysApply: true
+---
+
+# Mobile (phone) design scope
+
+- **Target viewport:** Phones only — assume ~320px–430px width (e.g. iPhone SE to iPhone 14 Pro Max). Do **not** design or optimize for tablet (768px+) in the edits you make.
+- **Breakpoints:** Base (unprefixed) Tailwind styles = phone. Use `sm:` (640px) and above only for optional enhancements, not for core layout or content. Treat `md:` (768px) and up as out of scope for this phase.
+- **Existing project:** `app/globals.css` already uses `@media (max-width: 767px)` for mobile typography scaling (`--mobile-text-ratio`). Keep touch targets ≥44px, single-column layouts, and compact spacing appropriate for small screens.
+- When adding or changing components, prioritize: thumb-friendly tap areas, readable text without zoom, minimal horizontal scroll, and stacking (flex-col) by default.

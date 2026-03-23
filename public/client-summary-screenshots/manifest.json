@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-03-20T21:37:04.119Z",
+  "capturedAt": "2026-03-23T16:37:57.191Z",
   "results": [
     {
-      "url": "http://localhost:3000/route-optimizer?tripId=seed-trip-1",
-      "filename": "edit-form-footer_localhost_3000_route_optimizer_tripid_seed_trip_1.png",
-      "filepath": "public/client-summary-screenshots/edit-form-footer_localhost_3000_route_optimizer_tripid_seed_trip_1.png",
+      "url": "http://localhost:3000",
+      "filename": "compliance-gauge_localhost_3000.png",
+      "filepath": "public/client-summary-screenshots/compliance-gauge_localhost_3000.png",
       "status": "ok"
     }
   ]

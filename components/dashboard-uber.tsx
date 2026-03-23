@@ -958,7 +958,7 @@ export function DashboardUber() {
             }
           >
             <StatStripLabel>Gallons Purchased</StatStripLabel>
-            <StatStripValue className="text-2xl">{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}</StatStripValue>
+            <StatStripValue className="text-2xl">{kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })} gal</StatStripValue>
           </StatStripItem>
           <StatStripItem
             tooltip={

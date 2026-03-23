@@ -442,7 +442,7 @@ export function LocationsUber() {
           >
             <StatStripLabel>All Locations</StatStripLabel>
             <StatStripValue>
-              {summaryStats.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 1 })}
+              {summaryStats.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 1 })} gal
             </StatStripValue>
           </StatStripItem>
           <StatStripItem
