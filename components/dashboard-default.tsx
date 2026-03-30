@@ -63,7 +63,13 @@ const kpiTooltipContentClasses =
 
 /** Matches StatStripItem hover (`hover:bg-muted/80`); glass/teal override in app/styles. */
 const kpiDashboardCardClassName =
-  "min-w-0 cursor-pointer transition-colors hover:bg-muted/80"
+  "w-full min-w-0 cursor-pointer transition-colors hover:bg-muted/80"
+
+/** One grid cell per KPI: Popover.Root has no DOM node; active Popover.Trigger injects FocusGuards as siblings of the button — without a wrapper they become extra grid items and collapse column widths. */
+const kpiGridCellClassName = "min-w-0 w-full"
+
+/** Last KPI (Total Savings): full width on 2-col layout; single column in lg 5-up row. */
+const kpiGridCellLastClassName = cn(kpiGridCellClassName, "col-span-2 lg:col-span-1")
 
 function KpiBreakdownTooltipCard({
   tooltip,
@@ -76,10 +82,10 @@ function KpiBreakdownTooltipCard({
 }) {
   const isMobile = useIsMobile()
   const desktopTriggerClass =
-    "min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    "w-full min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
   const mobileTriggerClass = cn(
     desktopTriggerClass,
-    "flex w-full min-h-[44px] cursor-pointer items-stretch border-0 bg-transparent p-0 text-left"
+    "flex min-h-[44px] w-full min-w-0 cursor-pointer items-stretch border-0 bg-transparent p-0 text-left"
   )
 
   if (isMobile) {
@@ -725,11 +731,12 @@ export function DashboardDefault() {
         </Card>
       </div>
 
-      {/* KPI row: 2 per row on phone (shrink to fit), 5 cols on lg — hover/tap for Diesel/Reefer/DEF */}
+      {/* KPI row: 2 per row on phone; last card full width (col-span-2); 5 cols on lg — hover/tap for Diesel/Reefer/DEF */}
       <div
         data-dashboard-kpi-row
         className="grid grid-cols-2 gap-2 px-4 sm:gap-4 lg:grid-cols-5 lg:px-6"
       >
+        <div className={kpiGridCellClassName}>
         <KpiBreakdownTooltipCard
           ariaLabel="Gallons purchased by fuel type: Diesel, Reefer, DEF"
           tooltip={
@@ -758,7 +765,9 @@ export function DashboardDefault() {
             </CardHeader>
           </Card>
         </KpiBreakdownTooltipCard>
+        </div>
 
+        <div className={kpiGridCellClassName}>
         <KpiBreakdownTooltipCard
           ariaLabel="Average cost per gallon by fuel type: Diesel, Reefer, DEF"
           tooltip={
@@ -783,7 +792,9 @@ export function DashboardDefault() {
             </CardHeader>
           </Card>
         </KpiBreakdownTooltipCard>
+        </div>
 
+        <div className={kpiGridCellClassName}>
         <KpiBreakdownTooltipCard
           ariaLabel="Average savings per gallon by fuel type: Diesel, Reefer, DEF"
           tooltip={
@@ -808,36 +819,9 @@ export function DashboardDefault() {
             </CardHeader>
           </Card>
         </KpiBreakdownTooltipCard>
+        </div>
 
-        <KpiBreakdownTooltipCard
-          ariaLabel="Total savings by fuel type: Diesel, Reefer, DEF"
-          tooltip={
-            <div className="flex flex-col gap-0.5 text-xs">
-              {[
-                { label: "Diesel", value: kpis.savingsByType.Diesel },
-                { label: "Reefer", value: kpis.savingsByType.Reefer },
-                { label: "DEF", value: kpis.savingsByType.DEF },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between gap-4">
-                  <span className="text-background/80">{label}</span>
-                  <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
-                    ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          }
-        >
-          <Card size="sm" className={kpiDashboardCardClassName}>
-            <CardHeader className="pb-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
-              <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
-                ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-              </div>
-            </CardHeader>
-          </Card>
-        </KpiBreakdownTooltipCard>
-
+        <div className={kpiGridCellClassName}>
         <KpiBreakdownTooltipCard
           ariaLabel="Total spent by fuel type: Diesel, Reefer, DEF"
           tooltip={
@@ -866,6 +850,43 @@ export function DashboardDefault() {
             </CardHeader>
           </Card>
         </KpiBreakdownTooltipCard>
+        </div>
+
+        <div className={kpiGridCellLastClassName}>
+        <KpiBreakdownTooltipCard
+          ariaLabel="Total savings by fuel type: Diesel, Reefer, DEF"
+          tooltip={
+            <div className="flex flex-col gap-0.5 text-xs">
+              {[
+                { label: "Diesel", value: kpis.savingsByType.Diesel },
+                { label: "Reefer", value: kpis.savingsByType.Reefer },
+                { label: "DEF", value: kpis.savingsByType.DEF },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-background/80">{label}</span>
+                  <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
+                    ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          }
+        >
+          <Card
+            size="sm"
+            className={cn(kpiDashboardCardClassName, "text-center lg:text-start")}
+          >
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Total Savings
+              </CardTitle>
+              <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
+                ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
+            </CardHeader>
+          </Card>
+        </KpiBreakdownTooltipCard>
+        </div>
       </div>
 
       {/* Main grid: 2 cols as soon as @container/main has room for two 32.5rem cards (66rem) */}
