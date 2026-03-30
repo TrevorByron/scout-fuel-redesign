@@ -41,6 +41,7 @@ import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useDebouncedGeocode } from "@/hooks/use-debounced-geocode"
 import { cn } from "@/lib/utils"
+import { MapPeekScrollSpacer } from "@/components/map-peek-scroll-spacer"
 
 const RouteOptimizerMapDynamic = dynamic(
   () =>
@@ -311,13 +312,10 @@ export function RouteOptimizerPageContent() {
 
       <aside
         ref={sidebarRef}
-        className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-y-contain pt-4 px-0 pb-0 md:overflow-visible md:p-4 md:min-w-[23.75rem] md:max-w-xl md:w-[43%]"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pt-4 px-0 pb-0 md:overflow-visible md:p-4 md:min-w-[23.75rem] md:max-w-xl md:w-[43%]"
         aria-label="Route details"
       >
-        <div
-          className="pointer-events-none sticky top-0 z-0 shrink-0 min-h-[140px] max-h-[33.333vh] h-[33.333vh] md:hidden"
-          aria-hidden
-        />
+        <MapPeekScrollSpacer />
         <div
           ref={formContentRef}
           data-slot="card"

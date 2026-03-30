@@ -30,6 +30,7 @@ import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { PricingStationListRow } from "@/components/pricing-station-list-row"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { MapPeekScrollSpacer } from "@/components/map-peek-scroll-spacer"
 
 const PricingRouteMapDynamic = dynamic(
   () =>
@@ -360,7 +361,7 @@ export function PricingSummaryUber() {
 
       <aside
         ref={sidebarRef}
-        className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-y-contain pt-4 px-0 pb-0 md:min-w-[23.75rem] md:max-w-xl md:w-[43%] md:overflow-visible md:p-4"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pt-4 px-0 pb-0 md:min-w-[23.75rem] md:max-w-xl md:w-[43%] md:overflow-visible md:p-4"
         aria-label={
           searchMode === "area"
             ? "Find fuel near a location"
@@ -368,10 +369,7 @@ export function PricingSummaryUber() {
         }
       >
         {/* Sticky map peek; form card scrolls over it (mobile) */}
-        <div
-          className="pointer-events-none sticky top-0 z-0 shrink-0 min-h-[140px] max-h-[33.333vh] h-[33.333vh] md:hidden"
-          aria-hidden
-        />
+        <MapPeekScrollSpacer />
         <div
           ref={formContentRef}
           data-slot="card"
