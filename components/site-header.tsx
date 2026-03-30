@@ -14,7 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/fleet": "Live Fleet Map",
   "/locations/": "Location",
   "/locations": "Locations",
-  "/pricing-summary": "Pricing Summary",
+  "/fuel-finder": "Fuel Finder",
   "/route-optimizer": "Optimizer",
   "/transactions": "Fuel Data",
   "/trips/": "Trip",

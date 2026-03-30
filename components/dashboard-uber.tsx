@@ -876,7 +876,7 @@ export function DashboardUber() {
                   { label: "DEF", value: kpis.gallonsByType.DEF },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-background/80">{label}</span>
                     <span className="tabular-nums font-medium">
                       {value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </span>
@@ -897,7 +897,7 @@ export function DashboardUber() {
                   { label: "DEF", value: kpis.avgCostByType.DEF },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-background/80">{label}</span>
                     <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
                   </div>
                 ))}
@@ -916,7 +916,7 @@ export function DashboardUber() {
                   { label: "DEF", value: kpis.avgSavingsByType.DEF },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-background/80">{label}</span>
                     <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
                   </div>
                 ))}
@@ -935,7 +935,7 @@ export function DashboardUber() {
                   { label: "DEF", value: kpis.savingsByType.DEF },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-background/80">{label}</span>
                     <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
                       ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </span>
@@ -958,7 +958,7 @@ export function DashboardUber() {
                   { label: "DEF", value: kpis.spentByType.DEF },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-background/80">{label}</span>
                     <span className="tabular-nums font-medium">
                       ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </span>

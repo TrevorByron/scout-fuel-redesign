@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { StyleProvider } from "@/components/style-provider";
 import "./globals.css";
-import "./styles/style-5-font-override.css";
+import "./styles/style-uber-font-override.css";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -47,11 +47,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-style="5" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var v="2";if(localStorage.getItem("style-version")!==v){localStorage.removeItem("style-template");localStorage.setItem("style-version",v);}var s=localStorage.getItem("style-template");s=(s==="1"||s==="2"||s==="3"||s==="4"||s==="5")?s:"5";document.documentElement.setAttribute("data-style",s);document.body.setAttribute("data-font",s==="5"?"system":"default");})();`,
+            __html: `(function(){var v="3";if(localStorage.getItem("style-version")!==v){localStorage.setItem("style-version",v);var r=localStorage.getItem("style-template");var m=r==="teal"||r==="glass"||r==="uber"?r:r==="2"?"teal":r==="4"?"glass":r==="5"?"uber":"uber";localStorage.setItem("style-template",m);}var s=localStorage.getItem("style-template");if(s!=="teal"&&s!=="glass"&&s!=="uber"){s=s==="2"?"teal":s==="4"?"glass":s==="5"?"uber":"uber";localStorage.setItem("style-template",s);}document.documentElement.setAttribute("data-style",s);document.body.setAttribute("data-font",s==="uber"?"system":"default");})();`,
           }}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

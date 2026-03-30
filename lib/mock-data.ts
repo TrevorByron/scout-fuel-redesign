@@ -297,6 +297,9 @@ export interface PricingSummaryRow {
   retailPrice: number
   yourPrice: number
   discount: number
+  /** WGS84 — for route map merge (deterministic per row) */
+  lat: number
+  lng: number
 }
 
 /** Fleet has 16 drivers; use first 16 for transactions and trucks. */
@@ -1163,6 +1166,36 @@ const PRICING_SUMMARY_CITIES_AL = [
 const PRICING_SUMMARY_CITIES_GA = ["Atlanta", "Augusta", "Columbus", "Macon", "Savannah"]
 const PRICING_SUMMARY_CITIES_TN = ["Nashville", "Memphis", "Knoxville", "Chattanooga"]
 
+/** Approximate state centroids for deterministic jittered station coords */
+const PRICING_STATE_CENTERS: Record<string, { lat: number; lng: number }> = {
+  AL: { lat: 32.8067, lng: -86.7911 },
+  GA: { lat: 32.6413, lng: -83.1133 },
+  TN: { lat: 35.8601, lng: -86.3503 },
+}
+
+function pricingRowHash01(seed: string): number {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return ((h >>> 0) % 10000) / 10000
+}
+
+function pricingRowLatLng(
+  city: string,
+  state: string,
+  idx: number
+): { lat: number; lng: number } {
+  const base = PRICING_STATE_CENTERS[state] ?? PRICING_STATE_CENTERS.AL
+  const hLat = pricingRowHash01(`${city}|${state}|${idx}|lat`)
+  const hLng = pricingRowHash01(`${city}|${state}|${idx}|lng`)
+  return {
+    lat: Math.round((base.lat + (hLat - 0.5) * 2.2) * 1e6) / 1e6,
+    lng: Math.round((base.lng + (hLng - 0.5) * 2.8) * 1e6) / 1e6,
+  }
+}
+
 function buildPricingSummaryRows(): PricingSummaryRow[] {
   const rows: PricingSummaryRow[] = []
   const citiesByState: Record<string, string[]> = {
@@ -1183,6 +1216,7 @@ function buildPricingSummaryRows(): PricingSummaryRow[] {
       const retailPrice = Math.round((3.5 + Math.random() * 1.8) * 1000) / 1000
       const discount = Math.round((0.02 + Math.random() * 0.15) * 1000) / 1000
       const yourPrice = Math.round((retailPrice - discount) * 1000) / 1000
+      const { lat, lng } = pricingRowLatLng(city, state, idx)
       rows.push({
         date,
         chain,
@@ -1192,6 +1226,8 @@ function buildPricingSummaryRows(): PricingSummaryRow[] {
         retailPrice,
         yourPrice,
         discount,
+        lat,
+        lng,
       })
       idx++
     }

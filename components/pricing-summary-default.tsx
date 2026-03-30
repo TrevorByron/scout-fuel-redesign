@@ -74,7 +74,7 @@ export function PricingSummaryDefault() {
       <div className="shrink-0 flex flex-wrap items-start justify-between gap-3 px-4 lg:px-6">
         <div>
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
-            Pricing Summary
+            Fuel Finder
           </h2>
           <p className="text-muted-foreground text-xs mt-0.5">
             View retail and discounted fuel prices by location

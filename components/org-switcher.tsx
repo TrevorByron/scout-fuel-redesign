@@ -58,7 +58,7 @@ export function OrgSwitcher({
               <SidebarMenuButton
                 size="lg"
                 className={cn(
-                  "gap-3 rounded-lg transition-colors",
+                  "gap-3 rounded-lg pl-0.5 transition-colors",
                   "data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground data-open:ring-1 data-open:ring-sidebar-border/80",
                   "hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground",
                   "focus-visible:ring-2 focus-visible:ring-sidebar-ring"

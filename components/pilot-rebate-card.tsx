@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { type PilotRebateSummary } from "@/lib/rebate"
 import { useStyle } from "@/components/style-provider"
+import { isUberStyle } from "@/lib/ui-styles"
 
 interface PilotRebateCardProps {
   summary: PilotRebateSummary
@@ -30,7 +31,7 @@ export function PilotRebateCard({ summary, className }: PilotRebateCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <CardTitle className={cn("flex items-center gap-1.5", style === "5" ? "text-sm font-medium" : "text-base")}>
+            <CardTitle className={cn("flex items-center gap-1.5", isUberStyle(style) ? "text-sm font-medium" : "text-base")}>
               Pilot rebate — {currentMonth.monthLabel}
               <Tooltip>
                 <TooltipTrigger

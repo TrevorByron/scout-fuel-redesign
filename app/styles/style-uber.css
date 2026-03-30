@@ -1,18 +1,18 @@
-/* Style 5 – Uber Base (Base Web tokens). Primary #276EF1. Swatch = primary. */
+/* Uber – Base Web tokens. Primary #276EF1. Swatch = primary. */
 :root {
-  --swatch-5: oklch(0.562 0.219 264);
+  --swatch-uber: oklch(0.562 0.219 264);
 }
 
-/* Override Next.js Inter — style 5 uses system/Helvetica stack. Apply to all descendants. */
-html[data-style="5"],
-html[data-style="5"] *,
-html[data-style="5"] *::before,
-html[data-style="5"] *::after {
+/* Override Next.js Inter — Uber uses system/Helvetica stack. Apply to all descendants. */
+html[data-style="uber"],
+html[data-style="uber"] *,
+html[data-style="uber"] *::before,
+html[data-style="uber"] *::after {
   font-family: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 
 /* Light: white surfaces, #F7F7F7 fields, Base shadow/border language */
-html[data-style="5"] {
+html[data-style="uber"] {
   --background: oklch(1 0 0);
   --foreground: oklch(0.205 0 0);
   --card: oklch(1 0 0);
@@ -74,39 +74,39 @@ html[data-style="5"] {
 }
 
 /* Next.js Inter is applied via body class; override variable and font-family directly */
-html[data-style="5"] body {
+html[data-style="uber"] body {
   --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
   font-family: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 
 /* Flat main area (no dashboard gradient) */
-html[data-style="5"] [data-slot="sidebar-inset"] {
+html[data-style="uber"] [data-slot="sidebar-inset"] {
   background: var(--background) !important;
 }
 
-html[data-style="5"] [data-slot="card"] {
+html[data-style="uber"] [data-slot="card"] {
   box-shadow: 0 1px 4px hsla(0, 0%, 0%, 0.16);
   border: 1px solid hsla(0, 0%, 0%, 0.08);
 }
 
 /* Uber: flat variant and sm KPI cards — border only, no shadow/ring */
-html[data-style="5"] [data-slot="card"][data-variant="flat"],
-html[data-style="5"] [data-slot="card"][data-size="sm"] {
+html[data-style="uber"] [data-slot="card"][data-variant="flat"],
+html[data-style="uber"] [data-slot="card"][data-size="sm"] {
   box-shadow: none;
   border: 1px solid hsla(0, 0%, 0%, 0.08);
 }
 
 /* Base Web: square buttons, inputs, triggers */
-html[data-style="5"] [data-slot="button"] {
+html[data-style="uber"] [data-slot="button"] {
   min-height: 40px;
   border-radius: 0;
 }
 
 /* Uber: unified input styling — solid fill, stronger border, square corners */
-html[data-style="5"] [data-slot="input"],
-html[data-style="5"] [data-slot="select-trigger"],
-html[data-style="5"] [data-slot="input-group"],
-html[data-style="5"] [data-slot="textarea"] {
+html[data-style="uber"] [data-slot="input"],
+html[data-style="uber"] [data-slot="select-trigger"],
+html[data-style="uber"] [data-slot="input-group"],
+html[data-style="uber"] [data-slot="textarea"] {
   min-height: 40px;
   border-radius: 0;
   border-color: var(--input-border) !important;
@@ -114,36 +114,36 @@ html[data-style="5"] [data-slot="textarea"] {
 }
 
 /* Focus: accent border (ring color) */
-html[data-style="5"] [data-slot="input"]:focus-visible,
-html[data-style="5"] [data-slot="select-trigger"]:focus-visible,
-html[data-style="5"] [data-slot="input-group"]:focus-within,
-html[data-style="5"] [data-slot="textarea"]:focus-visible {
+html[data-style="uber"] [data-slot="input"]:focus-visible,
+html[data-style="uber"] [data-slot="select-trigger"]:focus-visible,
+html[data-style="uber"] [data-slot="input-group"]:focus-within,
+html[data-style="uber"] [data-slot="textarea"]:focus-visible {
   border-color: var(--ring) !important;
 }
 
-html[data-style="5"] [data-slot="popover-trigger"] {
+html[data-style="uber"] [data-slot="popover-trigger"] {
   min-height: 40px;
   border-radius: 0;
 }
 
-html[data-style="5"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+html[data-style="uber"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
   min-height: 40px;
   border-radius: 0;
 }
 
 /* Uber sidebar: Base Web–style — larger icons/text, subtle active state.
    Use 16rem so org switcher logo + text fit without clipping. */
-html[data-style="5"] [data-slot="sidebar-wrapper"] {
+html[data-style="uber"] [data-slot="sidebar-wrapper"] {
   --sidebar-width: 16rem !important;
   --sidebar-width-icon: 3rem !important;
 }
 
-html[data-style="5"] [data-slot="sidebar-group-label"] {
+html[data-style="uber"] [data-slot="sidebar-group-label"] {
   display: none;
 }
 
-html[data-style="5"] [data-slot="sidebar-menu-button"],
-html[data-style="5"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+html[data-style="uber"] [data-slot="sidebar-menu-button"],
+html[data-style="uber"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
   min-height: 40px;
   height: 40px;
   border-radius: 0;
@@ -151,67 +151,80 @@ html[data-style="5"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-butt
   font-size: 0.875rem;
 }
 
-html[data-style="5"] [data-slot="sidebar-menu-button"] svg,
-html[data-style="5"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] svg {
+html[data-style="uber"] [data-slot="popover-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px;
+  height: auto;
+  border-radius: 0;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+html[data-style="uber"] [data-slot="sidebar-menu-button"] svg,
+html[data-style="uber"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] svg,
+html[data-style="uber"] [data-slot="popover-trigger"][data-sidebar="menu-button"] svg {
   width: 20px;
   height: 20px;
 }
 
-html[data-style="5"] [data-slot="sidebar-menu-button"][data-active],
-html[data-style="5"] [data-slot="sidebar-menu-button"][data-active]:hover,
-html[data-style="5"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active],
-html[data-style="5"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active]:hover {
+html[data-style="uber"] [data-slot="sidebar-menu-button"][data-active],
+html[data-style="uber"] [data-slot="sidebar-menu-button"][data-active]:hover,
+html[data-style="uber"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active],
+html[data-style="uber"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active]:hover,
+html[data-style="uber"] [data-slot="popover-trigger"][data-sidebar="menu-button"][data-active],
+html[data-style="uber"] [data-slot="popover-trigger"][data-sidebar="menu-button"][data-active]:hover {
   background: transparent;
   border-left: 2px solid var(--sidebar-primary);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
   padding-left: 6px;
   font-weight: 500;
 }
 
-html[data-style="5"] [data-slot="sidebar-header"],
-html[data-style="5"] [data-slot="sidebar-footer"] {
+html[data-style="uber"] [data-slot="sidebar-header"],
+html[data-style="uber"] [data-slot="sidebar-footer"] {
   padding: 0.5rem;
 }
 
 /* Ensure sidebar header content (logo, org name) isn’t clipped — min-w-0 lets flex children shrink correctly */
-html[data-style="5"] [data-slot="sidebar-header"] {
+html[data-style="uber"] [data-slot="sidebar-header"] {
   min-width: 0;
 }
 
 /* Header org switcher: keep logo visible, let text truncate instead of clipping logo */
-html[data-style="5"] [data-slot="sidebar-header"] [data-sidebar="menu-button"],
-html[data-style="5"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+html[data-style="uber"] [data-slot="sidebar-header"] [data-sidebar="menu-button"],
+html[data-style="uber"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
   min-width: 0;
 }
 
 /* Logo holder in org switcher — never shrink below intrinsic size */
-html[data-style="5"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
-html[data-style="5"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+html[data-style="uber"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+html[data-style="uber"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
   flex-shrink: 0;
   min-width: 2.25rem;
 }
 
 /* Collapsed: scale logo down so it fits in 40px header button without clipping */
-html[data-style="5"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
-html[data-style="5"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+html[data-style="uber"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+html[data-style="uber"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
   width: 2rem;
   height: 2rem;
   min-width: 2rem;
   min-height: 2rem;
 }
 
-html[data-style="5"] [data-slot="sidebar-group"] {
+html[data-style="uber"] [data-slot="sidebar-group"] {
   padding: 0.5rem 0.5rem 0.25rem;
 }
 
-html[data-style="5"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"],
-html[data-style="5"] [data-collapsible="icon"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+html[data-style="uber"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"],
+html[data-style="uber"] [data-collapsible="icon"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
   min-height: 40px !important;
   height: 40px !important;
   width: 40px !important;
 }
 
 /* Dark: near-black chrome, same primary blue */
-html[data-style="5"].dark {
+html[data-style="uber"].dark {
   --background: oklch(0.14 0 0);
   --foreground: oklch(0.97 0 0);
   --card: oklch(0.19 0 0);
@@ -260,27 +273,27 @@ html[data-style="5"].dark {
   --shadow-2xl: 0 16px 48px hsla(0, 0%, 0%, 0.45);
 }
 
-html[data-style="5"].dark body {
+html[data-style="uber"].dark body {
   --font-sans: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-html[data-style="5"].dark [data-slot="sidebar-inset"] {
+html[data-style="uber"].dark [data-slot="sidebar-inset"] {
   background: var(--background) !important;
 }
 
-html[data-style="5"].dark [data-slot="card"] {
+html[data-style="uber"].dark [data-slot="card"] {
   box-shadow: 0 1px 4px hsla(0, 0%, 0%, 0.32);
   border: 1px solid hsla(0, 0%, 100%, 0.1);
 }
 
-html[data-style="5"].dark [data-slot="card"][data-variant="flat"],
-html[data-style="5"].dark [data-slot="card"][data-size="sm"] {
+html[data-style="uber"].dark [data-slot="card"][data-variant="flat"],
+html[data-style="uber"].dark [data-slot="card"][data-size="sm"] {
   box-shadow: none;
   border: 1px solid hsla(0, 0%, 100%, 0.1);
 }
 
 /* Uber-style tooltips: square corners, light surface, minimal shadow */
-html[data-style="5"] [data-slot="tooltip-content"] {
+html[data-style="uber"] [data-slot="tooltip-content"] {
   border-radius: 0;
   background-color: var(--popover);
   color: var(--popover-foreground);
@@ -288,6 +301,6 @@ html[data-style="5"] [data-slot="tooltip-content"] {
   padding: 0.5rem 0.75rem;
 }
 
-html[data-style="5"] [data-slot="tooltip-content"] [class*="rotate-45"] {
+html[data-style="uber"] [data-slot="tooltip-content"] [class*="rotate-45"] {
   display: none;
 }

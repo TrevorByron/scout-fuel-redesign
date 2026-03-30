@@ -45,6 +45,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const fuelPriceChartConfig = {
   price: {
@@ -56,6 +57,66 @@ const fuelPriceChartConfig = {
     color: "var(--chart-2)",
   },
 } satisfies ChartConfig
+
+const kpiTooltipContentClasses =
+  "min-w-[8rem] rounded-md bg-foreground px-3 py-1.5 text-xs text-background"
+
+/** Matches StatStripItem hover (`hover:bg-muted/80`); glass/teal override in app/styles. */
+const kpiDashboardCardClassName =
+  "min-w-0 cursor-pointer transition-colors hover:bg-muted/80"
+
+function KpiBreakdownTooltipCard({
+  tooltip,
+  ariaLabel,
+  children,
+}: {
+  tooltip: React.ReactNode
+  ariaLabel: string
+  children: React.ReactNode
+}) {
+  const isMobile = useIsMobile()
+  const desktopTriggerClass =
+    "min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+  const mobileTriggerClass = cn(
+    desktopTriggerClass,
+    "flex w-full min-h-[44px] cursor-pointer items-stretch border-0 bg-transparent p-0 text-left"
+  )
+
+  if (isMobile) {
+    return (
+      <Popover>
+        <PopoverTrigger
+          render={
+            <button type="button" className={mobileTriggerClass} aria-label={ariaLabel}>
+              {children}
+            </button>
+          }
+        />
+        <PopoverContent
+          side="top"
+          align="center"
+          className={cn("w-fit flex-col gap-0 p-0 ring-0", kpiTooltipContentClasses)}
+        >
+          {tooltip}
+        </PopoverContent>
+      </Popover>
+    )
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <div className={desktopTriggerClass} tabIndex={0} aria-label={ariaLabel}>
+            {children}
+          </div>
+        }
+      />
+      <TooltipContent side="top" className={kpiTooltipContentClasses}>
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 type PriceRange = "1W" | "1M" | "1Y" | "YTD" | "All"
 
@@ -664,133 +725,147 @@ export function DashboardDefault() {
         </Card>
       </div>
 
-      {/* KPI row: 2 per row on phone (shrink to fit), 5 cols on lg */}
-      <div className="grid grid-cols-2 gap-2 px-4 sm:gap-4 lg:grid-cols-5 lg:px-6">
-        {/* Gallons */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              {kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </CardHeader>
-          <CardContent>
+      {/* KPI row: 2 per row on phone (shrink to fit), 5 cols on lg — hover/tap for Diesel/Reefer/DEF */}
+      <div
+        data-dashboard-kpi-row
+        className="grid grid-cols-2 gap-2 px-4 sm:gap-4 lg:grid-cols-5 lg:px-6"
+      >
+        <KpiBreakdownTooltipCard
+          ariaLabel="Gallons purchased by fuel type: Diesel, Reefer, DEF"
+          tooltip={
             <div className="flex flex-col gap-0.5 text-xs">
               {[
                 { label: "Diesel", value: kpis.gallonsByType.Diesel },
                 { label: "Reefer", value: kpis.gallonsByType.Reefer },
                 { label: "DEF", value: kpis.gallonsByType.DEF },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-background/80">{label}</span>
                   <span className="tabular-nums font-medium">
                     {value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <Card size="sm" className={kpiDashboardCardClassName}>
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Gallons Purchased</CardTitle>
+              <div className="text-3xl font-bold tabular-nums">
+                {kpis.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
+            </CardHeader>
+          </Card>
+        </KpiBreakdownTooltipCard>
 
-        {/* Average Cost */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Avg Cost / Gallon</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              ${kpis.avgCostAll.toFixed(3)}
-            </div>
-          </CardHeader>
-          <CardContent>
+        <KpiBreakdownTooltipCard
+          ariaLabel="Average cost per gallon by fuel type: Diesel, Reefer, DEF"
+          tooltip={
             <div className="flex flex-col gap-0.5 text-xs">
               {[
                 { label: "Diesel", value: kpis.avgCostByType.Diesel },
                 { label: "Reefer", value: kpis.avgCostByType.Reefer },
                 { label: "DEF", value: kpis.avgCostByType.DEF },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-background/80">{label}</span>
                   <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <Card size="sm" className={kpiDashboardCardClassName}>
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Avg Cost / Gallon</CardTitle>
+              <div className="text-3xl font-bold tabular-nums">${kpis.avgCostAll.toFixed(3)}</div>
+            </CardHeader>
+          </Card>
+        </KpiBreakdownTooltipCard>
 
-        {/* Average Savings */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Avg Savings / Gallon</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              ${kpis.avgSavingsAll.toFixed(3)}
-            </div>
-          </CardHeader>
-          <CardContent>
+        <KpiBreakdownTooltipCard
+          ariaLabel="Average savings per gallon by fuel type: Diesel, Reefer, DEF"
+          tooltip={
             <div className="flex flex-col gap-0.5 text-xs">
               {[
                 { label: "Diesel", value: kpis.avgSavingsByType.Diesel },
                 { label: "Reefer", value: kpis.avgSavingsByType.Reefer },
                 { label: "DEF", value: kpis.avgSavingsByType.DEF },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-background/80">{label}</span>
                   <span className="tabular-nums font-medium">${value.toFixed(3)}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <Card size="sm" className={kpiDashboardCardClassName}>
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Avg Savings / Gallon</CardTitle>
+              <div className="text-3xl font-bold tabular-nums">${kpis.avgSavingsAll.toFixed(3)}</div>
+            </CardHeader>
+          </Card>
+        </KpiBreakdownTooltipCard>
 
-        {/* Total Savings */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
-            <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
-              ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </CardHeader>
-          <CardContent>
+        <KpiBreakdownTooltipCard
+          ariaLabel="Total savings by fuel type: Diesel, Reefer, DEF"
+          tooltip={
             <div className="flex flex-col gap-0.5 text-xs">
               {[
                 { label: "Diesel", value: kpis.savingsByType.Diesel },
                 { label: "Reefer", value: kpis.savingsByType.Reefer },
                 { label: "DEF", value: kpis.savingsByType.DEF },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-background/80">{label}</span>
                   <span className="tabular-nums font-medium text-green-600 dark:text-green-500">
                     ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <Card size="sm" className={kpiDashboardCardClassName}>
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Total Savings</CardTitle>
+              <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
+                ${kpis.totalSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
+            </CardHeader>
+          </Card>
+        </KpiBreakdownTooltipCard>
 
-        {/* Total Spent */}
-        <Card size="sm" className="min-w-0">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
-            <div className="text-3xl font-bold tabular-nums">
-              ${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-          </CardHeader>
-          <CardContent>
+        <KpiBreakdownTooltipCard
+          ariaLabel="Total spent by fuel type: Diesel, Reefer, DEF"
+          tooltip={
             <div className="flex flex-col gap-0.5 text-xs">
               {[
                 { label: "Diesel", value: kpis.spentByType.Diesel },
                 { label: "Reefer", value: kpis.spentByType.Reefer },
                 { label: "DEF", value: kpis.spentByType.DEF },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-muted-foreground">{label}</span>
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-background/80">{label}</span>
                   <span className="tabular-nums font-medium">
                     ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <Card size="sm" className={kpiDashboardCardClassName}>
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Total Spent</CardTitle>
+              <div className="text-3xl font-bold tabular-nums">
+                ${kpis.totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
+            </CardHeader>
+          </Card>
+        </KpiBreakdownTooltipCard>
       </div>
 
       {/* Main grid: 2 cols as soon as @container/main has room for two 32.5rem cards (66rem) */}

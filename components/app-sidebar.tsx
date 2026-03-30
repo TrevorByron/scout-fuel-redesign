@@ -27,6 +27,7 @@ import {
   Route01Icon,
   TruckDeliveryIcon,
   ChartRingIcon,
+  Search01Icon,
   SentIcon,
 } from "@hugeicons/core-free-icons"
 
@@ -88,7 +89,7 @@ const data = {
     { title: "Driver Insights", url: "/drivers", icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} /> },
     { title: "Location Insights", url: "/locations", icon: <HugeiconsIcon icon={Location01Icon} strokeWidth={2} /> },
     { title: "Fuel Data", url: "/transactions", icon: <HugeiconsIcon icon={ReceiptDollarIcon} strokeWidth={2} /> },
-    { title: "Pricing Summary", url: "/pricing-summary", icon: <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} /> },
+    { title: "Fuel Finder", url: "/fuel-finder", icon: <HugeiconsIcon icon={Search01Icon} strokeWidth={2} /> },
     { title: "Live Fleet Map", url: "/fleet", icon: <HugeiconsIcon icon={MapsSquare01Icon} strokeWidth={2} /> },
   ] as NavMainItem[],
   navSecondary: [

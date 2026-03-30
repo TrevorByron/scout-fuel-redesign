@@ -1,9 +1,9 @@
-/* Style 4 – Same as Style 2 (blue/cyan palette). Swatch used by the style switcher. */
+/* Glass – Same base palette as Teal (blue/cyan). Swatch used by the style switcher. */
 :root {
-  --swatch-4: oklch(0.6810 0.1370 232.9);
+  --swatch-glass: oklch(0.6810 0.1370 232.9);
 }
 
-html[data-style="4"] {
+html[data-style="glass"] {
   --background: oklch(1.0000 0 0);
   --foreground: oklch(0.22 0.02 233);
   --card: oklch(1.0000 0 0);
@@ -21,7 +21,8 @@ html[data-style="4"] {
   --destructive: oklch(0.5770 0.2450 27.3250);
   --destructive-foreground: oklch(1.0000 0 0);
   --border: oklch(0.88 0.018 233);
-  --input: oklch(0.92 0.012 233);
+  /* Solid fill via rules below; token is the visible surface */
+  --input: oklch(0.965 0.008 233);
   --ring: oklch(0.6810 0.1370 232.9);
   --chart-1: oklch(0.6810 0.1370 232.9);
   --chart-2: oklch(0.76 0.115 196.5);
@@ -32,8 +33,9 @@ html[data-style="4"] {
   --sidebar-foreground: oklch(0.22 0.02 233);
   --sidebar-primary: oklch(1.0000 0 0);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.50 0.06 210);
-  --sidebar-accent-foreground: oklch(0.9851 0 0);
+  /* Inverse of dark Glass: light wash on hover + dark text (dark mode uses dark fill + light text) */
+  --sidebar-accent: color-mix(in oklch, var(--primary) 14%, white);
+  --sidebar-accent-foreground: oklch(0.22 0.02 233);
   --sidebar-border: oklch(0.88 0.018 233);
   --sidebar-ring: oklch(0.6810 0.1370 232.9);
   --success: oklch(0.4532 0.1101 122.1507);
@@ -58,7 +60,9 @@ html[data-style="4"] {
 }
 
 /* Style 4: sidebar wrapper – Framer-style gradient blobs (desktop + mobile) */
-html[data-style="4"] [data-slot="sidebar-wrapper"] {
+html[data-style="glass"] [data-slot="sidebar-wrapper"] {
+  --sidebar-width: 16rem !important;
+  --sidebar-width-icon: 3rem !important;
   position: relative;
   background-color: oklch(0.98 0.005 233);
   background-image:
@@ -74,7 +78,7 @@ html[data-style="4"] [data-slot="sidebar-wrapper"] {
 }
 
 /* Dark mode: same blob gradient with dark base */
-html[data-style="4"].dark [data-slot="sidebar-wrapper"] {
+html[data-style="glass"].dark [data-slot="sidebar-wrapper"] {
   background-color: oklch(0.14 0.02 233);
   background-image:
     radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 25%, transparent) 0%, transparent 60%),
@@ -85,44 +89,109 @@ html[data-style="4"].dark [data-slot="sidebar-wrapper"] {
 }
 
 /* Style 4: no solid bg on sidebar panel so wrapper gradient shows through */
-html[data-style="4"] [data-slot="sidebar-inner"] {
+html[data-style="glass"] [data-slot="sidebar-inner"] {
   background: transparent;
 }
 
-/* Style 4: selected sidebar menu item – white bg, primary blue text */
-html[data-style="4"] [data-slot="sidebar-menu-button"][data-active],
-html[data-style="4"] [data-sidebar="menu-button"][data-active] {
-  background: white;
-  color: var(--primary);
+html[data-style="glass"] [data-slot="sidebar-group-label"] {
+  display: none;
 }
 
-/* Style 4: selected sidebar menu item – dark mode: light pill, dark text (not primary) */
-html[data-style="4"].dark [data-slot="sidebar-menu-button"][data-active],
-html[data-style="4"].dark [data-sidebar="menu-button"][data-active] {
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--sidebar-primary-foreground);
+/* Glass sidebar: chunky rows + same hover pill as main nav (match CVA rounding, not Uber square). */
+html[data-style="glass"] [data-slot="sidebar-menu-button"],
+html[data-style="glass"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px;
+  height: 40px;
+  border-radius: calc(var(--radius-sm) + 2px);
+  gap: 0.625rem;
+  font-size: 0.875rem;
 }
 
-/* Style 4: sidebar menu item hover – white 30% opacity, keep default text color */
-html[data-style="4"] [data-slot="sidebar-menu-button"]:hover:not([data-active]),
-html[data-style="4"] [data-sidebar="menu-button"]:hover:not([data-active]) {
-  background: rgba(255, 255, 255, 0.3);
-  color: var(--sidebar-foreground);
+html[data-style="glass"] [data-slot="popover-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px;
+  height: auto;
+  border-radius: calc(var(--radius-sm) + 2px);
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+html[data-style="glass"] [data-slot="sidebar-menu-button"] svg,
+html[data-style="glass"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] svg,
+html[data-style="glass"] [data-slot="popover-trigger"][data-sidebar="menu-button"] svg {
+  width: 20px;
+  height: 20px;
+}
+
+html[data-style="glass"] [data-slot="sidebar-menu-button"][data-active],
+html[data-style="glass"] [data-slot="sidebar-menu-button"][data-active]:hover,
+html[data-style="glass"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active],
+html[data-style="glass"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active]:hover,
+html[data-style="glass"] [data-slot="popover-trigger"][data-sidebar="menu-button"][data-active],
+html[data-style="glass"] [data-slot="popover-trigger"][data-sidebar="menu-button"][data-active]:hover {
+  background: transparent;
+  border-left: 2px solid var(--primary);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 6px;
+  font-weight: 500;
+}
+
+html[data-style="glass"] [data-slot="sidebar-header"],
+html[data-style="glass"] [data-slot="sidebar-footer"] {
+  padding: 0.5rem;
+}
+
+html[data-style="glass"] [data-slot="sidebar-header"] {
+  min-width: 0;
+}
+
+html[data-style="glass"] [data-slot="sidebar-header"] [data-sidebar="menu-button"],
+html[data-style="glass"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-width: 0;
+  min-height: 56px;
+  height: 56px;
+  padding-block: 0.75rem;
+  padding-inline: 0.5rem;
+}
+
+html[data-style="glass"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+html[data-style="glass"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+}
+
+html[data-style="glass"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+html[data-style="glass"] [data-collapsible="icon"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+html[data-style="glass"] [data-slot="sidebar-group"] {
+  padding: 0.5rem 0.5rem 0.25rem;
+}
+
+html[data-style="glass"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"],
+html[data-style="glass"] [data-collapsible="icon"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px !important;
+  height: 40px !important;
+  width: 40px !important;
 }
 
 /* Style 4: main content area – 30% white (light) / 30% black (dark) + backdrop blur */
-html[data-style="4"] [data-slot="sidebar-inset"] {
+html[data-style="glass"] [data-slot="sidebar-inset"] {
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
 }
 
-html[data-style="4"].dark [data-slot="sidebar-inset"] {
+html[data-style="glass"].dark [data-slot="sidebar-inset"] {
   background: rgba(6, 29, 38, 0.3) !important;
   backdrop-filter: blur(10px);
 }
 
 /* Style 4: glass cards */
-html[data-style="4"] [data-slot="card"] {
+html[data-style="glass"] [data-slot="card"] {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(10px);
   border-radius: var(--radius);
@@ -136,7 +205,7 @@ html[data-style="4"] [data-slot="card"] {
   overflow: clip;
 }
 
-html[data-style="4"] [data-slot="card"]::before {
+html[data-style="glass"] [data-slot="card"]::before {
   content: "";
   position: absolute;
   top: 0;
@@ -152,7 +221,7 @@ html[data-style="4"] [data-slot="card"]::before {
   pointer-events: none;
 }
 
-html[data-style="4"] [data-slot="card"]::after {
+html[data-style="glass"] [data-slot="card"]::after {
   content: "";
   position: absolute;
   top: 0;
@@ -169,7 +238,7 @@ html[data-style="4"] [data-slot="card"]::after {
 }
 
 /* Style 4: glass cards – dark mode (inverted) */
-html[data-style="4"].dark [data-slot="card"] {
+html[data-style="glass"].dark [data-slot="card"] {
   background: rgba(6, 29, 38, 0.6) !important;
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
@@ -179,7 +248,7 @@ html[data-style="4"].dark [data-slot="card"] {
     inset 0 0 60px 30px rgba(6, 29, 38, 0.1);
 }
 
-html[data-style="4"].dark [data-slot="card"]::before {
+html[data-style="glass"].dark [data-slot="card"]::before {
   background: linear-gradient(
     90deg,
     transparent,
@@ -188,7 +257,7 @@ html[data-style="4"].dark [data-slot="card"]::before {
   );
 }
 
-html[data-style="4"].dark [data-slot="card"]::after {
+html[data-style="glass"].dark [data-slot="card"]::after {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.25),
@@ -197,8 +266,17 @@ html[data-style="4"].dark [data-slot="card"]::after {
   );
 }
 
+/* Dashboard KPI row: hover matches StatStrip muted wash (base card uses !important bg) */
+html[data-style="glass"] [data-dashboard-kpi-row] [data-slot="card"]:hover {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+html[data-style="glass"].dark [data-dashboard-kpi-row] [data-slot="card"]:hover {
+  background: rgba(6, 29, 38, 0.72) !important;
+}
+
 /* Style 4: accordion – same glass treatment as cards */
-html[data-style="4"] [data-slot="accordion"] {
+html[data-style="glass"] [data-slot="accordion"] {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(100px);
   -webkit-backdrop-filter: blur(100px);
@@ -213,7 +291,7 @@ html[data-style="4"] [data-slot="accordion"] {
   overflow: hidden;
 }
 
-html[data-style="4"] [data-slot="accordion"]::before {
+html[data-style="glass"] [data-slot="accordion"]::before {
   content: "";
   position: absolute;
   top: 0;
@@ -229,7 +307,7 @@ html[data-style="4"] [data-slot="accordion"]::before {
   pointer-events: none;
 }
 
-html[data-style="4"] [data-slot="accordion"]::after {
+html[data-style="glass"] [data-slot="accordion"]::after {
   content: "";
   position: absolute;
   top: 0;
@@ -245,12 +323,12 @@ html[data-style="4"] [data-slot="accordion"]::after {
   pointer-events: none;
 }
 
-html[data-style="4"] [data-slot="accordion-item"] {
+html[data-style="glass"] [data-slot="accordion-item"] {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.25);
 }
 
-html[data-style="4"].dark [data-slot="accordion"] {
+html[data-style="glass"].dark [data-slot="accordion"] {
   background: rgba(6, 29, 38, 0.6);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
@@ -260,7 +338,7 @@ html[data-style="4"].dark [data-slot="accordion"] {
     inset 0 0 60px 30px rgba(6, 29, 38, 0.1);
 }
 
-html[data-style="4"].dark [data-slot="accordion"]::before {
+html[data-style="glass"].dark [data-slot="accordion"]::before {
   background: linear-gradient(
     90deg,
     transparent,
@@ -269,7 +347,7 @@ html[data-style="4"].dark [data-slot="accordion"]::before {
   );
 }
 
-html[data-style="4"].dark [data-slot="accordion"]::after {
+html[data-style="glass"].dark [data-slot="accordion"]::after {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.25),
@@ -278,41 +356,63 @@ html[data-style="4"].dark [data-slot="accordion"]::after {
   );
 }
 
-html[data-style="4"].dark [data-slot="accordion-item"] {
+html[data-style="glass"].dark [data-slot="accordion-item"] {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Style 4: same chunky form controls as Style 1 (min-height 40px) */
-html[data-style="4"] [data-slot="button"] {
+html[data-style="glass"] [data-slot="button"] {
   min-height: 40px;
 }
 
-html[data-style="4"] [data-slot="input"] {
+html[data-style="glass"] [data-slot="input"] {
   min-height: 40px;
 }
 
-html[data-style="4"] [data-slot="select-trigger"] {
+html[data-style="glass"] [data-slot="select-trigger"] {
   min-height: 40px;
 }
 
-html[data-style="4"] [data-slot="input-group"] {
+html[data-style="glass"] [data-slot="input-group"] {
   min-height: 40px;
 }
 
-html[data-style="4"] [data-slot="textarea"] {
+html[data-style="glass"] [data-slot="textarea"] {
   min-height: 40px;
 }
 
-html[data-style="4"] [data-slot="popover-trigger"] {
+html[data-style="glass"] [data-slot="popover-trigger"] {
   min-height: 40px;
 }
 
 /* Sheet footer primary action (Apply filters) — same height as buttons */
-html[data-style="4"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+html[data-style="glass"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
   min-height: 40px;
 }
 
-html[data-style="4"].dark {
+/* Glass: full-opacity input surfaces (Tailwind uses bg-input/20 — too faint on glass cards) */
+html[data-style="glass"] [data-slot="input"],
+html[data-style="glass"] [data-slot="select-trigger"],
+html[data-style="glass"] [data-slot="input-group"],
+html[data-style="glass"] [data-slot="textarea"],
+html[data-style="glass"] [data-slot="combobox-chips"] {
+  background-color: var(--input) !important;
+}
+
+html[data-style="glass"] [data-slot="input"]:focus-visible,
+html[data-style="glass"] [data-slot="select-trigger"]:focus-visible,
+html[data-style="glass"] [data-slot="input-group"]:focus-within,
+html[data-style="glass"] [data-slot="textarea"]:focus-visible,
+html[data-style="glass"] [data-slot="combobox-chips"]:focus-within {
+  border-color: var(--ring) !important;
+}
+
+/* Dark: select hover used bg-input/50; restore a subtle lift over solid fill */
+html[data-style="glass"].dark [data-slot="select-trigger"]:hover {
+  background-color: color-mix(in oklch, var(--input) 88%, white) !important;
+}
+
+html[data-style="glass"].dark {
   --background: oklch(0.14 0.02 233);
   --foreground: oklch(0.98 0 0);
   --card: oklch(0.18 0.02 233);
@@ -362,4 +462,14 @@ html[data-style="4"].dark {
   --shadow-lg: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 4px 6px -2.5px hsl(0 0% 0% / 0.14);
   --shadow-xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 8px 10px -2.5px hsl(0 0% 0% / 0.14);
   --shadow-2xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.35);
+}
+
+/* Dark glass: period / header tabs on bg-card — active pill matches Fuel Finder route/area tabs (primary + shadow; base TabsTrigger dark:data-active:bg-input/30 otherwise wins over data-[active]:bg-primary) */
+html[data-style="glass"].dark
+  [data-slot="tabs-list"].bg-card
+  > [data-slot="tabs-trigger"][data-active] {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
 }

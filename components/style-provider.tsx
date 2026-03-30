@@ -1,16 +1,23 @@
 "use client";
 
+/** Persists `style-template` (slug: teal | glass | uber), mirrors to `html[data-style]` and `body[data-font]` (system for Uber). */
+
 import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useState,
 } from "react";
+import {
+  DEFAULT_STYLE_ID,
+  migrateStoredStyle,
+  STORAGE_KEY,
+  type StyleId,
+  isUberStyle,
+} from "@/lib/ui-styles";
 
-const STORAGE_KEY = "style-template";
-
-export type StyleId = "1" | "2" | "3" | "4" | "5";
+export type { StyleId };
 
 type StyleContextValue = {
   style: StyleId;
@@ -20,33 +27,32 @@ type StyleContextValue = {
 const StyleContext = createContext<StyleContextValue | null>(null);
 
 function readStoredStyle(): StyleId {
-  if (typeof window === "undefined") return "5";
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (
-    stored === "1" ||
-    stored === "2" ||
-    stored === "3" ||
-    stored === "4" ||
-    stored === "5"
-  )
-    return stored;
-  return "5";
+  if (typeof window === "undefined") return DEFAULT_STYLE_ID;
+  return migrateStoredStyle(localStorage.getItem(STORAGE_KEY));
 }
 
 export function StyleProvider({ children }: { children: React.ReactNode }) {
-  const [style, setStyleState] = useState<StyleId>("5");
+  const [style, setStyleState] = useState<StyleId>(DEFAULT_STYLE_ID);
 
-  useEffect(() => {
+  // useLayoutEffect: sync DOM + context before paint. useEffect runs too late — first paint used wrong
+  // theme tokens and wrong Uber vs default React trees after hydration.
+  useLayoutEffect(() => {
     const stored = readStoredStyle();
     setStyleState(stored);
     document.documentElement.setAttribute("data-style", stored);
-    document.body.setAttribute("data-font", stored === "5" ? "system" : "default");
+    document.body.setAttribute(
+      "data-font",
+      isUberStyle(stored) ? "system" : "default",
+    );
   }, []);
 
   const setStyle = useCallback((id: StyleId) => {
     setStyleState(id);
     document.documentElement.setAttribute("data-style", id);
-    document.body.setAttribute("data-font", id === "5" ? "system" : "default");
+    document.body.setAttribute(
+      "data-font",
+      isUberStyle(id) ? "system" : "default",
+    );
     localStorage.setItem(STORAGE_KEY, id);
   }, []);
 

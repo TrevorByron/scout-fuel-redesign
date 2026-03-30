@@ -65,7 +65,7 @@ const sections: FormSection[] = [
 ];
 
 const Example = () => (
-  <Accordion className="w-full max-w-md -space-y-px">
+  <Accordion className="w-full max-w-md -space-y-px rounded-md">
     {sections.map((section) => (
       <AccordionItem
         className="overflow-hidden border bg-background px-4 first:rounded-t-lg last:rounded-b-lg last:border-b"

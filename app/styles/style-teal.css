@@ -1,10 +1,10 @@
-/* Style 2 – Generic Gradient palette (blue → cyan → teal → mint → lime → yellow).
+/* Teal – Generic Gradient palette (blue → cyan → teal → mint → lime → yellow).
    Primary: #26A9E1. Swatch used by the style switcher. */
 :root {
-  --swatch-2: oklch(0.6810 0.1370 232.9);
+  --swatch-teal: oklch(0.6810 0.1370 232.9);
 }
 
-html[data-style="2"] {
+html[data-style="teal"] {
   --background: oklch(1.0000 0 0);
   --foreground: oklch(0.22 0.02 233);
   --card: oklch(1.0000 0 0);
@@ -61,29 +61,33 @@ html[data-style="2"] {
   --spacing: 0.28rem;
 }
 
-/* Style 2: same chunky form controls as Style 1 (min-height 40px) */
-html[data-style="2"] [data-slot="button"] {
+/* Teal: chunky form controls (min-height 40px) */
+html[data-style="teal"] [data-slot="button"] {
   min-height: 40px;
 }
 
-html[data-style="2"] [data-slot="input"] {
+html[data-style="teal"] [data-slot="input"] {
   min-height: 40px;
 }
 
-html[data-style="2"] [data-slot="select-trigger"] {
+html[data-style="teal"] [data-slot="select-trigger"] {
   min-height: 40px;
 }
 
-html[data-style="2"] [data-slot="input-group"] {
+html[data-style="teal"] [data-slot="input-group"] {
   min-height: 40px;
 }
 
-html[data-style="2"] [data-slot="textarea"] {
+html[data-style="teal"] [data-slot="textarea"] {
   min-height: 40px;
 }
 
-/* Style 2: subtle gradient on dashboard KPI cards (size=sm), primary tint */
-html[data-style="2"] [data-slot="card"][data-size="sm"] {
+html[data-style="teal"] [data-slot="sidebar-group-label"] {
+  display: none;
+}
+
+/* Teal: subtle gradient on dashboard KPI cards (size=sm), primary tint */
+html[data-style="teal"] [data-slot="card"][data-size="sm"] {
   background: linear-gradient(
     180deg,
     var(--card) 0%,
@@ -91,16 +95,25 @@ html[data-style="2"] [data-slot="card"][data-size="sm"] {
   );
 }
 
-html[data-style="2"] [data-slot="popover-trigger"] {
+/* Dashboard KPI row: hover aligns with StatStrip hover:bg-muted/80 (slightly stronger primary tint) */
+html[data-style="teal"] [data-dashboard-kpi-row] [data-slot="card"][data-size="sm"]:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--card) 98%, var(--primary)) 0%,
+    color-mix(in oklch, var(--card) 90%, var(--primary)) 100%
+  ) !important;
+}
+
+html[data-style="teal"] [data-slot="popover-trigger"] {
   min-height: 40px;
 }
 
 /* Sheet footer primary action (Apply filters) — same height as buttons */
-html[data-style="2"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+html[data-style="teal"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
   min-height: 40px;
 }
 
-html[data-style="2"].dark {
+html[data-style="teal"].dark {
   --background: oklch(0.14 0.02 233);
   --foreground: oklch(0.98 0 0);
   --card: oklch(0.18 0.02 233);

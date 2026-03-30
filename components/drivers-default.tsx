@@ -487,7 +487,7 @@ export function DriversDefault() {
                         aria-label={`View details for ${d.driverName}`}
                       >
                         <Card size="sm" className="overflow-hidden shadow-md ring-1 ring-foreground/10">
-                          <CardContent className="flex flex-col gap-3 pt-4">
+                          <CardContent className="flex flex-col gap-3 pt-0">
                             <div className="flex items-center gap-3">
                               <Avatar size="lg" className="size-10 shrink-0">
                                 <AvatarFallback className="text-xs font-medium">

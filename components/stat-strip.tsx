@@ -43,7 +43,7 @@ const StatStripItem = ({
   const isMobile = useIsMobile()
   const baseCn = cn(
     statStripItemClasses,
-    (onClick || (tooltip && isMobile)) &&
+    (onClick || tooltip) &&
       "cursor-pointer hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-primary data-[active=true]:bg-muted",
     tooltip && isMobile && "min-h-[44px]",
     className

@@ -17,25 +17,19 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PaintBoardIcon } from "@hugeicons/core-free-icons";
 import { useStyle } from "@/components/style-provider";
-
-const STYLES = [
-  { id: "1" as const, label: "Style 1", swatchVar: "var(--swatch-1)" },
-  { id: "2" as const, label: "Style 2", swatchVar: "var(--swatch-2)" },
-  { id: "3" as const, label: "Style 3", swatchVar: "var(--swatch-3)" },
-  { id: "4" as const, label: "Style 4", swatchVar: "var(--swatch-4)" },
-  { id: "5" as const, label: "Uber", swatchVar: "var(--swatch-5)" },
-] as const;
+import { UI_STYLES } from "@/lib/ui-styles";
 
 export function StyleSwitcher({ inline }: { inline?: boolean } = {}) {
   const { style, setStyle } = useStyle();
   const { isMobile } = useSidebar();
-  const currentStyle = STYLES.find((s) => s.id === style) ?? STYLES[4];
+  const currentStyle =
+    UI_STYLES.find((s) => s.id === style) ?? UI_STYLES[UI_STYLES.length - 1];
 
   const menuItem = (
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<SidebarMenuButton size="sm" tooltip="UI Style" />}
+          render={<SidebarMenuButton tooltip="UI Style" />}
         >
           <HugeiconsIcon icon={PaintBoardIcon} strokeWidth={2} />
           <span>UI Style</span>
@@ -50,7 +44,7 @@ export function StyleSwitcher({ inline }: { inline?: boolean } = {}) {
             <DropdownMenuLabel className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
               Style template
             </DropdownMenuLabel>
-            {STYLES.map(({ id, label, swatchVar }) => (
+            {UI_STYLES.map(({ id, label, swatchVar }) => (
               <DropdownMenuItem
                 key={id}
                 onClick={() => setStyle(id)}

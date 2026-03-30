@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useStyle } from "@/components/style-provider"
+import { isUberStyle } from "@/lib/ui-styles"
 
 export function LoginForm({
   className,
@@ -20,7 +21,7 @@ export function LoginForm({
   onSubmit?: () => void
 }) {
   const { style } = useStyle()
-  const isUber = style === "5"
+  const isUber = isUberStyle(style)
   return (
     <form
       className={cn("flex flex-col gap-5", className)}
