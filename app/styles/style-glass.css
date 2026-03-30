@@ -192,7 +192,7 @@ html[data-style="glass"].dark [data-slot="sidebar-inset"] {
 
 /* Style 4: glass cards */
 html[data-style="glass"] [data-slot="card"] {
-  background: rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
   backdrop-filter: blur(10px);
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.45);
