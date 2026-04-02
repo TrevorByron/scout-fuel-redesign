@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-03-23T16:37:57.191Z",
+  "capturedAt": "2026-04-02T21:00:02.649Z",
   "results": [
     {
-      "url": "http://localhost:3000",
-      "filename": "compliance-gauge_localhost_3000.png",
-      "filepath": "public/client-summary-screenshots/compliance-gauge_localhost_3000.png",
+      "url": "http://localhost:3000/signup",
+      "filename": "20260402-signup-form_localhost_3000_signup.png",
+      "filepath": "public/client-summary-screenshots/20260402-signup-form_localhost_3000_signup.png",
       "status": "ok"
     }
   ]
