@@ -24,7 +24,7 @@ export function PilotRebateSidebarProgress() {
         render={
           <SidebarMenuButton
             className="h-auto min-h-[44px] w-full cursor-pointer flex-col items-stretch gap-1.5 py-2"
-            aria-label="Pilot rebate progress — click for details"
+            aria-label="Pilot rebate progress — spend and tier details"
           />
         }
       >
@@ -36,7 +36,12 @@ export function PilotRebateSidebarProgress() {
               className="h-2 bg-emerald-100/80 dark:bg-emerald-900/30"
             />
             <span className="text-[length:var(--text-2xs)] text-sidebar-foreground/75">
-              {currentMonth.gallons.toLocaleString("en-US", { maximumFractionDigits: 0 })} gal · {daysLeftInMonth}d left
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 0,
+              }).format(currentMonth.spendDollars)}{" "}
+              spent · {daysLeftInMonth}d left
             </span>
           </>
         ) : (

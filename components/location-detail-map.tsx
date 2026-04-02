@@ -14,6 +14,7 @@ import {
   ActualVsOptimizedCard,
   type LocationComparison,
 } from "@/components/actual-vs-optimized-card"
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 
 export type RepresentativeBetterOption = {
   stationName: string
@@ -139,13 +140,6 @@ export function LocationDetailMap({
     )
   }
 
-  const centerLng = representativeBetterOption
-    ? (locationLng + representativeBetterOption.lng) / 2
-    : locationLng
-  const centerLat = representativeBetterOption
-    ? (locationLat + representativeBetterOption.lat) / 2
-    : locationLat
-
   const locationLabel =
     avgMissedSavingsPerBadStop > 0
       ? `${locationDisplayName} — Avg $${avgMissedSavingsPerBadStop.toLocaleString("en-US", { maximumFractionDigits: 0 })} lost/fill-up`
@@ -155,8 +149,8 @@ export function LocationDetailMap({
     <div className="relative h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
-        center={[centerLng, centerLat]}
-        zoom={12}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
       >
         <FitBounds
           locationLat={locationLat}

@@ -9,9 +9,7 @@ import {
   MapControls,
   useMap,
 } from "@/components/ui/map"
-
-const DEFAULT_CENTER: [number, number] = [-98.5, 39.5] // US center
-const DEFAULT_ZOOM = 6
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 const SINGLE_POINT_ZOOM = 13
 const FLY_DURATION_MS = 600
 
@@ -150,8 +148,8 @@ export function RouteOptimizerMap({
     >
       <Map
         className="h-full w-full min-h-[160px] rounded-none"
-        center={DEFAULT_CENTER}
-        zoom={DEFAULT_ZOOM}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
       >
         {originCoords && !destinationCoords && (
           <FitSinglePoint coords={originCoords} />
@@ -159,11 +157,11 @@ export function RouteOptimizerMap({
         {destinationCoords && !originCoords && (
           <FitSinglePoint coords={destinationCoords} />
         )}
-        {originCoords && destinationCoords && (
+        {originCoords && destinationCoords && hasRoute && (
           <FitRouteBounds
             originCoords={originCoords}
             destinationCoords={destinationCoords}
-            routeCoordinates={routeCoordinates.length >= 2 ? routeCoordinates : []}
+            routeCoordinates={routeCoordinates}
             fuelStopCoords={fuelStopCoords}
             mapLeftPadding={mapLeftPadding}
             mapBottomPadding={mapBottomPadding}
@@ -230,7 +228,12 @@ export function RouteOptimizerMap({
             </MarkerContent>
           </MapMarker>
         ))}
-        <MapControls showZoom showLocate position="bottom-right" />
+        <MapControls
+          showZoom
+          showLocate
+          position="bottom-right"
+          className="max-md:hidden"
+        />
       </Map>
     </div>
   )

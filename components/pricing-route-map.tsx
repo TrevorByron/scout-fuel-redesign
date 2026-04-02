@@ -16,10 +16,8 @@ import {
 import type { RoutePricingStop } from "@/lib/along-route-stops"
 import { selectVisiblePriceStops } from "@/lib/pricing-route-visibility"
 import type { LngLat } from "@/lib/trips"
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 import { cn } from "@/lib/utils"
-
-const DEFAULT_CENTER: [number, number] = [-98.5, 39.5]
-const DEFAULT_ZOOM = 6
 const SINGLE_POINT_ZOOM = 13
 const FLY_DURATION_MS = 600
 const DEFAULT_PADDING = 100
@@ -575,8 +573,8 @@ export function PricingRouteMap({
     >
       <Map
         className="h-full w-full min-h-[160px] rounded-none"
-        center={DEFAULT_CENTER}
-        zoom={DEFAULT_ZOOM}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
       >
         {hasAreaSearch && areaCenterCoords && areaRadiusMeters != null ? (
           <>
@@ -610,7 +608,7 @@ export function PricingRouteMap({
         {!isAreaMode && destinationCoords && !originCoords ? (
           <FitSinglePoint coords={destinationCoords} />
         ) : null}
-        {!isAreaMode && originCoords && destinationCoords ? (
+        {!isAreaMode && originCoords && destinationCoords && hasRoute ? (
           <FitRouteBounds
             originCoords={originCoords}
             destinationCoords={destinationCoords}
@@ -685,7 +683,12 @@ export function PricingRouteMap({
           lowestYourPrice={lowestYourPrice}
           mapContainerRef={mapContainerRef}
         />
-        <MapControls showZoom showLocate position="bottom-right" />
+        <MapControls
+          showZoom
+          showLocate
+          position="bottom-right"
+          className="max-md:hidden"
+        />
       </Map>
     </div>
   )

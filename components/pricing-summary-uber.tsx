@@ -14,7 +14,7 @@ import {
 import { fetchOsrmDrivingRoutes, type OsrmRouteOption } from "@/lib/osrm-route"
 import type { LngLat } from "@/lib/trips"
 import { useDebouncedGeocode } from "@/hooks/use-debounced-geocode"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useTouchSheetScrollEnabled } from "@/hooks/use-touch-sheet-scroll-enabled"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -30,7 +30,7 @@ import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { PricingStationListRow } from "@/components/pricing-station-list-row"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { MapPeekScrollSpacer } from "@/components/map-peek-scroll-spacer"
+import { MapSheetLayout } from "@/components/map-sheet-layout"
 
 const PricingRouteMapDynamic = dynamic(
   () =>
@@ -39,8 +39,6 @@ const PricingRouteMapDynamic = dynamic(
     })),
   { ssr: false }
 )
-
-const MIN_VISIBLE_MAP_PX = 140
 
 const METERS_PER_MILE = 1609.344
 
@@ -73,11 +71,9 @@ export function PricingSummaryUber() {
   const [selectedRouteIndex, setSelectedRouteIndex] = React.useState(0)
   const [routeLoading, setRouteLoading] = React.useState(false)
   const [sidebarWidth, setSidebarWidth] = React.useState(0)
-  const [containerHeight, setContainerHeight] = React.useState(0)
-  const [formContentHeight, setFormContentHeight] = React.useState(0)
   const sidebarRef = React.useRef<HTMLElement>(null)
   const formContentRef = React.useRef<HTMLDivElement>(null)
-  const isMobile = useIsMobile()
+  const touchSheetScroll = useTouchSheetScrollEnabled()
 
   const {
     coords: originCoords,
@@ -101,20 +97,8 @@ export function PricingSummaryUber() {
     const el = sidebarRef.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
-      const { width, height } = entries[0]?.contentRect ?? { width: 0, height: 0 }
+      const { width } = entries[0]?.contentRect ?? { width: 0 }
       setSidebarWidth(Math.round(width))
-      setContainerHeight(Math.round(height))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  React.useEffect(() => {
-    const el = formContentRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const { height } = entries[0]?.contentRect ?? { height: 0 }
-      setFormContentHeight(Math.round(height))
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -281,140 +265,116 @@ export function PricingSummaryUber() {
     "hover:text-foreground data-active:hover:text-primary-foreground"
   )
 
-  return (
-    <div
-      className="relative flex min-h-0 flex-1 overflow-hidden p-0"
-      style={{
-        height: "100%",
-        maxHeight: "calc(100dvh - var(--header-height, 3rem))",
-      }}
-    >
-      <div className="absolute inset-0 z-0">
-        <div className="h-full w-full">
-          <PricingRouteMapDynamic
-            searchMode={searchMode}
-            areaCenterCoords={
-              searchMode === "area" && canShowArea ? areaCoords : null
-            }
-            areaRadiusMeters={
-              searchMode === "area" && canShowArea
-                ? radiusMiles * METERS_PER_MILE
-                : undefined
-            }
-            originCoords={searchMode === "route" ? originCoords : null}
-            destinationCoords={searchMode === "route" ? destinationCoords : null}
-            routeCoordinates={canShowRoute ? routeCoordinates : []}
-            routeAlternatives={
-              canShowRoute && routeOptions.length > 0
-                ? routeOptions.map((r) => r.coordinates)
-                : []
-            }
-            selectedRouteIndex={selectedRouteIndex}
-            onSelectRoute={setSelectedRouteIndex}
-            routeLoading={searchMode === "route" ? routeLoading : false}
-            stops={
-              searchMode === "area" && canShowArea
-                ? stops
-                : searchMode === "route" &&
-                    canShowRoute &&
-                    routeCoordinates.length >= 2
-                  ? stops
-                  : []
-            }
-            lowestYourPrice={lowest}
-            mapLeftPadding={isMobile ? 0 : sidebarWidth}
-            mapBottomPadding={
-              isMobile && containerHeight > MIN_VISIBLE_MAP_PX
-                ? Math.min(formContentHeight, containerHeight - MIN_VISIBLE_MAP_PX)
-                : isMobile
-                  ? formContentHeight
-                  : 0
-            }
-          />
-        </div>
-      </div>
+  const fuelAriaLabel =
+    searchMode === "area"
+      ? "Find fuel near a location"
+      : "Find fuel along route"
 
-      {showSummaryChip ? (
-        <div className="pointer-events-none absolute left-4 right-4 top-3 z-20 flex justify-center sm:left-auto sm:right-6 sm:top-6 sm:justify-end">
-          <div
-            className="pointer-events-auto flex max-w-[min(100%,320px)] items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm sm:max-w-none sm:px-4"
-            role="status"
-            aria-live="polite"
-          >
+  return (
+    <MapSheetLayout
+      map={
+        <PricingRouteMapDynamic
+          searchMode={searchMode}
+          areaCenterCoords={
+            searchMode === "area" && canShowArea ? areaCoords : null
+          }
+          areaRadiusMeters={
+            searchMode === "area" && canShowArea
+              ? radiusMiles * METERS_PER_MILE
+              : undefined
+          }
+          originCoords={searchMode === "route" ? originCoords : null}
+          destinationCoords={searchMode === "route" ? destinationCoords : null}
+          routeCoordinates={canShowRoute ? routeCoordinates : []}
+          routeAlternatives={
+            canShowRoute && routeOptions.length > 0
+              ? routeOptions.map((r) => r.coordinates)
+              : []
+          }
+          selectedRouteIndex={selectedRouteIndex}
+          onSelectRoute={setSelectedRouteIndex}
+          routeLoading={searchMode === "route" ? routeLoading : false}
+          stops={
+            searchMode === "area" && canShowArea
+              ? stops
+              : searchMode === "route" &&
+                  canShowRoute &&
+                  routeCoordinates.length >= 2
+                ? stops
+                : []
+          }
+          lowestYourPrice={lowest}
+          mapLeftPadding={touchSheetScroll ? 0 : sidebarWidth}
+          mapBottomPadding={0}
+        />
+      }
+      overlay={
+        showSummaryChip ? (
+          <div className="pointer-events-none absolute left-4 right-4 top-3 z-20 flex justify-center sm:left-auto sm:right-6 sm:top-6 sm:justify-end">
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-base font-bold tabular-nums sm:h-10 sm:w-10 sm:text-sm"
-              aria-hidden
+              className="pointer-events-auto flex max-w-[min(100%,320px)] items-center gap-2 rounded-full border border-border bg-card/95 py-2 pl-3 pr-1 shadow-lg backdrop-blur-sm sm:max-w-none sm:gap-3 sm:pl-4 sm:pr-1.5"
+              role="status"
+              aria-live="polite"
             >
-              {stops.length}
-            </div>
-            <div className="min-w-0 text-left">
-              <p className="text-xl font-bold tabular-nums leading-none sm:text-2xl">
-                ${lowest.toFixed(2)}
-              </p>
-              <p className="text-muted-foreground mt-0.5 text-[10px] font-medium sm:text-xs">
-                Lowest
-              </p>
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-base font-bold tabular-nums sm:h-10 sm:w-10 sm:text-sm"
+                aria-hidden
+              >
+                {stops.length}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xl font-bold tabular-nums leading-none sm:text-2xl">
+                  ${lowest.toFixed(2)}
+                </p>
+                <p className="text-muted-foreground mt-0.5 text-[10px] font-medium sm:text-xs">
+                  Lowest
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-11 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:size-9"
+                onClick={searchMode === "route" ? clearRoute : clearArea}
+                aria-label={
+                  searchMode === "route" ? "Clear route" : "Clear location search"
+                }
+              >
+                <X className="size-4" aria-hidden />
+              </Button>
             </div>
           </div>
-        </div>
-      ) : null}
-
-      <aside
-        ref={sidebarRef}
-        className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pt-4 px-0 pb-0 md:min-w-[23.75rem] md:max-w-xl md:w-[43%] md:overflow-visible md:p-4"
-        aria-label={
-          searchMode === "area"
-            ? "Find fuel near a location"
-            : "Find fuel along route"
-        }
-      >
-        {/* Sticky map peek; form card scrolls over it (mobile) */}
-        <MapPeekScrollSpacer />
-        <div
-          ref={formContentRef}
-          data-slot="card"
-          className="pointer-events-auto relative z-10 flex w-full shrink-0 flex-col overflow-hidden rounded-lg bg-card text-card-foreground shadow-md ring-1 ring-foreground/10 max-md:min-h-[calc(100dvh-var(--header-height,3rem)-1rem-33.333vh)] max-md:pb-[env(safe-area-inset-bottom,0px)] md:min-h-0 md:max-h-none md:flex-1"
-        >
+        ) : null
+      }
+      ariaLabel={fuelAriaLabel}
+      sidebarRef={sidebarRef}
+      formContentRef={formContentRef}
+      cardDataSlot="card"
+      cardClassName="rounded-lg bg-card text-card-foreground shadow-md ring-1 ring-foreground/10 max-md:pb-[env(safe-area-inset-bottom,0px)] md:min-h-0 md:max-h-none md:flex-1"
+    >
           <header className="shrink-0 border-b border-border p-4">
-            <div className="flex items-start gap-2">
-              <Tabs
-                value={searchMode}
-                onValueChange={onSearchModeChange}
-                className="min-w-0 flex-1"
+            <Tabs
+              value={searchMode}
+              onValueChange={onSearchModeChange}
+              className="w-full"
+            >
+              <TabsList
+                className={cn(
+                  "grid h-fit w-full grid-cols-2 gap-1 p-1",
+                  "group-data-horizontal/tabs:h-fit",
+                  "bg-muted/50 text-card-foreground ring-1 ring-border/60"
+                )}
               >
-                <TabsList
-                  className={cn(
-                    "grid h-fit w-full grid-cols-2 gap-1 p-1",
-                    "group-data-horizontal/tabs:h-fit",
-                    "bg-muted/50 text-card-foreground ring-1 ring-border/60"
-                  )}
-                >
-                  <TabsTrigger value="route" className={searchModeTabTriggerClass}>
-                    <Route className="size-4 shrink-0" aria-hidden />
-                    Along route
-                  </TabsTrigger>
-                  <TabsTrigger value="area" className={searchModeTabTriggerClass}>
-                    <MapPin className="size-4 shrink-0" aria-hidden />
-                    Near a place
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {(searchMode === "route" && hasBothAddresses) ||
-              (searchMode === "area" && Boolean(areaQuery.trim())) ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-11 shrink-0 sm:size-9"
-                  onClick={searchMode === "route" ? clearRoute : clearArea}
-                  aria-label={
-                    searchMode === "route" ? "Clear route" : "Clear location search"
-                  }
-                >
-                  <X className="size-4" />
-                </Button>
-              ) : null}
-            </div>
+                <TabsTrigger value="route" className={searchModeTabTriggerClass}>
+                  <Route className="size-4 shrink-0" aria-hidden />
+                  Along route
+                </TabsTrigger>
+                <TabsTrigger value="area" className={searchModeTabTriggerClass}>
+                  <MapPin className="size-4 shrink-0" aria-hidden />
+                  Near a place
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </header>
 
           <div className="flex flex-col gap-4 p-4 md:min-h-0 md:flex-1 md:overflow-hidden">
@@ -677,8 +637,6 @@ export function PricingSummaryUber() {
                 </div>
               ) : null}
           </div>
-        </div>
-      </aside>
-    </div>
+    </MapSheetLayout>
   )
 }

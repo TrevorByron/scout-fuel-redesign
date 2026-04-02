@@ -10,6 +10,7 @@ import {
   useMap,
 } from "@/components/ui/map"
 import type { Truck } from "@/lib/mock-data"
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 
 const STATUS_COLOR_VAR: Record<string, string> = {
   "On Route": "var(--chart-2)",
@@ -72,15 +73,12 @@ export function FleetMap({ trucks }: { trucks: Truck[] }) {
     )
   }
 
-  const centerLng = trucks.reduce((a, t) => a + t.lng, 0) / trucks.length
-  const centerLat = trucks.reduce((a, t) => a + t.lat, 0) / trucks.length
-
   return (
     <div className="h-full min-h-[50vh] w-full rounded-lg border border-border md:min-h-[60vh]">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
-        center={[centerLng, centerLat]}
-        zoom={7}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
       >
         <FitBounds trucks={trucks} />
         {trucks.map((truck) => (

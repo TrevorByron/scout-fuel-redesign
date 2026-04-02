@@ -17,6 +17,7 @@ import {
   ActualVsOptimizedCard,
   transactionToComparison,
 } from "@/components/actual-vs-optimized-card"
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 import { cn } from "@/lib/utils"
 
 function getWaste(t: FuelTransaction): number {
@@ -258,17 +259,12 @@ export function DriverInsightsMap({
     )
   }
 
-  const centerLng =
-    transactions.reduce((a, t) => a + t.lng, 0) / transactions.length
-  const centerLat =
-    transactions.reduce((a, t) => a + t.lat, 0) / transactions.length
-
   return (
     <div className="relative h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
-        center={[centerLng, centerLat]}
-        zoom={8}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
         popupPortalToBody
       >
         {isFocused && popupTransaction ? (

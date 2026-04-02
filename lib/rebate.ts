@@ -8,15 +8,17 @@ export function isPilotTransaction(t: FuelTransaction): boolean {
 
 export interface RebateTier {
   label: string
-  minGallons: number
-  maxGallons: number
-  ratePerGallon: number
+  minSpendDollars: number
+  maxSpendDollars: number
+  /** Fraction of eligible Pilot spend returned as rebate (e.g. 0.0055 = 0.55%). */
+  rebateRateOnSpend: number
 }
 
+/** Monthly Pilot spend thresholds for tier placement; rebate is a percentage of month-to-date Pilot spend. */
 export const REBATE_TIERS: RebateTier[] = [
-  { label: "Tier 1", minGallons: 0, maxGallons: 150_000, ratePerGallon: 0.02 },
-  { label: "Tier 2", minGallons: 150_000, maxGallons: 350_000, ratePerGallon: 0.04 },
-  { label: "Tier 3", minGallons: 350_000, maxGallons: Number.POSITIVE_INFINITY, ratePerGallon: 0.07 },
+  { label: "Tier 1", minSpendDollars: 0, maxSpendDollars: 550_000, rebateRateOnSpend: 0.0055 },
+  { label: "Tier 2", minSpendDollars: 550_000, maxSpendDollars: 1_300_000, rebateRateOnSpend: 0.011 },
+  { label: "Tier 3", minSpendDollars: 1_300_000, maxSpendDollars: Number.POSITIVE_INFINITY, rebateRateOnSpend: 0.019 },
 ]
 
 function getMonthRange(date: Date): { start: Date; end: Date } {
@@ -30,17 +32,17 @@ function isWithin(dateTime: string, start: Date, end: Date): boolean {
   return t >= start.getTime() && t <= end.getTime()
 }
 
-function sumPilotGallons(txns: FuelTransaction[], start: Date, end: Date): number {
+function sumPilotSpendDollars(txns: FuelTransaction[], start: Date, end: Date): number {
   return txns.reduce((sum, t) => {
     if (!isPilotTransaction(t)) return sum
     if (!isWithin(t.dateTime, start, end)) return sum
-    return sum + t.gallons
+    return sum + t.totalCost
   }, 0)
 }
 
-function getTierForGallons(gallons: number): RebateTier {
+function getTierForSpend(spendDollars: number): RebateTier {
   return (
-    REBATE_TIERS.find((tier) => gallons >= tier.minGallons && gallons < tier.maxGallons) ??
+    REBATE_TIERS.find((tier) => spendDollars >= tier.minSpendDollars && spendDollars < tier.maxSpendDollars) ??
     REBATE_TIERS[REBATE_TIERS.length - 1]!
   )
 }
@@ -52,27 +54,27 @@ function formatMonthLabel(date: Date): string {
 export interface PilotRebateSummary {
   previousMonth: {
     monthLabel: string
-    gallons: number
+    spendDollars: number
     tier: RebateTier
     rebateDollars: number
   }
   currentMonth: {
     monthLabel: string
-    gallons: number
+    spendDollars: number
     tier: RebateTier
     rebateDollars: number
   }
   nextTier?: {
     tier: RebateTier
-    unlockGallons: number
-    gallonsToNextTier: number
+    unlockSpendDollars: number
+    spendToNextTierDollars: number
     additionalDollarsAtNextRate: number
   }
   daysLeftInMonth: number
   resetDateLabel: string
   progressPctToNextTier: number
-  projectedGallons: number
-  shortfallGallons: number
+  projectedSpendDollars: number
+  shortfallSpendDollars: number
 }
 
 export function getPilotRebateSummary(
@@ -83,14 +85,14 @@ export function getPilotRebateSummary(
   const prevMonthDate = new Date(asOfDate.getFullYear(), asOfDate.getMonth() - 1, 15)
   const { start: prevStart, end: prevEnd } = getMonthRange(prevMonthDate)
 
-  const currentGallons = sumPilotGallons(allTransactions, currentStart, currentEnd)
-  const prevGallons = sumPilotGallons(allTransactions, prevStart, prevEnd)
+  const currentSpend = sumPilotSpendDollars(allTransactions, currentStart, currentEnd)
+  const prevSpend = sumPilotSpendDollars(allTransactions, prevStart, prevEnd)
 
-  const currentTier = getTierForGallons(currentGallons)
-  const prevTier = getTierForGallons(prevGallons)
+  const currentTier = getTierForSpend(currentSpend)
+  const prevTier = getTierForSpend(prevSpend)
 
-  const currentRebate = Math.round(currentGallons * currentTier.ratePerGallon)
-  const prevRebate = Math.round(prevGallons * prevTier.ratePerGallon)
+  const currentRebate = Math.round(currentSpend * currentTier.rebateRateOnSpend)
+  const prevRebate = Math.round(prevSpend * prevTier.rebateRateOnSpend)
 
   const daysInMonth = new Date(asOfDate.getFullYear(), asOfDate.getMonth() + 1, 0).getDate()
   const todayDay = asOfDate.getDate()
@@ -105,28 +107,28 @@ export function getPilotRebateSummary(
 
   let nextTierDetails: PilotRebateSummary["nextTier"] | undefined
   let progressPctToNextTier = 100
-  let projectedGallons = currentGallons
-  let shortfallGallons = 0
+  let projectedSpendDollars = currentSpend
+  let shortfallSpendDollars = 0
 
   if (nextTier) {
-    const unlockGallons = nextTier.minGallons
-    const gallonsToNextTier = Math.max(0, unlockGallons - currentGallons)
+    const unlockSpendDollars = nextTier.minSpendDollars
+    const spendToNextTierDollars = Math.max(0, unlockSpendDollars - currentSpend)
 
-    const perDay = todayDay > 0 ? currentGallons / todayDay : 0
-    projectedGallons = perDay > 0 ? perDay * daysInMonth : currentGallons
-    shortfallGallons = Math.max(0, unlockGallons - projectedGallons)
+    const perDay = todayDay > 0 ? currentSpend / todayDay : 0
+    projectedSpendDollars = perDay > 0 ? perDay * daysInMonth : currentSpend
+    shortfallSpendDollars = Math.max(0, unlockSpendDollars - projectedSpendDollars)
 
-    const currentAtUnlock = unlockGallons * currentTier.ratePerGallon
-    const nextAtUnlock = unlockGallons * nextTier.ratePerGallon
+    const currentAtUnlock = unlockSpendDollars * currentTier.rebateRateOnSpend
+    const nextAtUnlock = unlockSpendDollars * nextTier.rebateRateOnSpend
     const additionalDollarsAtNextRate = Math.round(nextAtUnlock - currentAtUnlock)
 
-    const denom = unlockGallons > 0 ? unlockGallons : 1
-    progressPctToNextTier = Math.max(0, Math.min(100, (currentGallons / denom) * 100))
+    const denom = unlockSpendDollars > 0 ? unlockSpendDollars : 1
+    progressPctToNextTier = Math.max(0, Math.min(100, (currentSpend / denom) * 100))
 
     nextTierDetails = {
       tier: nextTier,
-      unlockGallons,
-      gallonsToNextTier,
+      unlockSpendDollars,
+      spendToNextTierDollars,
       additionalDollarsAtNextRate,
     }
   }
@@ -134,13 +136,13 @@ export function getPilotRebateSummary(
   return {
     previousMonth: {
       monthLabel: formatMonthLabel(prevStart),
-      gallons: prevGallons,
+      spendDollars: prevSpend,
       tier: prevTier,
       rebateDollars: prevRebate,
     },
     currentMonth: {
       monthLabel: formatMonthLabel(currentStart),
-      gallons: currentGallons,
+      spendDollars: currentSpend,
       tier: currentTier,
       rebateDollars: currentRebate,
     },
@@ -148,8 +150,7 @@ export function getPilotRebateSummary(
     daysLeftInMonth,
     resetDateLabel,
     progressPctToNextTier,
-    projectedGallons,
-    shortfallGallons,
+    projectedSpendDollars,
+    shortfallSpendDollars,
   }
 }
-

@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const defaultStyles = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-  light: "https://tiles.versatiles.org/assets/styles/colorful/style.json",
+  light: "https://tiles.openfreemap.org/styles/liberty",
 };
 
 type Theme = "light" | "dark";
@@ -124,7 +124,7 @@ type MapProps = {
    * Pass your theme value here.
    */
   theme?: Theme;
-  /** Custom map styles for light and dark themes. Overrides the default Carto styles. */
+  /** Custom map styles for light and dark themes. Overrides the default basemap styles. */
   styles?: {
     light?: MapStyleOption;
     dark?: MapStyleOption;
@@ -226,11 +226,9 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       container: containerRef.current,
       style: initialStyle,
       renderWorldCopies: false,
-      attributionControl: {
-        compact: true,
-      },
       ...props,
       ...viewport,
+      attributionControl: false,
     });
 
     const styleDataHandler = () => {

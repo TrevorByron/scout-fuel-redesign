@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,19 +45,35 @@ export function LoginForm({
         </div>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="m@example.com"
+            required
+          />
         </Field>
         <Field>
           <div className="flex items-center">
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <a
-              href="#"
-              className={cn("ml-auto text-sm underline-offset-4 hover:underline", isUber && "text-primary")}
+            <Link
+              href="/forgot-password"
+              className={cn(
+                "ml-auto text-sm underline-offset-4 hover:underline",
+                isUber && "text-primary"
+              )}
             >
               Forgot your password?
-            </a>
+            </Link>
           </div>
-          <Input id="password" type="password" required />
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+          />
         </Field>
         <Field>
           <Button type="submit" size="lg" className="w-full">
@@ -118,9 +136,15 @@ export function LoginForm({
           </div>
           <FieldDescription className="mt-1 text-center">
             Don&apos;t have an account?{" "}
-            <a href="#" className={cn("underline underline-offset-4 hover:underline", isUber && "text-primary")}>
+            <Link
+              href="/signup"
+              className={cn(
+                "underline underline-offset-4 hover:underline",
+                isUber && "text-primary"
+              )}
+            >
               Sign up
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>

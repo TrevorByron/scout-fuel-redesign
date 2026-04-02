@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 import {
   Map,
   MapClusterLayer,
@@ -120,17 +121,12 @@ export function LocationInsightsMap({ locations }: LocationInsightsMapProps) {
     )
   }
 
-  const centerLng =
-    locations.reduce((a, l) => a + l.lng, 0) / locations.length
-  const centerLat =
-    locations.reduce((a, l) => a + l.lat, 0) / locations.length
-
   return (
     <div className="h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
-        center={[centerLng, centerLat]}
-        zoom={7}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
         popupPortalToBody
       >
         <FitBounds locations={locations} />

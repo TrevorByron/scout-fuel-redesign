@@ -106,7 +106,8 @@ html[data-style="uber"] [data-slot="button"] {
 html[data-style="uber"] [data-slot="input"],
 html[data-style="uber"] [data-slot="select-trigger"],
 html[data-style="uber"] [data-slot="input-group"],
-html[data-style="uber"] [data-slot="textarea"] {
+html[data-style="uber"] [data-slot="textarea"],
+html[data-style="uber"] [data-slot="popover-trigger"][data-form-control] {
   min-height: 40px;
   border-radius: 0;
   border-color: var(--input-border) !important;
@@ -117,7 +118,8 @@ html[data-style="uber"] [data-slot="textarea"] {
 html[data-style="uber"] [data-slot="input"]:focus-visible,
 html[data-style="uber"] [data-slot="select-trigger"]:focus-visible,
 html[data-style="uber"] [data-slot="input-group"]:focus-within,
-html[data-style="uber"] [data-slot="textarea"]:focus-visible {
+html[data-style="uber"] [data-slot="textarea"]:focus-visible,
+html[data-style="uber"] [data-slot="popover-trigger"][data-form-control]:focus-visible {
   border-color: var(--ring) !important;
 }
 

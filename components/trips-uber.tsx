@@ -20,6 +20,8 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { TripDetailContentUber } from "@/components/trip-detail-uber"
 import { useTripRoute } from "@/lib/use-trip-route"
+import { useTouchSheetScrollEnabled } from "@/hooks/use-touch-sheet-scroll-enabled"
+import { MapSheetLayout } from "@/components/map-sheet-layout"
 
 const RouteOptimizerMapDynamic = dynamic(
   () =>
@@ -48,6 +50,8 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
   const [driverFilter, setDriverFilter] = React.useState<string>("all")
   const [sidebarWidth, setSidebarWidth] = React.useState(0)
   const sidebarRef = React.useRef<HTMLElement>(null)
+  const formContentRef = React.useRef<HTMLDivElement>(null)
+  const touchSheetScroll = useTouchSheetScrollEnabled()
 
   const selectedTrip = selectedTripId ? getTripPlan(selectedTripId) : null
 
@@ -87,36 +91,23 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
   const mapProps = useTripRoute(selectedTrip)
 
   return (
-    <div
-      className="relative flex flex-1 min-h-0 overflow-hidden p-0"
-      style={{
-        height: "100%",
-        maxHeight: "calc(100dvh - var(--header-height, 3rem))",
-      }}
+    <MapSheetLayout
+      map={
+        <RouteOptimizerMapDynamic
+          originCoords={mapProps.originCoords}
+          destinationCoords={mapProps.destinationCoords}
+          routeCoordinates={mapProps.routeCoordinates}
+          routeLoading={mapProps.routeLoading}
+          fuelStopCoords={mapProps.fuelStopCoords}
+          mapLeftPadding={touchSheetScroll ? 0 : sidebarWidth}
+        />
+      }
+      ariaLabel="Trip details"
+      sidebarRef={sidebarRef}
+      formContentRef={formContentRef}
+      cardDataSlot="card"
+      cardClassName="rounded-lg bg-card text-card-foreground shadow-md ring-1 ring-foreground/10 max-md:pb-[env(safe-area-inset-bottom,0px)] md:min-h-0 md:max-h-none md:flex-1"
     >
-      {/* Full-bleed map background */}
-      <div className="absolute inset-0 z-0">
-        <div className="h-full w-full">
-          <RouteOptimizerMapDynamic
-            originCoords={mapProps.originCoords}
-            destinationCoords={mapProps.destinationCoords}
-            routeCoordinates={mapProps.routeCoordinates}
-            routeLoading={mapProps.routeLoading}
-            fuelStopCoords={mapProps.fuelStopCoords}
-            mapLeftPadding={sidebarWidth}
-          />
-        </div>
-      </div>
-
-      {/* Left overlay: blocks map interaction; contains floating card */}
-      <aside
-        ref={sidebarRef}
-        className="absolute left-0 top-0 bottom-0 z-10 flex w-full min-w-0 flex-col pt-4 px-0 pb-0 md:p-4 md:min-w-[23.75rem] md:max-w-xl md:w-[43%]"
-        aria-label="Trip details"
-      >
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:justify-start md:rounded-xl md:border md:border-border md:bg-background/20 md:backdrop-blur-md md:shadow-lg">
-          <div className="min-h-[140px] max-h-[33.333vh] flex-1 md:hidden" aria-hidden />
-          <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-background/20 shadow-lg backdrop-blur-md md:border-0 md:rounded-none md:shadow-none">
             {selectedTrip ? (
               <>
                 <header className="shrink-0 border-b border-border p-4">
@@ -131,10 +122,10 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
                     Back
                   </Button>
                 </header>
-                <div className="min-h-0 flex-1 overflow-y-auto p-0 md:p-4">
+                <div className="max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-y-auto p-0 md:p-4">
                   <TripDetailContentUber trip={selectedTrip} onBack={handleBack} hideBackButton />
                 </div>
-                <footer className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm md:bg-background/20">
+                <footer className="shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm max-md:sticky max-md:bottom-0 max-md:z-10 md:relative md:z-auto md:bg-background/20">
                   <Button
                     className="min-h-11 w-full sm:min-h-0"
                     onClick={() => router.push(`/route-optimizer?tripId=${selectedTrip.id}`)}
@@ -157,7 +148,7 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
                     Back
                   </Button>
                 </header>
-                <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-4">
+                <div className="max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-y-auto p-4 md:p-4">
                   <p className="text-sm text-muted-foreground">Trip not found</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     The trip may have been removed or the link is invalid.
@@ -172,7 +163,7 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
                     Trip plans from the Optimizer. Select one to track progress.
                   </p>
                 </header>
-                <div className="min-h-0 flex-1 overflow-y-auto p-0 md:p-4">
+                <div className="max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-y-auto p-0 md:p-4">
                   <div className="flex flex-col gap-4 p-4 md:p-0">
                     <div className="flex flex-col gap-2">
                       <label htmlFor="trips-driver-filter" className="text-xs font-medium text-muted-foreground">
@@ -215,15 +206,14 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
                         <p className="mt-1">Change the driver filter or create trips in the Optimizer.</p>
                       </div>
                     ) : (
-                      <ul className="space-y-1">
+                      <ul className="space-y-2 px-0.5">
                         {filteredTrips.map((trip) => {
                           const status = getTripStatus(trip)
                           return (
                             <li key={trip.id}>
                               <Link
                                 href={`/trips?id=${trip.id}`}
-                                data-slot="card"
-                                className="w-full text-left rounded-lg border border-border p-3 transition-colors flex items-center gap-3 bg-card text-card-foreground shadow-sm hover:bg-muted/50"
+                                className="w-full text-left rounded-lg border border-border bg-card p-3 text-card-foreground shadow-sm transition-colors flex items-center gap-3 hover:bg-muted/50"
                               >
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium truncate">
@@ -252,9 +242,6 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      </aside>
-    </div>
+    </MapSheetLayout>
   )
 }

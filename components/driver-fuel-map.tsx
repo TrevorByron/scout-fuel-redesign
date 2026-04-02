@@ -4,6 +4,10 @@ import * as React from "react"
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
 import L from "leaflet"
 import type { FuelTransaction } from "@/lib/mock-data"
+import {
+  MAP_US_CENTER_LEAFLET,
+  MAP_US_ZOOM_LEAFLET,
+} from "@/lib/map-us-defaults"
 import "leaflet/dist/leaflet.css"
 
 export function DriverFuelMap({ transactions }: { transactions: FuelTransaction[] }) {
@@ -35,16 +39,10 @@ export function DriverFuelMap({ transactions }: { transactions: FuelTransaction[
     )
   }
 
-  const allLats = transactions.flatMap((t) => (t.betterOption ? [t.lat, t.betterOption.lat] : [t.lat]))
-  const allLngs = transactions.flatMap((t) => (t.betterOption ? [t.lng, t.betterOption.lng] : [t.lng]))
-  const centerLat = allLats.reduce((a, b) => a + b, 0) / allLats.length
-  const centerLng = allLngs.reduce((a, b) => a + b, 0) / allLngs.length
-  const center: [number, number] = [centerLat, centerLng]
-
   return (
     <MapContainer
-      center={center}
-      zoom={8}
+      center={MAP_US_CENTER_LEAFLET}
+      zoom={MAP_US_ZOOM_LEAFLET}
       className="h-[300px] w-full rounded-lg border"
       style={{ minHeight: 300 }}
     >

@@ -22,6 +22,7 @@ import {
 } from "@/lib/location-utils"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
+import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 import { ChevronLeft } from "lucide-react"
 
 export type FuelDataMapItem = {
@@ -220,11 +221,6 @@ export function FuelDataMap({ locations, transactions }: FuelDataMapProps) {
     )
   }
 
-  const centerLng =
-    locations.reduce((a, l) => a + l.lng, 0) / locations.length
-  const centerLat =
-    locations.reduce((a, l) => a + l.lat, 0) / locations.length
-
   if (selectedLocation) {
     return (
       <FocusedMapView
@@ -242,8 +238,8 @@ export function FuelDataMap({ locations, transactions }: FuelDataMapProps) {
     <div className="h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
-        center={[centerLng, centerLat]}
-        zoom={7}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
         popupPortalToBody
       >
         <FitBounds locations={locations} />
@@ -331,13 +327,6 @@ function FocusedMapView({
 
   if (!mounted) return null
 
-  const centerLng = representativeBetterOption
-    ? (locationLng + representativeBetterOption.lng) / 2
-    : locationLng
-  const centerLat = representativeBetterOption
-    ? (locationLat + representativeBetterOption.lat) / 2
-    : locationLat
-
   const locationLabel =
     representativeBetterOption
       ? `${locationDisplayName} — actual`
@@ -347,8 +336,8 @@ function FocusedMapView({
     <div className="relative h-full min-h-0 w-full rounded-lg border border-border">
       <Map
         className="h-full w-full min-h-[200px] rounded-lg"
-        center={[centerLng, centerLat]}
-        zoom={12}
+        center={MAP_US_CENTER}
+        zoom={MAP_US_ZOOM}
       >
         <FitToSelected
           lat={locationLat}

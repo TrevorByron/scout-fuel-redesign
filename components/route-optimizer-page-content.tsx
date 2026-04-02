@@ -38,10 +38,14 @@ import {
 import { Loader2, MapPin, Plus, ChevronLeft, Trash2, Fuel, Route } from "lucide-react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useTouchSheetScrollEnabled } from "@/hooks/use-touch-sheet-scroll-enabled"
 import { useDebouncedGeocode } from "@/hooks/use-debounced-geocode"
 import { cn } from "@/lib/utils"
-import { MapPeekScrollSpacer } from "@/components/map-peek-scroll-spacer"
+import { MapSheetLayout } from "@/components/map-sheet-layout"
+
+/** Matches `Input` / `SelectTrigger`: border-input, bg-input, typography, and route-form min-heights. */
+const ROUTE_OPT_FIELD_POPOVER_TRIGGER =
+  "border-input bg-input/20 font-normal shadow-none transition-colors dark:bg-input/30 hover:bg-input/35 hover:text-foreground dark:hover:bg-input/45 aria-expanded:bg-input/45 aria-expanded:text-foreground min-h-11 w-full justify-start gap-2 rounded-md px-2 py-0.5 text-sm md:text-xs/relaxed sm:min-h-9 [&_svg]:pointer-events-none [&_svg]:shrink-0"
 
 const RouteOptimizerMapDynamic = dynamic(
   () =>
@@ -91,32 +95,16 @@ export function RouteOptimizerPageContent() {
   const [planStops, setPlanStops] = React.useState<TripPlanStop[]>([])
   const [planSummary, setPlanSummary] = React.useState<TripPlanSummary | null>(null)
   const [sidebarWidth, setSidebarWidth] = React.useState(0)
-  const [containerHeight, setContainerHeight] = React.useState(0)
-  const [formContentHeight, setFormContentHeight] = React.useState(0)
   const sidebarRef = React.useRef<HTMLElement>(null)
   const formContentRef = React.useRef<HTMLDivElement>(null)
-  const isMobile = useIsMobile()
-
-  const MIN_VISIBLE_MAP_PX = 140
+  const touchSheetScroll = useTouchSheetScrollEnabled()
 
   React.useEffect(() => {
     const el = sidebarRef.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
-      const { width, height } = entries[0]?.contentRect ?? { width: 0, height: 0 }
+      const { width } = entries[0]?.contentRect ?? { width: 0 }
       setSidebarWidth(Math.round(width))
-      setContainerHeight(Math.round(height))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  React.useEffect(() => {
-    const el = formContentRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const { height } = entries[0]?.contentRect ?? { height: 0 }
-      setFormContentHeight(Math.round(height))
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -277,52 +265,33 @@ export function RouteOptimizerPageContent() {
   }
 
   return (
-    <div
-      className="relative flex flex-1 min-h-0 overflow-hidden p-0"
-      style={{
-        height: "100%",
-        maxHeight: "calc(100dvh - var(--header-height, 3rem))",
-      }}
+    <MapSheetLayout
+      map={
+        <RouteOptimizerMapDynamic
+          originCoords={originCoords}
+          destinationCoords={destinationCoords}
+          routeCoordinates={routeCoordinates}
+          routeLoading={routeLoading}
+          fuelStopCoords={fuelStopCoords}
+          mapLeftPadding={touchSheetScroll ? 0 : sidebarWidth}
+          mapBottomPadding={0}
+        />
+      }
+      overlay={
+        isOptimizing ? (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
+            <p className="text-sm font-medium text-foreground">Optimizing route</p>
+          </div>
+        ) : null
+      }
+      ariaLabel="Route details"
+      sidebarRef={sidebarRef}
+      formContentRef={formContentRef}
+      cardDataSlot="card"
+      cardClassName="rounded-lg backdrop-blur-sm max-md:bg-background/95 max-md:ring-0 max-md:shadow-none md:bg-background/20 md:ring-1 md:ring-foreground/10 md:shadow-md text-card-foreground md:min-h-0 md:max-h-none md:flex-1"
     >
-      <div className="absolute inset-0 z-0">
-        <div className="h-full w-full">
-          <RouteOptimizerMapDynamic
-            originCoords={originCoords}
-            destinationCoords={destinationCoords}
-            routeCoordinates={routeCoordinates}
-            routeLoading={routeLoading}
-            fuelStopCoords={fuelStopCoords}
-            mapLeftPadding={isMobile ? 0 : sidebarWidth}
-            mapBottomPadding={
-              isMobile && containerHeight > MIN_VISIBLE_MAP_PX
-                ? Math.min(formContentHeight, containerHeight - MIN_VISIBLE_MAP_PX)
-                : isMobile
-                  ? formContentHeight
-                  : 0
-            }
-          />
-        </div>
-      </div>
-
-      {isOptimizing && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
-          <p className="text-sm font-medium text-foreground">Optimizing route</p>
-        </div>
-      )}
-
-      <aside
-        ref={sidebarRef}
-        className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pt-4 px-0 pb-0 md:overflow-visible md:p-4 md:min-w-[23.75rem] md:max-w-xl md:w-[43%]"
-        aria-label="Route details"
-      >
-        <MapPeekScrollSpacer />
-        <div
-          ref={formContentRef}
-          data-slot="card"
-          className="pointer-events-auto relative z-10 flex w-full shrink-0 flex-col overflow-hidden rounded-lg backdrop-blur-sm max-md:bg-background/95 max-md:ring-0 max-md:shadow-none md:bg-background/20 md:ring-1 md:ring-foreground/10 md:shadow-md text-card-foreground max-md:min-h-[calc(100dvh-var(--header-height,3rem)-1rem-33.333vh)] md:min-h-0 md:max-h-none md:flex-1"
-        >
           {calculated ? (
-            <div className="flex shrink-0 flex-col overflow-visible rounded-none border border-border shadow-sm md:min-h-0 md:flex-1 md:overflow-hidden md:rounded-xl">
+            <div className="flex min-h-0 flex-1 flex-col overflow-visible rounded-none border border-border shadow-sm md:flex-1 md:overflow-hidden md:rounded-xl">
               <header className="shrink-0 border-b border-border p-4">
                 <Button
                   variant="ghost"
@@ -335,7 +304,7 @@ export function RouteOptimizerPageContent() {
                   Back
                 </Button>
               </header>
-              <div className="flex shrink-0 flex-col overflow-visible p-0 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-4">
+              <div className="flex min-h-0 flex-1 flex-col overflow-visible p-0 md:flex-1 md:overflow-y-auto md:p-4">
                 <Card className="py-0">
                   <CardContent className="p-4">
                     <h2 className="text-base font-semibold mb-4">
@@ -393,7 +362,8 @@ export function RouteOptimizerPageContent() {
               <footer
                 className={cn(
                   "shrink-0 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm",
-                  "md:sticky md:bottom-0 md:z-10 md:bg-background/20 md:pb-4"
+                  "max-md:sticky max-md:bottom-0 max-md:z-10",
+                  "md:relative md:z-auto md:bg-background/20 md:pb-4"
                 )}
               >
                 <Button
@@ -406,7 +376,7 @@ export function RouteOptimizerPageContent() {
               </footer>
             </div>
           ) : (
-          <div className="flex shrink-0 flex-col overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-visible md:flex-1 md:overflow-hidden">
             <header className="shrink-0 border-b border-border p-4">
               <h2 className="text-lg font-semibold tracking-tight md:text-2xl">Optimize fuel purchases</h2>
               <p className="text-muted-foreground text-xs mt-0.5">
@@ -416,7 +386,7 @@ export function RouteOptimizerPageContent() {
             <div
               role="region"
               aria-label="Trip and route details"
-              className="flex shrink-0 flex-col overflow-visible md:min-h-0 md:flex-1 md:basis-0 md:overflow-y-auto md:overscroll-y-contain md:[-webkit-overflow-scrolling:touch]"
+              className="flex min-h-0 flex-1 flex-col overflow-visible md:flex-1 md:basis-0 md:overflow-y-auto md:overscroll-y-contain md:[-webkit-overflow-scrolling:touch]"
             >
               <div className="flex flex-col gap-4 p-4 pb-8 md:min-h-0">
                 <section
@@ -558,15 +528,16 @@ export function RouteOptimizerPageContent() {
                             id="route-opt-trip-start"
                             variant="outline"
                             size="default"
+                            data-form-control=""
                             className={cn(
-                              "min-h-11 w-full justify-start text-xs font-normal sm:min-h-9",
+                              ROUTE_OPT_FIELD_POPOVER_TRIGGER,
                               !tripStart && "text-muted-foreground"
                             )}
                           >
                             <HugeiconsIcon
                               icon={Calendar01Icon}
                               strokeWidth={1.5}
-                              className="mr-2 size-4 shrink-0 text-muted-foreground"
+                              className="size-4 shrink-0 text-muted-foreground"
                             />
                             {tripStart ? format(tripStart, "MM/dd/yyyy") : "Pick date"}
                           </Button>
@@ -597,15 +568,16 @@ export function RouteOptimizerPageContent() {
                             id="route-opt-trip-end"
                             variant="outline"
                             size="default"
+                            data-form-control=""
                             className={cn(
-                              "min-h-11 w-full justify-start text-xs font-normal sm:min-h-9",
+                              ROUTE_OPT_FIELD_POPOVER_TRIGGER,
                               !tripEnd && "text-muted-foreground"
                             )}
                           >
                             <HugeiconsIcon
                               icon={Calendar01Icon}
                               strokeWidth={1.5}
-                              className="mr-2 size-4 shrink-0 text-muted-foreground"
+                              className="size-4 shrink-0 text-muted-foreground"
                             />
                             {tripEnd ? format(tripEnd, "MM/dd/yyyy") : "Pick date"}
                           </Button>
@@ -724,8 +696,9 @@ export function RouteOptimizerPageContent() {
             </div>
             <footer
               className={cn(
-                "sticky bottom-0 z-[100000] w-full shrink-0 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm flex flex-col gap-2",
-                "md:bg-background/20 md:pb-4"
+                "w-full shrink-0 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm flex flex-col gap-2",
+                "max-md:sticky max-md:bottom-0 max-md:z-[100000]",
+                "md:relative md:z-auto md:bg-background/20 md:pb-4"
               )}
             >
               <Button
@@ -770,8 +743,6 @@ export function RouteOptimizerPageContent() {
             </footer>
           </div>
           )}
-        </div>
-      </aside>
-    </div>
+    </MapSheetLayout>
   )
 }

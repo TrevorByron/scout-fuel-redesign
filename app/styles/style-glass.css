@@ -57,6 +57,25 @@ html[data-style="glass"] {
   --shadow-2xl: 0.5px 1px 8px -1.5px hsl(198 65% 28% / 0.35);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  /* Tune this one value to bump all Glass text weights (maps to Tailwind font-normal/medium/semibold/bold). */
+  --glass-fw-delta: 75;
+  --fw-normal: calc(400 + var(--glass-fw-delta));
+  --fw-medium: calc(500 + var(--glass-fw-delta));
+  --fw-semibold: calc(600 + var(--glass-fw-delta));
+  --fw-bold: calc(700 + var(--glass-fw-delta));
+}
+
+@media (max-width: 767px) {
+  html[data-style="glass"] {
+    --fw-normal: calc(500 + var(--glass-fw-delta));
+    --fw-medium: calc(600 + var(--glass-fw-delta));
+    --fw-semibold: calc(700 + var(--glass-fw-delta));
+    --fw-bold: calc(800 + var(--glass-fw-delta));
+  }
+}
+
+html[data-style="glass"] body {
+  font-weight: var(--fw-normal);
 }
 
 /* Style 4: sidebar wrapper – Framer-style gradient blobs (desktop + mobile) */
@@ -133,7 +152,7 @@ html[data-style="glass"] [data-slot="popover-trigger"][data-sidebar="menu-button
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   padding-left: 6px;
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 html[data-style="glass"] [data-slot="sidebar-header"],
@@ -390,12 +409,23 @@ html[data-style="glass"] [data-slot="sheet-footer"] [data-slot="sheet-close"] {
   min-height: 40px;
 }
 
-/* Glass: full-opacity input surfaces (Tailwind uses bg-input/20 — too faint on glass cards) */
-html[data-style="glass"] [data-slot="input"],
-html[data-style="glass"] [data-slot="select-trigger"],
-html[data-style="glass"] [data-slot="input-group"],
-html[data-style="glass"] [data-slot="textarea"],
-html[data-style="glass"] [data-slot="combobox-chips"] {
+/* Glass: full-opacity input surfaces — light: white fill + light gray border (border-input uses --input, same as fill) */
+html[data-style="glass"]:not(.dark) [data-slot="input"],
+html[data-style="glass"]:not(.dark) [data-slot="select-trigger"],
+html[data-style="glass"]:not(.dark) [data-slot="input-group"],
+html[data-style="glass"]:not(.dark) [data-slot="textarea"],
+html[data-style="glass"]:not(.dark) [data-slot="combobox-chips"],
+html[data-style="glass"]:not(.dark) [data-slot="popover-trigger"][data-form-control] {
+  background-color: oklch(1 0 0) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-style="glass"].dark [data-slot="input"],
+html[data-style="glass"].dark [data-slot="select-trigger"],
+html[data-style="glass"].dark [data-slot="input-group"],
+html[data-style="glass"].dark [data-slot="textarea"],
+html[data-style="glass"].dark [data-slot="combobox-chips"],
+html[data-style="glass"].dark [data-slot="popover-trigger"][data-form-control] {
   background-color: var(--input) !important;
 }
 
@@ -403,12 +433,14 @@ html[data-style="glass"] [data-slot="input"]:focus-visible,
 html[data-style="glass"] [data-slot="select-trigger"]:focus-visible,
 html[data-style="glass"] [data-slot="input-group"]:focus-within,
 html[data-style="glass"] [data-slot="textarea"]:focus-visible,
-html[data-style="glass"] [data-slot="combobox-chips"]:focus-within {
+html[data-style="glass"] [data-slot="combobox-chips"]:focus-within,
+html[data-style="glass"] [data-slot="popover-trigger"][data-form-control]:focus-visible {
   border-color: var(--ring) !important;
 }
 
 /* Dark: select hover used bg-input/50; restore a subtle lift over solid fill */
-html[data-style="glass"].dark [data-slot="select-trigger"]:hover {
+html[data-style="glass"].dark [data-slot="select-trigger"]:hover,
+html[data-style="glass"].dark [data-slot="popover-trigger"][data-form-control]:hover {
   background-color: color-mix(in oklch, var(--input) 88%, white) !important;
 }
 

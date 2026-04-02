@@ -4,10 +4,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { AuthSplitLayout } from "@/components/auth-split-layout"
-import { LoginForm } from "@/components/login-form"
 import { LoginSplashScreen } from "@/components/login-splash-screen"
+import { SignupForm } from "@/components/signup-form"
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [showSplash, setShowSplash] = useState(false)
   const router = useRouter()
 
@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   return (
     <AuthSplitLayout>
-      <LoginForm onSubmit={() => setShowSplash(true)} />
+      <SignupForm onSubmit={() => setShowSplash(true)} />
     </AuthSplitLayout>
   )
 }
