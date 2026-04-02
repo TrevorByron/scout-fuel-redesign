@@ -426,7 +426,7 @@ export function DriversDefault() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">100% at optimized locations this period</p>
+                  <p className="text-xs text-muted-foreground">100% at optimized locations</p>
                 </CardContent>
               </Card>
             </button>

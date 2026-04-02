@@ -33,6 +33,7 @@ export function PilotRebateSidebarProgress() {
           <>
             <Progress
               value={progressPctToNextTier}
+              data-pilot-rebate-progress=""
               className="h-2 bg-emerald-100/80 dark:bg-emerald-900/30"
             />
             <span className="text-[length:var(--text-2xs)] text-sidebar-foreground/75">

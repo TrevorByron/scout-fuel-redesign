@@ -40,7 +40,7 @@ html[data-style="glass"] {
   --sidebar-ring: oklch(0.6810 0.1370 232.9);
   --success: oklch(0.4532 0.1101 122.1507);
   --warning: oklch(0.75 0.15 85);
-  --radius: .8rem;
+  --radius: 0.6rem;
   --shadow-x: 0.5px;
   --shadow-y: 1px;
   --shadow-blur: 8px;
@@ -189,6 +189,23 @@ html[data-style="glass"] [data-collapsible="icon"] [data-slot="sidebar-header"] 
 
 html[data-style="glass"] [data-slot="sidebar-group"] {
   padding: 0.5rem 0.5rem 0.25rem;
+}
+
+/* Pilot rebate progress: emerald-100 track vanishes on glass sidebar gradient — frosted track + edge so bar reads clearly */
+html[data-style="glass"] [data-pilot-rebate-progress][role="progressbar"] {
+  background: color-mix(in oklch, white 72%, transparent) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--foreground) 14%, transparent),
+    inset 0 1px 1px color-mix(in oklch, var(--foreground) 6%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+html[data-style="glass"].dark [data-pilot-rebate-progress][role="progressbar"] {
+  background: color-mix(in oklch, oklch(0.18 0.02 233) 78%, transparent) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, white 16%, transparent),
+    inset 0 1px 2px color-mix(in oklch, black 35%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 html[data-style="glass"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"],
@@ -479,7 +496,7 @@ html[data-style="glass"].dark {
   --sidebar-ring: oklch(0.72 0.12 232.9);
   --success: oklch(0.5512 0.1351 142.4953);
   --warning: oklch(0.75 0.15 85);
-  --radius: 1rem;
+  --radius: .6rem;
   --shadow-x: 0.5px;
   --shadow-y: 1px;
   --shadow-blur: 8px;

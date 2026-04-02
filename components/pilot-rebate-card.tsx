@@ -120,6 +120,7 @@ export function PilotRebateCard({ summary, className }: PilotRebateCardProps) {
           <div className="space-y-1">
             <Progress
               value={progressPctToNextTier}
+              data-pilot-rebate-progress=""
               className="h-2 bg-emerald-100/80 dark:bg-emerald-900/30"
             >
               {/* progress bar purely presentational */}

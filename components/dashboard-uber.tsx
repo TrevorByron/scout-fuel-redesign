@@ -28,7 +28,7 @@ import { StatStrip, StatStripItem, StatStripLabel, StatStripValue } from "@/comp
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon, UserGroupIcon, Location01Icon } from "@hugeicons/core-free-icons"
+import { InformationCircleIcon, Calendar01Icon, ArrowRight01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -42,7 +42,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { AreaChart, Area, XAxis, CartesianGrid, PieChart, Pie, Label, ReferenceLine } from "recharts"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MapPin, Users } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -668,82 +669,91 @@ export function DashboardUber() {
 
       {/* Main grid: 2 cols as soon as @container/main has room for two 32.5rem cards (66rem) */}
       <div className="order-2 grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2">
-        {/* Drivers + Locations: single module with segmented control (Uber-style) */}
+        {/* Drivers + Locations: shadcn Tabs (TabsDemo-style) */}
         <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">
-          <CardHeader className="flex flex-row items-start justify-between gap-2 shrink-0">
-            <Tabs
-              value={attentionTab}
-              onValueChange={(v) => setAttentionTab(v as "drivers" | "locations")}
-              className="w-full"
-            >
-              <div className="flex items-center justify-between gap-2 w-full">
-                <TabsList className="h-8">
-                  <TabsTrigger value="drivers" className="gap-1.5 text-xs">
-                    <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
+          <Tabs
+            value={attentionTab}
+            onValueChange={(v) => {
+              const next = String(v)
+              if (next === "drivers" || next === "locations") setAttentionTab(next)
+            }}
+            className="w-full min-w-0"
+          >
+            <CardHeader className="flex shrink-0 flex-row items-start justify-between gap-2">
+              <div className="flex w-full items-center justify-between gap-2">
+                <TabsList>
+                  <TabsTrigger value="drivers">
+                    <Users />
                     Drivers
                   </TabsTrigger>
-                  <TabsTrigger value="locations" className="gap-1.5 text-xs">
-                    <HugeiconsIcon icon={Location01Icon} strokeWidth={2} className="size-3.5" />
+                  <TabsTrigger value="locations">
+                    <MapPin />
                     Locations
                   </TabsTrigger>
                 </TabsList>
                 <Link
                   href={attentionTab === "drivers" ? "/drivers" : "/locations"}
-                  className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-muted-foreground hover:text-foreground text-xs shrink-0" })}
+                  className={buttonVariants({
+                    variant: "ghost",
+                    size: "sm",
+                    className:
+                      "min-h-11 shrink-0 gap-1.5 text-xs text-muted-foreground hover:text-foreground sm:min-h-8",
+                  })}
                 >
                   View all
                   <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
                 </Link>
               </div>
-            </Tabs>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 pt-0">
-            {attentionTab === "drivers" ? (
-              driversInNeedOfAttention.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  🎉 No drivers in need of attention in this period.
-                </p>
-              ) : (
-                <div className="divide-y divide-border">
-                  {driversInNeedOfAttention.map((driver, index) => (
-                  <Link
-                    key={driver.driverName}
-                    href={`/drivers/${driverNameToSlug(driver.driverName)}`}
-                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <span className="tabular-nums text-muted-foreground w-5 shrink-0">{index + 1}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-foreground">{driver.driverName}</span>
-                          {driver.badStops > 0 && (
-                            <Badge variant="destructive" className="text-[10px] font-normal">
-                              {driver.badStops} bad stop{driver.badStops !== 1 ? "s" : ""} {periodBadgeLabel}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
-                        -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                      </span>
-                      <span
-                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
-                        aria-hidden
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 pt-0">
+              <TabsContent value="drivers">
+                {driversInNeedOfAttention.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    🎉 No drivers in need of attention in this period.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {driversInNeedOfAttention.map((driver, index) => (
+                      <Link
+                        key={driver.driverName}
+                        href={`/drivers/${driverNameToSlug(driver.driverName)}`}
+                        className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
-                        <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
-                      </span>
-                    </div>
-                  </Link>
-                  ))}
-                </div>
-              )
-            ) : locationsInNeedOfAttention.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No locations that need attention in this period.
-              </p>
-            ) : (
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <span className="tabular-nums text-muted-foreground w-5 shrink-0">{index + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-foreground">{driver.driverName}</span>
+                              {driver.badStops > 0 && (
+                                <Badge variant="destructive" className="text-[10px] font-normal">
+                                  {driver.badStops} bad stop{driver.badStops !== 1 ? "s" : ""} {periodBadgeLabel}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="tabular-nums font-medium text-red-600 dark:text-red-500">
+                            -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                          </span>
+                          <span
+                            className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                            aria-hidden
+                          >
+                            <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="locations">
+                {locationsInNeedOfAttention.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    No locations that need attention in this period.
+                  </p>
+                ) : (
               <div className="divide-y divide-border">
                 {locationsInNeedOfAttention.map((loc, index) => (
                   <Link
@@ -777,9 +787,11 @@ export function DashboardUber() {
                     </div>
                   </Link>
                 ))}
-              </div>
-            )}
-          </CardContent>
+                  </div>
+                )}
+              </TabsContent>
+            </CardContent>
+          </Tabs>
         </Card>
 
         {/* Gallons by chain */}

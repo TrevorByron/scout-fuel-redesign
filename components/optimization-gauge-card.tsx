@@ -159,9 +159,6 @@ export function OptimizationGaugeCard({
             >
               {pctRounded}%
             </span>
-            <span className="text-center text-sm font-normal text-muted-foreground">
-              Efficiency score
-            </span>
           </figcaption>
         </figure>
       </CardContent>
