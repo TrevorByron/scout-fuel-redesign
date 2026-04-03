@@ -163,6 +163,8 @@ export function LocationsDefault() {
     if (total === 0) {
       return {
         totalGallons: 0,
+        totalLocations: 0,
+        locationsWithMissedSavings: 0,
         locationsNeedingAttention: 0,
         totalOverpaid: 0,
         badStopsCount: 0,
@@ -174,8 +176,11 @@ export function LocationsDefault() {
     const badStopsCount = locationListStats.reduce((s, l) => s + l.badStopsCount, 0)
     const locationsNeedingAttention = locationListStats.filter((l) => l.needsAttention).length
     const fullyEfficientCount = locationListStats.filter((l) => l.efficiencyPct === 100).length
+    const locationsWithMissedSavings = locationListStats.filter((l) => l.missedSavings > 0).length
     return {
       totalGallons,
+      totalLocations: total,
+      locationsWithMissedSavings,
       locationsNeedingAttention,
       totalOverpaid,
       badStopsCount,
@@ -400,18 +405,18 @@ export function LocationsDefault() {
           >
             <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">All Locations</CardTitle>
-                <div className="text-3xl font-bold tabular-nums text-foreground">
-                  {summaryStats.totalGallons.toLocaleString("en-US", {
-                    maximumFractionDigits: 1,
-                  })}
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  All locations ({summaryStats.totalLocations})
+                </CardTitle>
+                <div className="flex min-w-0 flex-row flex-wrap items-baseline gap-x-1 gap-y-0">
+                  <span className="text-3xl font-bold tabular-nums text-foreground">
+                    {summaryStats.totalGallons.toLocaleString("en-US", {
+                      maximumFractionDigits: 1,
+                    })}
+                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">gal</span>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Total Gallons
-                </p>
-              </CardContent>
             </Card>
           </button>
           <button
@@ -423,16 +428,13 @@ export function LocationsDefault() {
           >
             <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Missed Savings</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Total missed savings ({summaryStats.locationsWithMissedSavings})
+                </CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
                   ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Across {summaryStats.badStopsCount} bad stop{summaryStats.badStopsCount !== 1 ? "s" : ""}
-                </p>
-              </CardContent>
             </Card>
           </button>
           <button
@@ -444,14 +446,13 @@ export function LocationsDefault() {
           >
             <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Locations Needing Attention</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Locations needing attention ({summaryStats.locationsNeedingAttention})
+                </CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
                   {summaryStats.locationsNeedingAttention}
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Often used when not optimized</p>
-              </CardContent>
             </Card>
           </button>
           <button
@@ -463,14 +464,13 @@ export function LocationsDefault() {
           >
             <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
               <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">100% efficiency</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  100% efficiency ({summaryStats.fullyEfficientCount})
+                </CardTitle>
                 <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
                   {summaryStats.fullyEfficientCount}
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">100% at optimized locations</p>
-              </CardContent>
             </Card>
           </button>
         </div>

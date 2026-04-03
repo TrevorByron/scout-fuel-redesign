@@ -156,6 +156,7 @@ export function DriversDefault() {
     // Use same gallon-based efficiency as driverListStats so KPI count matches filtered list
     let driversNeedingAttention = 0
     let fullyEfficientCount = 0
+    let overpaidDriversCount = 0
     for (const [, txns] of byDriver.entries()) {
       if (txns.length === 0) continue
       const totalGallons = txns.reduce((s, t) => s + t.gallons, 0)
@@ -163,6 +164,9 @@ export function DriversDefault() {
       const pct = totalGallons > 0 ? Math.round((inNetworkGallons / totalGallons) * 100) : 0
       if (pct < 60) driversNeedingAttention += 1
       if (pct >= 100) fullyEfficientCount += 1
+      const outOfNetworkTxns = txns.filter((t) => !t.inNetwork)
+      const rawMissedSavings = outOfNetworkTxns.reduce((s, t) => s + getOverpaidAmount(t), 0)
+      if (pct < 100 && rawMissedSavings > 0) overpaidDriversCount += 1
     }
     const prevFrom = dateFrom && dateTo ? new Date(dateFrom.getTime() - (dateTo.getTime() - dateFrom.getTime() + 86400000)) : null
     const prevTo = dateFrom ? new Date(dateFrom.getTime() - 86400000) : null
@@ -175,7 +179,9 @@ export function DriversDefault() {
     return {
       fleetAvgScore,
       trendPts,
+      totalDrivers: byDriver.size,
       driversNeedingAttention,
+      overpaidDriversCount,
       totalOverpaid,
       badStopsCount,
       fullyEfficientCount,
@@ -356,16 +362,13 @@ export function DriversDefault() {
             >
               <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
                 <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">All Drivers</CardTitle>
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    All drivers ({summaryStats.totalDrivers})
+                  </CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-500">
                     {summaryStats.fleetAvgScore}%
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Average efficiency score
-                  </p>
-                </CardContent>
               </Card>
             </button>
             {/* 2. Total Missed Savings */}
@@ -378,16 +381,13 @@ export function DriversDefault() {
             >
               <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
                 <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Drivers with missed savings</CardTitle>
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    Drivers with missed savings ({summaryStats.overpaidDriversCount})
+                  </CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
                     ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Total missed savings
-                  </p>
-                </CardContent>
               </Card>
             </button>
             {/* 3. Drivers Needing Attention */}
@@ -400,14 +400,13 @@ export function DriversDefault() {
             >
               <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
                 <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Drivers Needing Attention</CardTitle>
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    Drivers needing attention ({summaryStats.driversNeedingAttention})
+                  </CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-red-600 dark:text-red-500">
                     {summaryStats.driversNeedingAttention}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Below 60% efficiency</p>
-                </CardContent>
               </Card>
             </button>
             {/* 4. 100% efficiency */}
@@ -420,14 +419,13 @@ export function DriversDefault() {
             >
               <Card size="sm" className="min-w-0 h-full cursor-pointer flex flex-col">
                 <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">100% efficiency</CardTitle>
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    100% efficiency ({summaryStats.fullyEfficientCount})
+                  </CardTitle>
                   <div className="text-3xl font-bold tabular-nums text-green-600 dark:text-green-500">
                     {summaryStats.fullyEfficientCount}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">100% at optimized locations</p>
-                </CardContent>
               </Card>
             </button>
           </div>

@@ -164,6 +164,8 @@ export function LocationsUber() {
     if (total === 0) {
       return {
         totalGallons: 0,
+        totalLocations: 0,
+        locationsWithMissedSavings: 0,
         locationsNeedingAttention: 0,
         totalOverpaid: 0,
         badStopsCount: 0,
@@ -175,8 +177,11 @@ export function LocationsUber() {
     const badStopsCount = locationListStats.reduce((s, l) => s + l.badStopsCount, 0)
     const locationsNeedingAttention = locationListStats.filter((l) => l.needsAttention).length
     const fullyEfficientCount = locationListStats.filter((l) => l.efficiencyPct === 100).length
+    const locationsWithMissedSavings = locationListStats.filter((l) => l.missedSavings > 0).length
     return {
       totalGallons,
+      totalLocations: total,
+      locationsWithMissedSavings,
       locationsNeedingAttention,
       totalOverpaid,
       badStopsCount,
@@ -397,7 +402,7 @@ export function LocationsUber() {
             active={cardFilter === "all"}
             aria-label="Show all locations"
           >
-            <StatStripLabel>All Locations</StatStripLabel>
+            <StatStripLabel count={summaryStats.totalLocations}>All locations</StatStripLabel>
             <StatStripValue>
               {summaryStats.totalGallons.toLocaleString("en-US", { maximumFractionDigits: 1 })} gal
             </StatStripValue>
@@ -407,7 +412,9 @@ export function LocationsUber() {
             active={cardFilter === "overpaid"}
             aria-label="Filter to locations with missed savings"
           >
-            <StatStripLabel>Total Missed Savings</StatStripLabel>
+            <StatStripLabel count={summaryStats.locationsWithMissedSavings}>
+              Total missed savings
+            </StatStripLabel>
             <StatStripValue className="text-red-600 dark:text-red-500">
               ${summaryStats.totalOverpaid.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </StatStripValue>
@@ -417,7 +424,9 @@ export function LocationsUber() {
             active={cardFilter === "needs_attention"}
             aria-label="Filter to locations needing attention"
           >
-            <StatStripLabel>Needing Attention</StatStripLabel>
+            <StatStripLabel count={summaryStats.locationsNeedingAttention}>
+              Locations needing attention
+            </StatStripLabel>
             <StatStripValue className="text-red-600 dark:text-red-500">
               {summaryStats.locationsNeedingAttention}
             </StatStripValue>
@@ -427,7 +436,7 @@ export function LocationsUber() {
             active={cardFilter === "fully_efficient"}
             aria-label="Filter to locations with 100% efficiency"
           >
-            <StatStripLabel>100% efficiency</StatStripLabel>
+            <StatStripLabel count={summaryStats.fullyEfficientCount}>100% efficiency</StatStripLabel>
             <StatStripValue className="text-green-600 dark:text-green-500">
               {summaryStats.fullyEfficientCount}
             </StatStripValue>

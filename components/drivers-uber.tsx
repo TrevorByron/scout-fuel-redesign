@@ -349,7 +349,7 @@ export function DriversUber() {
               active={cardFilter === "all"}
               aria-label="Show all drivers"
             >
-              <StatStripLabel count={summaryStats.totalDrivers}>All Drivers</StatStripLabel>
+              <StatStripLabel count={summaryStats.totalDrivers}>All drivers</StatStripLabel>
               <StatStripValue className="text-amber-600 dark:text-amber-500">
                 {summaryStats.fleetAvgScore}%
               </StatStripValue>
@@ -369,7 +369,9 @@ export function DriversUber() {
               active={cardFilter === "needs_attention"}
               aria-label="Filter to drivers needing attention"
             >
-              <StatStripLabel count={summaryStats.driversNeedingAttention}>Needing Attention</StatStripLabel>
+              <StatStripLabel count={summaryStats.driversNeedingAttention}>
+                Drivers needing attention
+              </StatStripLabel>
               <StatStripValue className="text-red-600 dark:text-red-500">
                 {summaryStats.driversNeedingAttention}
               </StatStripValue>
