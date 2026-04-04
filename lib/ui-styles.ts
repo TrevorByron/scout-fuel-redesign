@@ -4,7 +4,7 @@ export type StyleId = "teal" | "glass" | "uber";
 
 export const STORAGE_KEY = "style-template";
 
-export const DEFAULT_STYLE_ID: StyleId = "uber";
+export const DEFAULT_STYLE_ID: StyleId = "glass";
 
 export const STYLE_IDS: readonly StyleId[] = ["teal", "glass", "uber"] as const;
 

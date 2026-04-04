@@ -26,9 +26,7 @@ import {
   UserGroupIcon,
   Route01Icon,
   TruckDeliveryIcon,
-  ChartRingIcon,
   Search01Icon,
-  SentIcon,
 } from "@hugeicons/core-free-icons"
 
 type NavMainItem = {
@@ -92,10 +90,6 @@ const data = {
     { title: "Fuel Finder", url: "/fuel-finder", icon: <HugeiconsIcon icon={Search01Icon} strokeWidth={2} /> },
     { title: "Live Fleet Map", url: "/fleet", icon: <HugeiconsIcon icon={MapsSquare01Icon} strokeWidth={2} /> },
   ] as NavMainItem[],
-  navSecondary: [
-    { title: "Support", url: "#", icon: <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} /> },
-    { title: "Feedback", url: "#", icon: <HugeiconsIcon icon={SentIcon} strokeWidth={2} /> },
-  ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -130,7 +124,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <PilotRebateSidebarProgress />
         </SidebarGroup>
         <NavSecondary
-          items={data.navSecondary}
+          items={[]}
           className="mt-auto"
           footer={<StyleSwitcher inline />}
         />
