@@ -32,6 +32,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { DateRangePresetTabs, DATE_RANGE_PRESET_BAR_PADDING } from "@/components/date-range-preset-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,7 +41,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
@@ -224,7 +224,7 @@ export function LocationDetailDefault() {
           : null
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6">
+    <div className={cn("flex flex-col gap-4 px-4 py-4 md:gap-6 md:px-6 md:py-6", DATE_RANGE_PRESET_BAR_PADDING)}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -319,41 +319,20 @@ export function LocationDetailDefault() {
           Transactions &amp; fill-up locations
         </h2>
         <div className="flex items-center gap-2">
-          <Tabs
+          <DateRangePresetTabs
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
               if (v === "yesterday") setDateRange(getYesterdayRange())
               if (v === "week") setDateRange(getThisWeekRange())
               if (v === "month") setDateRange(getThisMonthRange())
             }}
-          >
-            <TabsList className="h-10 min-h-10 bg-card text-card-foreground">
-              <TabsTrigger
-                value="yesterday"
-                className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground"
-              >
-                Yesterday
-              </TabsTrigger>
-              <TabsTrigger
-                value="week"
-                className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground"
-              >
-                This Week
-              </TabsTrigger>
-              <TabsTrigger
-                value="month"
-                className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground"
-              >
-                This Month
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          />
           <Popover>
             <PopoverTrigger
               render={
                 <Button
                   variant={activePreset === null ? "default" : "outline"}
-                  className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
+                  className="inline-flex h-9 gap-2 text-sm font-normal"
                 />
               }
             >

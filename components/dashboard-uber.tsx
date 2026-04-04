@@ -22,6 +22,7 @@ import {
 import { getFleetGrade } from "@/lib/fuelScore"
 import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
 import { getLocationListStats, locationToSlug } from "@/lib/location-utils"
+import { DateRangePresetTabs, DATE_RANGE_PRESET_BAR_PADDING } from "@/components/date-range-preset-tabs"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { ImprovementAttentionDrawer } from "@/components/improvement-attention-drawer"
 import { StatStrip, StatStripItem, StatStripLabel, StatStripValue } from "@/components/stat-strip"
@@ -469,7 +470,7 @@ export function DashboardUber() {
   }, [filteredByDateTransactions, dateRange])
 
   return (
-    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+    <div className={cn("flex flex-col gap-4 py-4 md:gap-6 md:py-6", DATE_RANGE_PRESET_BAR_PADDING)}>
       {/* Greeting + date range filter — eventually tie to actual user name */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">
         <div>
@@ -481,7 +482,7 @@ export function DashboardUber() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Tabs
+          <DateRangePresetTabs
             value={activePreset ?? "custom"}
             onValueChange={(v) => {
               const period = String(v) as PeriodTabValue
@@ -491,25 +492,13 @@ export function DashboardUber() {
               else if (period === "week") setDateRange(getThisWeekRange())
               else setDateRange(getThisMonthRange())
             }}
-          >
-            <TabsList className="h-10 min-h-10 group-data-horizontal/tabs:h-10 bg-card text-card-foreground">
-              <TabsTrigger value="yesterday" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                Yesterday
-              </TabsTrigger>
-              <TabsTrigger value="week" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                This Week
-              </TabsTrigger>
-              <TabsTrigger value="month" className="text-sm font-normal px-2 data-[active]:bg-primary data-[active]:text-primary-foreground">
-                This Month
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          />
           <Popover>
             <PopoverTrigger
               render={
                 <Button
                   variant={activePreset === null ? "default" : "outline"}
-                  className="hidden h-9 gap-2 text-sm font-normal sm:inline-flex"
+                  className="inline-flex h-9 gap-2 text-sm font-normal"
                 />
               }
             >
