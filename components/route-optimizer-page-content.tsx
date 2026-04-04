@@ -35,11 +35,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, MapPin, Plus, ChevronLeft, Trash2, Fuel, Route } from "lucide-react"
+import {
+  Loader2,
+  MapPin,
+  Plus,
+  ChevronLeft,
+  Trash2,
+  Fuel,
+  Route,
+  Clock,
+} from "lucide-react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { useTouchSheetScrollEnabled } from "@/hooks/use-touch-sheet-scroll-enabled"
 import { useDebouncedGeocode } from "@/hooks/use-debounced-geocode"
+import {
+  fetchDrivingRoutes,
+  type RouteData,
+} from "@/lib/osrm-route"
+import { formatDuration, formatDistanceMeters } from "@/lib/format-route-meta"
 import { cn } from "@/lib/utils"
 import { MapSheetLayout } from "@/components/map-sheet-layout"
 
@@ -54,9 +68,6 @@ const RouteOptimizerMapDynamic = dynamic(
     })),
   { ssr: false }
 )
-
-const OSRM_ROUTE_URL = (origin: LngLat, dest: LngLat) =>
-  `https://router.project-osrm.org/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson`
 
 function sampleRouteForStops(routeCoords: LngLat[], stopCount: number): LngLat[] {
   if (routeCoords.length < 2 || stopCount < 1) return []
@@ -91,6 +102,8 @@ export function RouteOptimizerPageContent() {
   const [calculated, setCalculated] = React.useState(false)
   const [isOptimizing, setIsOptimizing] = React.useState(false)
   const [routeCoordinates, setRouteCoordinates] = React.useState<LngLat[]>([])
+  const [routeOptions, setRouteOptions] = React.useState<RouteData[]>([])
+  const [selectedRouteIndex, setSelectedRouteIndex] = React.useState(0)
   const [routeLoading, setRouteLoading] = React.useState(false)
   const [planStops, setPlanStops] = React.useState<TripPlanStop[]>([])
   const [planSummary, setPlanSummary] = React.useState<TripPlanSummary | null>(null)
@@ -125,39 +138,58 @@ export function RouteOptimizerPageContent() {
   React.useEffect(() => {
     if (!originCoords || !destinationCoords) {
       setRouteCoordinates([])
+      setRouteOptions([])
+      setSelectedRouteIndex(0)
       setRouteLoading(false)
       return
     }
 
-    const fallback = () => setRouteCoordinates([originCoords, destinationCoords])
+    const fallback = () => {
+      setRouteOptions([])
+      setSelectedRouteIndex(0)
+      setRouteCoordinates([originCoords, destinationCoords])
+    }
+    let active = true
     const controller = new AbortController()
-    const timeoutMs = 60_000
+    const timeoutMs = 30_000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
+    setRouteCoordinates([])
+    setRouteOptions([])
+    setSelectedRouteIndex(0)
     setRouteLoading(true)
-    fetch(OSRM_ROUTE_URL(originCoords, destinationCoords), { signal: controller.signal })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.routes?.length > 0) {
-          const coords = data.routes[0].geometry.coordinates
-          if (Array.isArray(coords) && coords.length >= 2) {
-            setRouteCoordinates(coords)
-            return
-          }
+    fetchDrivingRoutes(originCoords, destinationCoords, { signal: controller.signal })
+      .then((routes) => {
+        if (!active) return
+        if (routes.length > 0) {
+          const sorted = [...routes].sort((a, b) => a.duration - b.duration)
+          setRouteOptions(sorted)
+          setSelectedRouteIndex(0)
+          if (sorted[0]?.coordinates?.length >= 2) return
         }
         fallback()
       })
-      .catch(() => fallback())
+      .catch(() => {
+        if (active) fallback()
+      })
       .finally(() => {
         clearTimeout(timeoutId)
-        setRouteLoading(false)
+        if (active) setRouteLoading(false)
       })
 
     return () => {
+      active = false
       controller.abort()
       clearTimeout(timeoutId)
+      setRouteLoading(false)
     }
   }, [originCoords, destinationCoords])
+
+  const mapRouteCoordinates = React.useMemo((): LngLat[] => {
+    const r = routeOptions[selectedRouteIndex]
+    if (r?.coordinates && r.coordinates.length >= 2) return r.coordinates
+    return routeCoordinates
+  }, [routeOptions, selectedRouteIndex, routeCoordinates])
 
   const tripIdParam = searchParams.get("tripId")
 
@@ -173,6 +205,8 @@ export function RouteOptimizerPageContent() {
     setTruckId(plan.truckId)
     setDriverId(plan.driverId ?? "")
     setRouteCoordinates(plan.routeCoordinates)
+    setRouteOptions([])
+    setSelectedRouteIndex(0)
     setPlanStops(plan.stops)
     setPlanSummary(plan.summary)
     setCalculated(false)
@@ -184,7 +218,7 @@ export function RouteOptimizerPageContent() {
       setIsOptimizing(false)
       if (origin?.trim() && destination?.trim() && truckId) {
         setCalculated(true)
-        const coords = sampleRouteForStops(routeCoordinates, mockRouteStops.length)
+        const coords = sampleRouteForStops(mapRouteCoordinates, mockRouteStops.length)
         setPlanStops(
           mockRouteStops.map((stop, i) => ({
             ...stop,
@@ -194,7 +228,7 @@ export function RouteOptimizerPageContent() {
         )
         setPlanSummary(mockRouteSummary)
       }
-    }, 4000)
+    }, 900)
   }
 
   const addWaypoint = () => {
@@ -215,12 +249,15 @@ export function RouteOptimizerPageContent() {
   }, [selectedTruck?.id])
 
   const fuelStopCoords = React.useMemo((): LngLat[] => {
-    if (!calculated || routeCoordinates.length < 2) return []
+    if (!calculated || mapRouteCoordinates.length < 2) return []
     if (planStops.length > 0 && planStops.every((s) => "lat" in s && "lng" in s)) {
       return planStops.map((s) => [s.lng, s.lat])
     }
-    return sampleRouteForStops(routeCoordinates, (planStops.length ? planStops : mockRouteStops).length)
-  }, [calculated, routeCoordinates, planStops])
+    return sampleRouteForStops(
+      mapRouteCoordinates,
+      (planStops.length ? planStops : mockRouteStops).length
+    )
+  }, [calculated, mapRouteCoordinates, planStops])
   const displayStops = planStops.length ? planStops : mockRouteStops
   const displaySummary = planSummary ?? mockRouteSummary
 
@@ -245,7 +282,7 @@ export function RouteOptimizerPageContent() {
         lng: fuelStopCoords[i]?.[0] ?? 0,
       })),
       summary: planSummary,
-      routeCoordinates,
+      routeCoordinates: mapRouteCoordinates,
     }
     if (tripIdParam) {
       updateTripPlan(tripIdParam, updates)
@@ -270,7 +307,14 @@ export function RouteOptimizerPageContent() {
         <RouteOptimizerMapDynamic
           originCoords={originCoords}
           destinationCoords={destinationCoords}
-          routeCoordinates={routeCoordinates}
+          routeCoordinates={mapRouteCoordinates}
+          routeAlternatives={
+            routeOptions.length > 0
+              ? routeOptions.map((o) => o.coordinates)
+              : undefined
+          }
+          selectedRouteIndex={selectedRouteIndex}
+          onSelectRoute={setSelectedRouteIndex}
           routeLoading={routeLoading}
           fuelStopCoords={fuelStopCoords}
           mapLeftPadding={touchSheetScroll ? 0 : sidebarWidth}
@@ -278,11 +322,51 @@ export function RouteOptimizerPageContent() {
         />
       }
       overlay={
-        isOptimizing ? (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
-            <p className="text-sm font-medium text-foreground">Optimizing route</p>
-          </div>
-        ) : null
+        <>
+          {isOptimizing ? (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
+              <p className="text-sm font-medium text-foreground">Optimizing route</p>
+            </div>
+          ) : null}
+          {!isOptimizing &&
+          originCoords &&
+          destinationCoords &&
+          routeOptions.length > 0 &&
+          !routeLoading ? (
+            <div className="pointer-events-auto absolute left-3 top-3 z-20 flex max-w-[min(100%-1.5rem,20rem)] flex-col gap-2">
+              {routeOptions.map((route, index) => {
+                const isActive = index === selectedRouteIndex
+                const isFastest = index === 0
+                return (
+                  <Button
+                    key={index}
+                    type="button"
+                    variant={isActive ? "default" : "secondary"}
+                    size="sm"
+                    className="h-auto min-h-11 justify-start gap-2 py-2 sm:min-h-9"
+                    onClick={() => setSelectedRouteIndex(index)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="size-3.5 shrink-0" aria-hidden />
+                      <span className="font-medium">
+                        {formatDuration(route.duration)}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs opacity-80">
+                      <Route className="size-3 shrink-0" aria-hidden />
+                      {formatDistanceMeters(route.distance)}
+                    </span>
+                    {isFastest ? (
+                      <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
+                        Fastest
+                      </span>
+                    ) : null}
+                  </Button>
+                )
+              })}
+            </div>
+          ) : null}
+        </>
       }
       ariaLabel="Route details"
       sidebarRef={sidebarRef}

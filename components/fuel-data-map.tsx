@@ -23,6 +23,7 @@ import {
 import type { FuelTransaction } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
+import { fetchDrivingRoutes } from "@/lib/osrm-route"
 import { ChevronLeft } from "lucide-react"
 
 export type FuelDataMapItem = {
@@ -294,15 +295,13 @@ function FocusedMapView({
       [locationLng, locationLat],
       [representativeBetterOption.lng, representativeBetterOption.lat],
     ])
-    fetch(
-      `https://router.project-osrm.org/route/v1/driving/${locationLng},${locationLat};${representativeBetterOption.lng},${representativeBetterOption.lat}?overview=full&geometries=geojson`,
+    fetchDrivingRoutes(
+      [locationLng, locationLat],
+      [representativeBetterOption.lng, representativeBetterOption.lat],
       { signal: ac.signal }
     )
-      .then((r) => r.json())
-      .then((data) => {
-        const coords = data.routes?.[0]?.geometry?.coordinates as
-          | [number, number][]
-          | undefined
+      .then((routes) => {
+        const coords = routes[0]?.coordinates
         if (!coords || coords.length < 2) return
         const first = coords[0]
         const last = coords[coords.length - 1]
@@ -313,7 +312,7 @@ function FocusedMapView({
         const nearEnd =
           Math.abs(last[0] - representativeBetterOption.lng) < tol &&
           Math.abs(last[1] - representativeBetterOption.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords)
+        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
       })
       .catch(() => {})
     return () => ac.abort()

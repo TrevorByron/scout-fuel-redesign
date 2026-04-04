@@ -18,6 +18,7 @@ import {
   transactionToComparison,
 } from "@/components/actual-vs-optimized-card"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
+import { fetchDrivingRoutes } from "@/lib/osrm-route"
 import { cn } from "@/lib/utils"
 
 function getWaste(t: FuelTransaction): number {
@@ -189,15 +190,13 @@ export function DriverInsightsMap({
       [popupTransaction.lng, popupTransaction.lat],
       [opt.lng, opt.lat],
     ])
-    fetch(
-      `https://router.project-osrm.org/route/v1/driving/${popupTransaction.lng},${popupTransaction.lat};${opt.lng},${opt.lat}?overview=full&geometries=geojson`,
+    fetchDrivingRoutes(
+      [popupTransaction.lng, popupTransaction.lat],
+      [opt.lng, opt.lat],
       { signal: ac.signal }
     )
-      .then((r) => r.json())
-      .then((data) => {
-        const coords = data.routes?.[0]?.geometry?.coordinates as
-          | [number, number][]
-          | undefined
+      .then((routes) => {
+        const coords = routes[0]?.coordinates
         if (!coords || coords.length < 2) return
         const first = coords[0]
         const last = coords[coords.length - 1]
@@ -208,7 +207,7 @@ export function DriverInsightsMap({
         const nearEnd =
           Math.abs(last[0] - opt.lng) < tol &&
           Math.abs(last[1] - opt.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords)
+        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
       })
       .catch(() => {})
     return () => ac.abort()

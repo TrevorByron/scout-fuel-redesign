@@ -27,6 +27,7 @@ import { Map as MapView, MapMarker, MarkerContent, MarkerLabel, MapRoute, useMap
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { fetchDrivingRoutes } from "@/lib/osrm-route"
 import { cn } from "@/lib/utils"
 
 /** Group key: Chain + Location (e.g. "Chevron · Oklahoma City, OK") */
@@ -152,20 +153,20 @@ export function BetterOptionDetails({
   React.useEffect(() => {
     setRouteLoading(true)
     const ac = new AbortController()
-    fetch(
-      `https://router.project-osrm.org/route/v1/driving/${transaction.lng},${transaction.lat};${option.lng},${option.lat}?overview=full&geometries=geojson`,
+    fetchDrivingRoutes(
+      [transaction.lng, transaction.lat],
+      [option.lng, option.lat],
       { signal: ac.signal }
     )
-      .then((r) => r.json())
-      .then((data) => {
-        const coords = data.routes?.[0]?.geometry?.coordinates as [number, number][] | undefined
+      .then((routes) => {
+        const coords = routes[0]?.coordinates
         if (!coords || coords.length < 2) return
         const first = coords[0]
         const last = coords[coords.length - 1]
         const tol = 2
         const nearStart = Math.abs(first[0] - transaction.lng) < tol && Math.abs(first[1] - transaction.lat) < tol
         const nearEnd = Math.abs(last[0] - option.lng) < tol && Math.abs(last[1] - option.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords)
+        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
       })
       .catch(() => {})
       .finally(() => {

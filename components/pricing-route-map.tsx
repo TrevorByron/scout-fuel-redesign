@@ -3,7 +3,7 @@
 import * as React from "react"
 import type { Feature, Polygon } from "geojson"
 import type { GeoJSONSource, MapMouseEvent } from "maplibre-gl"
-import { MapPin } from "lucide-react"
+import { Loader2, MapPin } from "lucide-react"
 import {
   Map,
   MapMarker,
@@ -745,8 +745,11 @@ export function PricingRouteMap({
         !hasRoute &&
         originCoords &&
         destinationCoords ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60">
-            <span className="text-xs text-muted-foreground">Loading route…</span>
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/50">
+            <Loader2
+              className="size-6 animate-spin text-muted-foreground"
+              aria-hidden
+            />
           </div>
         ) : null}
         <PricingPriceMarkers

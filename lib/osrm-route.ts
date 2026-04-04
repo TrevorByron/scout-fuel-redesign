@@ -1,33 +1,39 @@
 /**
- * OSRM public routing API (same host as Route Optimizer).
- * https://project-osrm.org/docs/v5.24.0/api/#route-service
- *
- * Use `overview=simplified` by default: full geometry is huge over the wire and on the
- * public demo server; simplified keeps map fidelity while cutting latency and JSON parse cost.
+ * Driving routes via OSRM, proxied through `GET /api/osrm` (same-origin; avoids CORS on public OSRM).
+ * Query semantics: `overview=full`, `geometries=geojson`, `alternatives` capped (default 3).
+ * Prototype only — not a production SLA.
  */
 
 import type { LngLat } from "@/lib/trips"
 
 export const OSRM_PUBLIC_ROUTING_BASE = "https://router.project-osrm.org"
 
+/** FOSSGIS + demo; used only by the API route upstream loop. */
+export const OSRM_UPSTREAM_BASES: readonly string[] = [
+  "https://routing.openstreetmap.de/routed-car",
+  OSRM_PUBLIC_ROUTING_BASE,
+]
+
 export type OsrmDrivingRouteUrlOptions = {
-  /** Default false; alternatives roughly multiply server work on crowded public OSRM. */
   alternatives?: boolean
-  /** `simplified` is the default and is much faster than `full` for long routes. */
+  /** When alternatives is true, OSRM max alternative count (default 3). */
+  maxAlternatives?: number
   overview?: "full" | "simplified"
+  baseUrl?: string
 }
 
-export type OsrmRouteOption = {
-  /** GeoJSON coordinates [lng, lat][] */
+/** Same shape as the OsrmRouteExample reference: geometry + duration + distance. */
+export type RouteData = {
   coordinates: LngLat[]
-  /** seconds */
   duration: number
-  /** meters */
   distance: number
 }
 
+/** @deprecated Use RouteData */
+export type OsrmRouteOption = RouteData
+
 export type OsrmRouteResponse = {
-  routes: OsrmRouteOption[]
+  routes: RouteData[]
 }
 
 export function buildOsrmDrivingRouteUrl(
@@ -35,24 +41,28 @@ export function buildOsrmDrivingRouteUrl(
   dest: LngLat,
   options?: OsrmDrivingRouteUrlOptions
 ): string {
-  const alternatives = options?.alternatives ?? false
-  const overview = options?.overview ?? "simplified"
+  const alternatives = options?.alternatives ?? true
+  const overview = options?.overview ?? "full"
+  const base = options?.baseUrl ?? OSRM_PUBLIC_ROUTING_BASE
   const params = new URLSearchParams({
     overview,
     geometries: "geojson",
   })
   if (alternatives) {
-    params.set("alternatives", "true")
+    const n = options?.maxAlternatives ?? 3
+    params.set("alternatives", String(Math.max(1, Math.min(10, n))))
   }
-  return `${OSRM_PUBLIC_ROUTING_BASE}/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?${params}`
+  return `${base}/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?${params}`
 }
 
-function parseOsrmJson(data: unknown): OsrmRouteOption[] {
+export function parseOsrmJson(data: unknown): RouteData[] {
   if (!data || typeof data !== "object") return []
+  const code = (data as { code?: unknown }).code
+  if (code !== undefined && code !== "Ok") return []
   const routes = (data as { routes?: unknown }).routes
   if (!Array.isArray(routes)) return []
 
-  const out: OsrmRouteOption[] = []
+  const out: RouteData[] = []
   for (const r of routes) {
     if (!r || typeof r !== "object") continue
     const geom = (r as { geometry?: { coordinates?: unknown } }).geometry
@@ -77,62 +87,89 @@ function parseOsrmJson(data: unknown): OsrmRouteOption[] {
   return out
 }
 
-export type FetchOsrmDrivingRoutesOptions = OsrmDrivingRouteUrlOptions & {
+export type FetchDrivingRoutesOptions = {
   signal?: AbortSignal
+  /** Default true (reference). */
+  alternatives?: boolean
+  /** Default full (reference). */
+  overview?: "full" | "simplified"
 }
 
-/**
- * Fetch driving routes between two points. Prefer `alternatives: false` on the public demo
- * unless you truly need multiple geometries (each alternative is extra server work).
- */
-function buildOsrmClientProxyUrl(
+function buildApiOsrmUrl(
   origin: LngLat,
   dest: LngLat,
-  options?: OsrmDrivingRouteUrlOptions
+  opts: { alternatives: boolean; overview: "full" | "simplified" }
 ): string {
-  const alternatives = options?.alternatives ?? false
-  const overview = options?.overview ?? "simplified"
   const qs = new URLSearchParams({
     originLng: String(origin[0]),
     originLat: String(origin[1]),
     destLng: String(dest[0]),
     destLat: String(dest[1]),
-    alternatives: String(alternatives),
-    overview,
+    alternatives: String(opts.alternatives),
+    overview: opts.overview,
   })
   return `/api/osrm?${qs}`
 }
 
-/**
- * In the browser, route through `/api/osrm` so requests are same-origin (fewer blocks
- * than calling the public OSRM host directly). On the server, call OSRM directly.
- */
-export async function fetchOsrmDrivingRoutes(
+async function fetchDrivingRoutesDirect(
   origin: LngLat,
   dest: LngLat,
-  options?: FetchOsrmDrivingRoutesOptions
-): Promise<OsrmRouteOption[]> {
-  const url =
-    typeof window !== "undefined"
-      ? buildOsrmClientProxyUrl(origin, dest, {
-          alternatives: options?.alternatives ?? false,
-          overview: options?.overview ?? "simplified",
-        })
-      : buildOsrmDrivingRouteUrl(origin, dest, {
-          alternatives: options?.alternatives ?? false,
-          overview: options?.overview ?? "simplified",
-        })
-  const res = await fetch(url, { signal: options?.signal })
-  if (!res.ok) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "[fetchOsrmDrivingRoutes] non-OK response",
-        res.status,
-        res.statusText
-      )
+  options?: FetchDrivingRoutesOptions
+): Promise<RouteData[]> {
+  if (typeof window === "undefined") return []
+  if (options?.signal?.aborted) return []
+  const alternatives = options?.alternatives ?? true
+  const overview = options?.overview ?? "full"
+  for (const baseUrl of OSRM_UPSTREAM_BASES) {
+    try {
+      const directUrl = buildOsrmDrivingRouteUrl(origin, dest, {
+        alternatives,
+        overview,
+        baseUrl,
+      })
+      const res = await fetch(directUrl, {
+        signal: options?.signal,
+        cache: "no-store",
+        mode: "cors",
+      })
+      if (!res.ok) continue
+      const data: unknown = await res.json()
+      const parsed = parseOsrmJson(data)
+      if (parsed.length > 0) return parsed
+    } catch {
+      continue
     }
-    return []
   }
-  const data: unknown = await res.json()
-  return parseOsrmJson(data)
+  return []
 }
+
+/**
+ * Same-origin proxy first; if empty or network failure, tries public OSRM mirrors from the
+ * browser (CORS) so routes may still load when the proxy is slow or upstream times out.
+ */
+export async function fetchDrivingRoutes(
+  origin: LngLat,
+  dest: LngLat,
+  options?: FetchDrivingRoutesOptions
+): Promise<RouteData[]> {
+  const alternatives = options?.alternatives ?? true
+  const overview = options?.overview ?? "full"
+  const url = buildApiOsrmUrl(origin, dest, { alternatives, overview })
+  try {
+    const res = await fetch(url, {
+      signal: options?.signal,
+      cache: "no-store",
+    })
+    if (res.ok) {
+      const data: unknown = await res.json()
+      const parsed = parseOsrmJson(data)
+      if (parsed.length > 0) return parsed
+    }
+  } catch {
+    /* fall through to direct */
+  }
+  return fetchDrivingRoutesDirect(origin, dest, options)
+}
+
+/** @deprecated Use fetchDrivingRoutes */
+export const fetchOsrmDrivingRoutes = fetchDrivingRoutes

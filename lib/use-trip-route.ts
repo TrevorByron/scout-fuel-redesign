@@ -1,12 +1,10 @@
 "use client"
 
 import * as React from "react"
+import { fetchDrivingRoutes } from "@/lib/osrm-route"
 import type { TripPlan } from "@/lib/trips"
 
 type LngLat = [number, number]
-
-const OSRM_ROUTE_URL = (origin: LngLat, dest: LngLat) =>
-  `https://router.project-osrm.org/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?overview=full&geometries=geojson`
 
 /** Minimum number of route points to consider a route "dense" (e.g. from OSRM). Sparse routes (e.g. seed trips with 3 points) draw as straight lines. */
 const DENSE_ROUTE_THRESHOLD = 20
@@ -39,32 +37,35 @@ export function useTripRoute(selectedTrip: TripPlan | null | undefined) {
     }
 
     // Fetch OSRM driving route for sparse routes (e.g. seed trips with 3 points)
+    let active = true
     const controller = new AbortController()
-    const timeoutMs = 60_000
+    const timeoutMs = 30_000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     setRouteLoading(true)
-    fetch(OSRM_ROUTE_URL(origin, destination), { signal: controller.signal })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.routes?.length > 0) {
-          const routeCoords = data.routes[0].geometry?.coordinates
-          if (Array.isArray(routeCoords) && routeCoords.length >= 2) {
-            setFetchedRoute(routeCoords)
-            return
-          }
+    fetchDrivingRoutes(origin, destination, { signal: controller.signal })
+      .then((routes) => {
+        if (!active) return
+        const first = routes[0]
+        if (first?.coordinates && first.coordinates.length >= 2) {
+          setFetchedRoute(first.coordinates)
+          return
         }
         setFetchedRoute(coords)
       })
-      .catch(() => setFetchedRoute(coords))
+      .catch(() => {
+        if (active) setFetchedRoute(coords)
+      })
       .finally(() => {
         clearTimeout(timeoutId)
-        setRouteLoading(false)
+        if (active) setRouteLoading(false)
       })
 
     return () => {
+      active = false
       controller.abort()
       clearTimeout(timeoutId)
+      setRouteLoading(false)
     }
   }, [selectedTrip?.id, selectedTrip?.routeCoordinates])
 

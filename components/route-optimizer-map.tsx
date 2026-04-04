@@ -10,6 +10,7 @@ import {
   useMap,
 } from "@/components/ui/map"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
+import { Loader2 } from "lucide-react"
 const SINGLE_POINT_ZOOM = 13
 const FLY_DURATION_MS = 600
 
@@ -108,10 +109,15 @@ export type RouteOptimizerMapProps = {
   mapLeftPadding?: number
   /** Bottom padding in px for fitBounds (e.g. form height on mobile) so route fits in visible area above form. */
   mapBottomPadding?: number
+  /** Optional alternative polylines; selected index renders on top. */
+  routeAlternatives?: LngLat[][]
+  selectedRouteIndex?: number
+  onSelectRoute?: (index: number) => void
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
-const ROUTE_LINE_COLOR = "#2563eb"
+const ROUTE_LINE_SELECTED = "#2563eb"
+const ROUTE_LINE_ALT = "#94a3b8"
 
 export function RouteOptimizerMap({
   originCoords,
@@ -121,6 +127,9 @@ export function RouteOptimizerMap({
   fuelStopCoords = [],
   mapLeftPadding = 0,
   mapBottomPadding = 0,
+  routeAlternatives,
+  selectedRouteIndex = 0,
+  onSelectRoute,
 }: RouteOptimizerMapProps) {
   const [mounted, setMounted] = React.useState(false)
 
@@ -129,6 +138,22 @@ export function RouteOptimizerMap({
   }, [])
 
   const hasRoute = routeCoordinates.length >= 2
+
+  const alternatives = React.useMemo(() => {
+    if (routeAlternatives && routeAlternatives.length > 0) return routeAlternatives
+    if (routeCoordinates.length >= 2) return [routeCoordinates]
+    return [] as LngLat[][]
+  }, [routeAlternatives, routeCoordinates])
+
+  const routeDrawOrder = React.useMemo(() => {
+    const n = alternatives.length
+    if (n < 2) return [...Array(n).keys()]
+    return [...Array(n).keys()].sort((a, b) => {
+      if (a === selectedRouteIndex) return 1
+      if (b === selectedRouteIndex) return -1
+      return 0
+    })
+  }, [alternatives, selectedRouteIndex])
 
   if (!mounted) {
     return (
@@ -200,17 +225,32 @@ export function RouteOptimizerMap({
             </MarkerContent>
           </MapMarker>
         )}
-        {hasRoute && (
-          <MapRoute
-            coordinates={routeCoordinates}
-            color={ROUTE_LINE_COLOR}
-            width={4}
-            opacity={0.9}
-          />
-        )}
+        {hasRoute &&
+          routeDrawOrder.map((i) => {
+            const coords = alternatives[i]
+            if (!coords || coords.length < 2) return null
+            const isSelected =
+              alternatives.length < 2 || i === selectedRouteIndex
+            return (
+              <MapRoute
+                key={`route-opt-${i}`}
+                id={`route-opt-${i}`}
+                coordinates={coords}
+                color={isSelected ? ROUTE_LINE_SELECTED : ROUTE_LINE_ALT}
+                width={isSelected ? 5 : 4}
+                opacity={isSelected ? 0.95 : 0.55}
+                interactive={Boolean(onSelectRoute) && alternatives.length > 1}
+                onClick={
+                  onSelectRoute && alternatives.length > 1
+                    ? () => onSelectRoute(i)
+                    : undefined
+                }
+              />
+            )
+          })}
         {routeLoading && !hasRoute && originCoords && destinationCoords && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60 pointer-events-none">
-            <span className="text-xs text-muted-foreground">Loading route…</span>
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/50 pointer-events-none">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden />
           </div>
         )}
         {fuelStopCoords.map((coords, i) => (

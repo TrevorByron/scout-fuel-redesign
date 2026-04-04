@@ -1,25 +1,36 @@
 import { NextResponse } from "next/server"
-import { buildOsrmDrivingRouteUrl } from "@/lib/osrm-route"
+import {
+  buildOsrmDrivingRouteUrl,
+  OSRM_UPSTREAM_BASES,
+  parseOsrmJson,
+} from "@/lib/osrm-route"
 import type { LngLat } from "@/lib/trips"
 
 export const dynamic = "force-dynamic"
 
-const UPSTREAM_TIMEOUT_MS = 22_000
+/** Per-mirror timeout (public OSRM can be slow from serverless). */
+const PER_ATTEMPT_MS = 18_000
 
-async function fetchUpstreamJson(upstream: string): Promise<Response> {
+async function fetchUpstreamOnce(upstream: string): Promise<Response> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const timeout = setTimeout(() => controller.abort(), PER_ATTEMPT_MS)
   try {
-    return await fetch(upstream, { signal: controller.signal, cache: "no-store" })
+    return await fetch(upstream, {
+      signal: controller.signal,
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Scout Fuel (https://github.com/shadcn-learning/scout-fuel)",
+      },
+    })
   } finally {
     clearTimeout(timeout)
   }
 }
 
 /**
- * Proxies OSRM from the app origin so the browser does not call router.project-osrm.org
- * directly (ad blockers, flaky CORS/corp networks, and slow client-side DNS all improve).
- * Retries once on upstream 5xx or network/timeout failure.
+ * Proxies OSRM from the app origin. Tries multiple public mirrors (see OSRM_UPSTREAM_BASES)
+ * because router.project-osrm.org often times out from serverless / demo overload.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -27,8 +38,10 @@ export async function GET(request: Request) {
   const originLat = Number(searchParams.get("originLat"))
   const destLng = Number(searchParams.get("destLng"))
   const destLat = Number(searchParams.get("destLat"))
-  const alternatives = searchParams.get("alternatives") === "true"
-  const overview = searchParams.get("overview") === "full" ? "full" : "simplified"
+  const altParam = searchParams.get("alternatives")
+  const alternatives = altParam === null ? true : altParam === "true"
+  const ovParam = searchParams.get("overview")
+  const overview = ovParam === null ? "full" : ovParam === "full" ? "full" : "simplified"
 
   if (![originLng, originLat, destLng, destLat].every((n) => Number.isFinite(n))) {
     return NextResponse.json({ message: "Invalid coordinates" }, { status: 400 })
@@ -43,33 +56,58 @@ export async function GET(request: Request) {
   const origin: LngLat = [originLng, originLat]
   const dest: LngLat = [destLng, destLat]
 
-  const upstream = buildOsrmDrivingRouteUrl(origin, dest, { alternatives, overview })
+  let lastOkBody: string | null = null
 
-  const respondWith = (res: Response) =>
-    res.text().then(
-      (text) =>
-        new NextResponse(text, {
+  const attempts = await Promise.all(
+    OSRM_UPSTREAM_BASES.map(async (baseUrl) => {
+      const upstream = buildOsrmDrivingRouteUrl(origin, dest, {
+        alternatives,
+        overview,
+        baseUrl,
+      })
+      try {
+        const res = await fetchUpstreamOnce(upstream)
+        const text = await res.text()
+        let data: unknown
+        try {
+          data = JSON.parse(text)
+        } catch {
+          return { parsedLen: 0, text: null as string | null, resOk: false, status: res.status }
+        }
+        const parsedLen = parseOsrmJson(data).length
+        return {
+          parsedLen,
+          text,
+          resOk: res.ok,
           status: res.status,
-          headers: { "Content-Type": "application/json" },
-        })
-    )
+        }
+      } catch {
+        return { parsedLen: 0, text: null, resOk: false, status: 0 }
+      }
+    })
+  )
 
-  try {
-    let res = await fetchUpstreamJson(upstream)
-    if (res.status >= 500) {
-      await res.text().catch(() => {})
-      res = await fetchUpstreamJson(upstream)
+  for (const a of attempts) {
+    if (a.parsedLen > 0 && a.text) {
+      return new NextResponse(a.text, {
+        status: a.status,
+        headers: { "Content-Type": "application/json" },
+      })
     }
-    return await respondWith(res)
-  } catch {
-    try {
-      const res = await fetchUpstreamJson(upstream)
-      return await respondWith(res)
-    } catch {
-      return NextResponse.json(
-        { code: "ProxyError", message: "Routing service unreachable" },
-        { status: 502 }
-      )
+    if (a.resOk && a.text) {
+      lastOkBody = a.text
     }
   }
+
+  if (lastOkBody !== null) {
+    return new NextResponse(lastOkBody, {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
+  return NextResponse.json(
+    { code: "ProxyError", message: "Routing service unreachable" },
+    { status: 502 }
+  )
 }

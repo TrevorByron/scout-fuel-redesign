@@ -11,7 +11,7 @@ import {
   lowestPrice,
   sortAreaStopsForDisplay,
 } from "@/lib/along-route-stops"
-import { fetchOsrmDrivingRoutes, type OsrmRouteOption } from "@/lib/osrm-route"
+import { fetchDrivingRoutes, type RouteData } from "@/lib/osrm-route"
 import type { LngLat } from "@/lib/trips"
 import { useDebouncedGeocode } from "@/hooks/use-debounced-geocode"
 import { useTouchSheetScrollEnabled } from "@/hooks/use-touch-sheet-scroll-enabled"
@@ -48,7 +48,7 @@ function dateToKey(d: Date): string {
   return format(d, "yyyy-MM-dd")
 }
 
-function formatRouteChipSecondary(route: OsrmRouteOption): string {
+function formatRouteChipSecondary(route: RouteData): string {
   const mi = route.distance / 1609.344
   const sec = route.duration
   const h = Math.floor(sec / 3600)
@@ -67,7 +67,7 @@ export function PricingSummaryUber() {
   const [radiusMiles, setRadiusMiles] = React.useState<(typeof RADIUS_MILES_OPTIONS)[number]>(25)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined)
   const [dateOpen, setDateOpen] = React.useState(false)
-  const [routeOptions, setRouteOptions] = React.useState<OsrmRouteOption[]>([])
+  const [routeOptions, setRouteOptions] = React.useState<RouteData[]>([])
   const [selectedRouteIndex, setSelectedRouteIndex] = React.useState(0)
   const [routeLoading, setRouteLoading] = React.useState(false)
   const [sidebarWidth, setSidebarWidth] = React.useState(0)
@@ -118,15 +118,18 @@ export function PricingSummaryUber() {
       return
     }
 
+    let active = true
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 60_000)
+    const timeoutId = setTimeout(() => controller.abort(), 30_000)
 
+    setRouteOptions([])
+    setSelectedRouteIndex(0)
     setRouteLoading(true)
-    fetchOsrmDrivingRoutes(originCoords, destinationCoords, {
-      alternatives: true,
+    fetchDrivingRoutes(originCoords, destinationCoords, {
       signal: controller.signal,
     })
       .then((routes) => {
+        if (!active) return
         if (routes.length > 0) {
           const sorted = [...routes].sort((a, b) => a.duration - b.duration)
           setRouteOptions(sorted)
@@ -143,6 +146,7 @@ export function PricingSummaryUber() {
         }
       })
       .catch(() => {
+        if (!active) return
         setRouteOptions([
           {
             coordinates: [originCoords, destinationCoords],
@@ -154,12 +158,14 @@ export function PricingSummaryUber() {
       })
       .finally(() => {
         clearTimeout(timeoutId)
-        setRouteLoading(false)
+        if (active) setRouteLoading(false)
       })
 
     return () => {
+      active = false
       controller.abort()
       clearTimeout(timeoutId)
+      setRouteLoading(false)
     }
   }, [searchMode, originCoords, destinationCoords])
 
