@@ -87,6 +87,19 @@ export function parseOsrmJson(data: unknown): RouteData[] {
   return out
 }
 
+/**
+ * Map-ready polyline from OSRM `fetchDrivingRoutes` / `parseOsrmJson` output.
+ * Picks the fastest route by duration and returns its coordinates (no endpoint filtering — OSRM
+ * already snapped origin→destination for the request).
+ */
+export function pickDrivingRoutePolyline(routes: RouteData[]): LngLat[] | null {
+  if (routes.length === 0) return null
+  const sorted = [...routes].sort((a, b) => a.duration - b.duration)
+  const coords = sorted[0]?.coordinates
+  if (!coords || coords.length < 2) return null
+  return coords
+}
+
 export type FetchDrivingRoutesOptions = {
   signal?: AbortSignal
   /** Default true (reference). */

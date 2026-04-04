@@ -15,7 +15,7 @@ import {
   type LocationComparison,
 } from "@/components/actual-vs-optimized-card"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
-import { fetchDrivingRoutes } from "@/lib/osrm-route"
+import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 
 export type RepresentativeBetterOption = {
   stationName: string
@@ -32,6 +32,12 @@ type LocationDetailMapProps = {
   /** Center of the location (e.g. first transaction's coords). */
   locationLat: number
   locationLng: number
+  /**
+   * When set, used as the actual stop for routing and the red marker (same transaction as
+   * `comparison`). Falls back to `locationLat` / `locationLng`.
+   */
+  routeOriginLat?: number
+  routeOriginLng?: number
   /** Average $ lost per fill-up outside optimized locations at this location. */
   avgMissedSavingsPerBadStop: number
   /** Most frequent better option from transactions, or null. */
@@ -79,6 +85,8 @@ export function LocationDetailMap({
   locationDisplayName,
   locationLat,
   locationLng,
+  routeOriginLat,
+  routeOriginLng,
   avgMissedSavingsPerBadStop,
   representativeBetterOption,
   comparison,
@@ -87,6 +95,9 @@ export function LocationDetailMap({
   const [routeCoords, setRouteCoords] = React.useState<[number, number][] | null>(
     null
   )
+
+  const actualLat = routeOriginLat ?? locationLat
+  const actualLng = routeOriginLng ?? locationLng
 
   React.useEffect(() => {
     setMounted(true)
@@ -99,33 +110,23 @@ export function LocationDetailMap({
     }
     const ac = new AbortController()
     setRouteCoords([
-      [locationLng, locationLat],
+      [actualLng, actualLat],
       [representativeBetterOption.lng, representativeBetterOption.lat],
     ])
     fetchDrivingRoutes(
-      [locationLng, locationLat],
+      [actualLng, actualLat],
       [representativeBetterOption.lng, representativeBetterOption.lat],
       { signal: ac.signal }
     )
       .then((routes) => {
-        const coords = routes[0]?.coordinates
-        if (!coords || coords.length < 2) return
-        const first = coords[0]
-        const last = coords[coords.length - 1]
-        const tol = 2
-        const nearStart =
-          Math.abs(first[0] - locationLng) < tol &&
-          Math.abs(first[1] - locationLat) < tol
-        const nearEnd =
-          Math.abs(last[0] - representativeBetterOption.lng) < tol &&
-          Math.abs(last[1] - representativeBetterOption.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
+        const poly = pickDrivingRoutePolyline(routes)
+        if (poly) setRouteCoords(poly as [number, number][])
       })
       .catch(() => {})
     return () => ac.abort()
   }, [
-    locationLng,
-    locationLat,
+    actualLng,
+    actualLat,
     representativeBetterOption?.lng,
     representativeBetterOption?.lat,
     representativeBetterOption,
@@ -152,8 +153,8 @@ export function LocationDetailMap({
         zoom={MAP_US_ZOOM}
       >
         <FitBounds
-          locationLat={locationLat}
-          locationLng={locationLng}
+          locationLat={actualLat}
+          locationLng={actualLng}
           betterOption={representativeBetterOption}
         />
         <MapControls showCompass showZoom position="top-right" />
@@ -167,7 +168,7 @@ export function LocationDetailMap({
           />
         )}
 
-        <MapMarker longitude={locationLng} latitude={locationLat}>
+        <MapMarker longitude={actualLng} latitude={actualLat}>
           <MarkerContent>
             <div className="size-4 rounded-full bg-destructive ring-2 ring-background shadow-md" />
           </MarkerContent>

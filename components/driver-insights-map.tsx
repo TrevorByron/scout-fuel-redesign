@@ -18,7 +18,7 @@ import {
   transactionToComparison,
 } from "@/components/actual-vs-optimized-card"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
-import { fetchDrivingRoutes } from "@/lib/osrm-route"
+import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 import { cn } from "@/lib/utils"
 
 function getWaste(t: FuelTransaction): number {
@@ -196,18 +196,8 @@ export function DriverInsightsMap({
       { signal: ac.signal }
     )
       .then((routes) => {
-        const coords = routes[0]?.coordinates
-        if (!coords || coords.length < 2) return
-        const first = coords[0]
-        const last = coords[coords.length - 1]
-        const tol = 2
-        const nearStart =
-          Math.abs(first[0] - popupTransaction.lng) < tol &&
-          Math.abs(first[1] - popupTransaction.lat) < tol
-        const nearEnd =
-          Math.abs(last[0] - opt.lng) < tol &&
-          Math.abs(last[1] - opt.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
+        const poly = pickDrivingRoutePolyline(routes)
+        if (poly) setRouteCoords(poly as [number, number][])
       })
       .catch(() => {})
     return () => ac.abort()

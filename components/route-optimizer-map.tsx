@@ -113,6 +113,8 @@ export type RouteOptimizerMapProps = {
   routeAlternatives?: LngLat[][]
   selectedRouteIndex?: number
   onSelectRoute?: (index: number) => void
+  /** e.g. duration/distance route chips — bottom-right, below zoom/locate controls. */
+  routeSwitcher?: React.ReactNode
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
@@ -130,6 +132,7 @@ export function RouteOptimizerMap({
   routeAlternatives,
   selectedRouteIndex = 0,
   onSelectRoute,
+  routeSwitcher,
 }: RouteOptimizerMapProps) {
   const [mounted, setMounted] = React.useState(false)
 
@@ -268,12 +271,20 @@ export function RouteOptimizerMap({
             </MarkerContent>
           </MapMarker>
         ))}
-        <MapControls
-          showZoom
-          showLocate
-          position="bottom-right"
-          className="max-md:hidden"
-        />
+        <div className="pointer-events-none absolute bottom-10 right-2 z-20 flex max-w-[min(100%-1rem,20rem)] flex-col-reverse items-end gap-2 sm:bottom-6">
+          {routeSwitcher ? (
+            <div className="pointer-events-auto flex w-full flex-col gap-2 items-end">
+              {routeSwitcher}
+            </div>
+          ) : null}
+          <div className="pointer-events-auto max-md:hidden">
+            <MapControls
+              showZoom
+              showLocate
+              position="inline"
+            />
+          </div>
+        </div>
       </Map>
     </div>
   )

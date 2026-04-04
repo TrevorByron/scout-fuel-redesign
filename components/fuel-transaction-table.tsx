@@ -27,7 +27,7 @@ import { Map as MapView, MapMarker, MarkerContent, MarkerLabel, MapRoute, useMap
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
 import { ChevronDown, ChevronRight } from "lucide-react"
-import { fetchDrivingRoutes } from "@/lib/osrm-route"
+import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 import { cn } from "@/lib/utils"
 
 /** Group key: Chain + Location (e.g. "Chevron · Oklahoma City, OK") */
@@ -159,14 +159,8 @@ export function BetterOptionDetails({
       { signal: ac.signal }
     )
       .then((routes) => {
-        const coords = routes[0]?.coordinates
-        if (!coords || coords.length < 2) return
-        const first = coords[0]
-        const last = coords[coords.length - 1]
-        const tol = 2
-        const nearStart = Math.abs(first[0] - transaction.lng) < tol && Math.abs(first[1] - transaction.lat) < tol
-        const nearEnd = Math.abs(last[0] - option.lng) < tol && Math.abs(last[1] - option.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
+        const poly = pickDrivingRoutePolyline(routes)
+        if (poly) setRouteCoords(poly as [number, number][])
       })
       .catch(() => {})
       .finally(() => {

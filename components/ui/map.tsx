@@ -814,8 +814,8 @@ function MarkerLabel({
 }
 
 type MapControlsProps = {
-  /** Position of the controls on the map (default: "bottom-right") */
-  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  /** Position of the controls on the map (default: "bottom-right"). Use `inline` when placing controls inside another positioned wrapper. */
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "inline";
   /** Show zoom in/out buttons (default: true) */
   showZoom?: boolean;
   /** Show compass button to reset bearing (default: false) */
@@ -830,11 +830,15 @@ type MapControlsProps = {
   onLocate?: (coords: { longitude: number; latitude: number }) => void;
 };
 
-const positionClasses = {
+const positionClasses: Record<
+  NonNullable<MapControlsProps["position"]>,
+  string
+> = {
   "top-left": "top-2 left-2",
   "top-right": "top-2 right-2",
   "bottom-left": "bottom-2 left-2",
   "bottom-right": "bottom-10 right-2",
+  inline: "relative inset-auto",
 };
 
 function ControlGroup({ children }: { children: React.ReactNode }) {
@@ -881,6 +885,10 @@ function MapControls({
   className,
   onLocate,
 }: MapControlsProps) {
+  const positionClass =
+    position === "inline"
+      ? positionClasses.inline
+      : cn("absolute", positionClasses[position]);
   const { map } = useMap();
   const [waitingForLocation, setWaitingForLocation] = useState(false);
 
@@ -934,8 +942,8 @@ function MapControls({
   return (
     <div
       className={cn(
-        "absolute z-10 flex flex-col gap-1.5",
-        positionClasses[position],
+        "z-10 flex flex-col gap-1.5",
+        positionClass,
         className
       )}
     >

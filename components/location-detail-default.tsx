@@ -52,6 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { transactionToComparison } from "@/components/actual-vs-optimized-card"
 
 const FuelTransactionTable = dynamic(
   () =>
@@ -180,30 +181,25 @@ export function LocationDetailDefault() {
     [dateFilteredTransactions]
   )
 
-  const representativeComparison = React.useMemo(() => {
+  const representativeTransactionForMap = React.useMemo(() => {
     if (!representativeBetterOption) return null
     const key = (opt: { stationName: string; location: string }) =>
       `${opt.stationName}\u001f${opt.location}`
     const targetKey = key(representativeBetterOption)
-    const t = dateFilteredTransactions.find(
-      (t) => t.betterOption && key(t.betterOption) === targetKey
+    return (
+      dateFilteredTransactions.find(
+        (t) => t.betterOption && key(t.betterOption) === targetKey
+      ) ?? null
     )
-    if (!t?.betterOption) return null
-    const opt = t.betterOption
-    const optimizedTotal = Math.round(t.gallons * opt.pricePerGallon * 100) / 100
-    return {
-      actualChain: t.stationBrand,
-      actualLocation: t.location,
-      actualCpg: t.pricePerGallon,
-      actualTotal: t.totalCost,
-      optimizedChain: opt.stationName,
-      optimizedLocation: opt.location,
-      optimizedCpg: opt.pricePerGallon,
-      optimizedTotal,
-      savings: opt.potentialSavings,
-      distanceMiles: opt.distanceMiles,
-    }
   }, [representativeBetterOption, dateFilteredTransactions])
+
+  const representativeComparison = React.useMemo(
+    () =>
+      representativeTransactionForMap
+        ? transactionToComparison(representativeTransactionForMap)
+        : null,
+    [representativeTransactionForMap]
+  )
 
   const locationCenter = React.useMemo(() => {
     const first = dateFilteredTransactions[0]
@@ -374,6 +370,8 @@ export function LocationDetailDefault() {
           locationDisplayName={displayName}
           locationLat={locationCenter.lat}
           locationLng={locationCenter.lng}
+          routeOriginLat={representativeTransactionForMap?.lat}
+          routeOriginLng={representativeTransactionForMap?.lng}
           avgMissedSavingsPerBadStop={summaryStats.avgMissedSavingsPerBadStop}
           representativeBetterOption={representativeBetterOption}
           comparison={representativeComparison}

@@ -319,54 +319,54 @@ export function RouteOptimizerPageContent() {
           fuelStopCoords={fuelStopCoords}
           mapLeftPadding={touchSheetScroll ? 0 : sidebarWidth}
           mapBottomPadding={0}
+          routeSwitcher={
+            !isOptimizing &&
+            originCoords &&
+            destinationCoords &&
+            routeOptions.length > 0 &&
+            !routeLoading ? (
+              <>
+                {routeOptions.map((route, index) => {
+                  const isActive = index === selectedRouteIndex
+                  const isFastest = index === 0
+                  return (
+                    <Button
+                      key={index}
+                      type="button"
+                      variant={isActive ? "default" : "secondary"}
+                      size="sm"
+                      className="h-auto min-h-11 justify-start gap-2 py-2 sm:min-h-9"
+                      onClick={() => setSelectedRouteIndex(index)}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="size-3.5 shrink-0" aria-hidden />
+                        <span className="font-medium">
+                          {formatDuration(route.duration)}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs opacity-80">
+                        <Route className="size-3 shrink-0" aria-hidden />
+                        {formatDistanceMeters(route.distance)}
+                      </span>
+                      {isFastest ? (
+                        <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
+                          Fastest
+                        </span>
+                      ) : null}
+                    </Button>
+                  )
+                })}
+              </>
+            ) : null
+          }
         />
       }
       overlay={
-        <>
-          {isOptimizing ? (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
-              <p className="text-sm font-medium text-foreground">Optimizing route</p>
-            </div>
-          ) : null}
-          {!isOptimizing &&
-          originCoords &&
-          destinationCoords &&
-          routeOptions.length > 0 &&
-          !routeLoading ? (
-            <div className="pointer-events-auto absolute left-3 top-3 z-20 flex max-w-[min(100%-1.5rem,20rem)] flex-col gap-2">
-              {routeOptions.map((route, index) => {
-                const isActive = index === selectedRouteIndex
-                const isFastest = index === 0
-                return (
-                  <Button
-                    key={index}
-                    type="button"
-                    variant={isActive ? "default" : "secondary"}
-                    size="sm"
-                    className="h-auto min-h-11 justify-start gap-2 py-2 sm:min-h-9"
-                    onClick={() => setSelectedRouteIndex(index)}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="size-3.5 shrink-0" aria-hidden />
-                      <span className="font-medium">
-                        {formatDuration(route.duration)}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs opacity-80">
-                      <Route className="size-3 shrink-0" aria-hidden />
-                      {formatDistanceMeters(route.distance)}
-                    </span>
-                    {isFastest ? (
-                      <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
-                        Fastest
-                      </span>
-                    ) : null}
-                  </Button>
-                )
-              })}
-            </div>
-          ) : null}
-        </>
+        isOptimizing ? (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 animate-pulse pointer-events-auto">
+            <p className="text-sm font-medium text-foreground">Optimizing route</p>
+          </div>
+        ) : null
       }
       ariaLabel="Route details"
       sidebarRef={sidebarRef}

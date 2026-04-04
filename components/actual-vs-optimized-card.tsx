@@ -18,6 +18,21 @@ export type LocationComparison = {
   distanceMiles: number
 }
 
+const MILES_PER_DEGREE_APPROX = 69
+
+/** Planar approximation; matches `lib/trips.ts` stop-distance helper. */
+function distanceMilesApprox(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const dLat = (lat2 - lat1) * MILES_PER_DEGREE_APPROX
+  const dLng =
+    (lng2 - lng1) * MILES_PER_DEGREE_APPROX * Math.cos((lat1 * Math.PI) / 180)
+  return Math.sqrt(dLat * dLat + dLng * dLng)
+}
+
 /** Build LocationComparison from a transaction that has a betterOption; otherwise null. */
 export function transactionToComparison(
   t: FuelTransaction
@@ -25,6 +40,10 @@ export function transactionToComparison(
   const opt = t.betterOption
   if (!opt) return null
   const optimizedTotal = Math.round(t.gallons * opt.pricePerGallon * 100) / 100
+  const rawSavings = Math.round((t.totalCost - optimizedTotal) * 100) / 100
+  const savings = Math.max(0, rawSavings)
+  const distanceMiles =
+    Math.round(distanceMilesApprox(t.lat, t.lng, opt.lat, opt.lng) * 10) / 10
   return {
     actualChain: t.stationBrand,
     actualLocation: t.location,
@@ -34,8 +53,8 @@ export function transactionToComparison(
     optimizedLocation: opt.location,
     optimizedCpg: opt.pricePerGallon,
     optimizedTotal,
-    savings: opt.potentialSavings,
-    distanceMiles: opt.distanceMiles,
+    savings,
+    distanceMiles,
   }
 }
 

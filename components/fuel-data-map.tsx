@@ -23,7 +23,7 @@ import {
 import type { FuelTransaction } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
-import { fetchDrivingRoutes } from "@/lib/osrm-route"
+import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 import { ChevronLeft } from "lucide-react"
 
 export type FuelDataMapItem = {
@@ -228,6 +228,7 @@ export function FuelDataMap({ locations, transactions }: FuelDataMapProps) {
         locationDisplayName={selectedLocation.displayName}
         locationLat={selectedLocation.lat}
         locationLng={selectedLocation.lng}
+        representativeTransaction={representativeTransaction}
         representativeBetterOption={representativeBetterOption}
         comparison={comparison}
         onBack={handleBack}
@@ -260,6 +261,7 @@ function FocusedMapView({
   locationDisplayName,
   locationLat,
   locationLng,
+  representativeTransaction,
   representativeBetterOption,
   comparison,
   onBack,
@@ -267,6 +269,7 @@ function FocusedMapView({
   locationDisplayName: string
   locationLat: number
   locationLng: number
+  representativeTransaction: FuelTransaction | null
   representativeBetterOption: {
     stationName: string
     location: string
@@ -276,6 +279,8 @@ function FocusedMapView({
   comparison: LocationComparison | null
   onBack: () => void
 }) {
+  const actualLat = representativeTransaction?.lat ?? locationLat
+  const actualLng = representativeTransaction?.lng ?? locationLng
   const [mounted, setMounted] = React.useState(false)
   const [routeCoords, setRouteCoords] = React.useState<
     [number, number][] | null
@@ -292,33 +297,23 @@ function FocusedMapView({
     }
     const ac = new AbortController()
     setRouteCoords([
-      [locationLng, locationLat],
+      [actualLng, actualLat],
       [representativeBetterOption.lng, representativeBetterOption.lat],
     ])
     fetchDrivingRoutes(
-      [locationLng, locationLat],
+      [actualLng, actualLat],
       [representativeBetterOption.lng, representativeBetterOption.lat],
       { signal: ac.signal }
     )
       .then((routes) => {
-        const coords = routes[0]?.coordinates
-        if (!coords || coords.length < 2) return
-        const first = coords[0]
-        const last = coords[coords.length - 1]
-        const tol = 2
-        const nearStart =
-          Math.abs(first[0] - locationLng) < tol &&
-          Math.abs(first[1] - locationLat) < tol
-        const nearEnd =
-          Math.abs(last[0] - representativeBetterOption.lng) < tol &&
-          Math.abs(last[1] - representativeBetterOption.lat) < tol
-        if (nearStart && nearEnd) setRouteCoords(coords as [number, number][])
+        const poly = pickDrivingRoutePolyline(routes)
+        if (poly) setRouteCoords(poly as [number, number][])
       })
       .catch(() => {})
     return () => ac.abort()
   }, [
-    locationLng,
-    locationLat,
+    actualLng,
+    actualLat,
     representativeBetterOption?.lng,
     representativeBetterOption?.lat,
     representativeBetterOption,
@@ -339,8 +334,8 @@ function FocusedMapView({
         zoom={MAP_US_ZOOM}
       >
         <FitToSelected
-          lat={locationLat}
-          lng={locationLng}
+          lat={actualLat}
+          lng={actualLng}
           betterOption={representativeBetterOption}
         />
         <MapControls showCompass showZoom position="top-right" />
@@ -356,7 +351,7 @@ function FocusedMapView({
             />
           )}
 
-        <MapMarker longitude={locationLng} latitude={locationLat}>
+        <MapMarker longitude={actualLng} latitude={actualLat}>
           <MarkerContent>
             <div className="size-4 rounded-full bg-destructive ring-2 ring-background shadow-md" />
           </MarkerContent>
