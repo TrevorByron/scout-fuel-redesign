@@ -31,6 +31,12 @@ const SYNTHETIC_STEP_METERS = 45_000
 /** Mock rows within this distance of the route polyline are merged in */
 const MOCK_NEAR_ROUTE_METERS = 20 * 1609.344
 
+/**
+ * OSRM returns full-resolution polylines (often thousands of vertices). Proximity checks
+ * are O(rows × segments); cap vertices used only for distance math (display still uses full geometry).
+ */
+const ROUTE_QUERY_MAX_VERTICES = 400
+
 /** Drop duplicate pins within this radius (keep lower price) */
 const DEDUPE_METERS = 400
 
@@ -253,6 +259,58 @@ function sampleSyntheticAlongPolyline(
   return stops
 }
 
+/** Uniform index sampling; keeps endpoints. Safe for “near route” checks at ~20+ mi. */
+function decimatePolylineUniform(polyline: LngLat[], maxPoints: number): LngLat[] {
+  if (polyline.length <= maxPoints) return polyline
+  if (maxPoints < 2) return polyline.slice(0, Math.min(2, polyline.length))
+  const n = polyline.length
+  const out: LngLat[] = []
+  const span = maxPoints - 1
+  for (let i = 0; i < maxPoints; i++) {
+    const idx = Math.round((i / span) * (n - 1))
+    out.push(polyline[idx]!)
+  }
+  const deduped: LngLat[] = [out[0]!]
+  for (let i = 1; i < out.length; i++) {
+    const cur = out[i]!
+    const prev = deduped[deduped.length - 1]!
+    if (cur[0] !== prev[0] || cur[1] !== prev[1]) deduped.push(cur)
+  }
+  return deduped.length >= 2 ? deduped : polyline.slice(0, 2)
+}
+
+type LatLngBounds = { minLat: number; maxLat: number; minLng: number; maxLng: number }
+
+/** Axis-aligned bounds of all vertices, expanded by `padMeters` (cheap prefilter before polyline distance). */
+function polylineVertexBoundsPadded(polyline: LngLat[], padMeters: number): LatLngBounds | null {
+  if (polyline.length === 0) return null
+  let minLat = Infinity
+  let maxLat = -Infinity
+  let minLng = Infinity
+  let maxLng = -Infinity
+  for (const c of polyline) {
+    const [lng, lat] = c
+    minLat = Math.min(minLat, lat)
+    maxLat = Math.max(maxLat, lat)
+    minLng = Math.min(minLng, lng)
+    maxLng = Math.max(maxLng, lng)
+  }
+  const midLat = (minLat + maxLat) / 2
+  const cosLat = Math.cos((midLat * Math.PI) / 180)
+  const padLat = padMeters / 111_320
+  const padLng = padMeters / (111_320 * Math.max(0.2, cosLat))
+  return {
+    minLat: minLat - padLat,
+    maxLat: maxLat + padLat,
+    minLng: minLng - padLng,
+    maxLng: maxLng + padLng,
+  }
+}
+
+function pointInBounds(lat: number, lng: number, b: LatLngBounds): boolean {
+  return lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng
+}
+
 function mergeNearbyStops(stops: RoutePricingStop[]): RoutePricingStop[] {
   const sorted = [...stops].sort((a, b) => a.yourPrice - b.yourPrice)
   const kept: RoutePricingStop[] = []
@@ -283,16 +341,25 @@ export function buildRoutePricingStops(options: BuildRouteStopsOptions): RoutePr
 
   const synthetic = sampleSyntheticAlongPolyline(polyline, routeKey)
 
+  const queryPolyline =
+    polyline.length > ROUTE_QUERY_MAX_VERTICES
+      ? decimatePolylineUniform(polyline, ROUTE_QUERY_MAX_VERTICES)
+      : polyline
+
+  const nearBounds = polylineVertexBoundsPadded(polyline, MOCK_NEAR_ROUTE_METERS)
+
   const mockNear = mockRows
     .filter((row) => (dateFilter ? row.date === dateFilter : true))
-    .filter(
-      (row) =>
-        distancePointToPolylineMeters(row.lat, row.lng, polyline) <= MOCK_NEAR_ROUTE_METERS
-    )
+    .filter((row) => {
+      if (nearBounds && !pointInBounds(row.lat, row.lng, nearBounds)) return false
+      return (
+        distancePointToPolylineMeters(row.lat, row.lng, queryPolyline) <= MOCK_NEAR_ROUTE_METERS
+      )
+    })
     .map((row, i) => {
       const label = `${row.chain} · ${row.location}`
       const milesFromRouteStart =
-        metersFromPolylineStartToNearestPoint(polyline, row.lat, row.lng) / 1609.344
+        metersFromPolylineStartToNearestPoint(queryPolyline, row.lat, row.lng) / 1609.344
       return {
         id: `mock-${row.date}-${row.city}-${row.state}-${i}`,
         lat: row.lat,
