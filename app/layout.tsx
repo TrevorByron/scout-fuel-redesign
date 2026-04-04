@@ -48,7 +48,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning data-style="glass">
-      <body className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}>
+      <body
+        className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}
+        data-font="default"
+        suppressHydrationWarning
+      >
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){var v="3";if(localStorage.getItem("style-version")!==v){localStorage.setItem("style-version",v);var r=localStorage.getItem("style-template");var m=r==="teal"||r==="glass"||r==="uber"?r:r==="2"?"teal":r==="4"?"glass":r==="5"?"uber":"glass";localStorage.setItem("style-template",m);}var s=localStorage.getItem("style-template");if(s!=="teal"&&s!=="glass"&&s!=="uber"){s=s==="2"?"teal":s==="4"?"glass":s==="5"?"uber":"glass";localStorage.setItem("style-template",s);}document.documentElement.setAttribute("data-style",s);document.body.setAttribute("data-font",s==="uber"?"system":"default");})();`,

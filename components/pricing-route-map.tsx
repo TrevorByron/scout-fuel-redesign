@@ -16,7 +16,11 @@ import {
 import type { RoutePricingStop } from "@/lib/along-route-stops"
 import { selectVisiblePriceStops } from "@/lib/pricing-route-visibility"
 import type { LngLat } from "@/lib/trips"
-import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
+import {
+  MAP_US_CENTER,
+  MAP_US_ZOOM,
+  MAP_US_ZOOM_NARROW_VIEWPORT,
+} from "@/lib/map-us-defaults"
 import { cn } from "@/lib/utils"
 const SINGLE_POINT_ZOOM = 13
 const FLY_DURATION_MS = 600
@@ -24,6 +28,52 @@ const DEFAULT_PADDING = 100
 
 const ROUTE_LINE_SELECTED = "#2563eb"
 const ROUTE_LINE_ALT = "#64748b"
+
+/** Tailwind `sm` is 640px; below that, zoom out the default US frame slightly. */
+const SM_MAX_WIDTH_PX = 639
+
+function subscribeBelowSm(callback: () => void) {
+  const mq = window.matchMedia(`(max-width: ${SM_MAX_WIDTH_PX}px)`)
+  mq.addEventListener("change", callback)
+  return () => mq.removeEventListener("change", callback)
+}
+
+function getBelowSmSnapshot(): boolean {
+  return window.matchMedia(`(max-width: ${SM_MAX_WIDTH_PX}px)`).matches
+}
+
+function getBelowSmServerSnapshot(): boolean {
+  return false
+}
+
+function useIsBelowSm(): boolean {
+  return React.useSyncExternalStore(
+    subscribeBelowSm,
+    getBelowSmSnapshot,
+    getBelowSmServerSnapshot
+  )
+}
+
+/**
+ * When showing the default continental US (no route/area fit), keep zoom in sync
+ * when the viewport crosses the narrow breakpoint (Map only reads initial zoom on mount).
+ */
+function DefaultContinentalZoomSync({
+  active,
+  targetZoom,
+}: {
+  active: boolean
+  targetZoom: number
+}) {
+  const { map, isLoaded } = useMap()
+
+  React.useEffect(() => {
+    if (!active || !isLoaded || !map) return
+    map.jumpTo({ center: MAP_US_CENTER, zoom: targetZoom })
+  }, [active, isLoaded, map, targetZoom])
+
+  return null
+}
 
 const EARTH_RADIUS_M = 6_371_000
 
@@ -552,6 +602,23 @@ export function PricingRouteMap({
     [stops]
   )
 
+  const showDefaultContinental = React.useMemo(() => {
+    if (hasAreaSearch) return false
+    if (!isAreaMode && originCoords && !destinationCoords) return false
+    if (!isAreaMode && destinationCoords && !originCoords) return false
+    if (!isAreaMode && originCoords && destinationCoords && hasRoute) return false
+    return true
+  }, [
+    hasAreaSearch,
+    isAreaMode,
+    originCoords,
+    destinationCoords,
+    hasRoute,
+  ])
+
+  const belowSm = useIsBelowSm()
+  const defaultUsZoom = belowSm ? MAP_US_ZOOM_NARROW_VIEWPORT : MAP_US_ZOOM
+
   if (!mounted) {
     return (
       <div
@@ -574,8 +641,12 @@ export function PricingRouteMap({
       <Map
         className="h-full w-full min-h-[160px] rounded-none"
         center={MAP_US_CENTER}
-        zoom={MAP_US_ZOOM}
+        zoom={defaultUsZoom}
       >
+        <DefaultContinentalZoomSync
+          active={showDefaultContinental}
+          targetZoom={defaultUsZoom}
+        />
         {hasAreaSearch && areaCenterCoords && areaRadiusMeters != null ? (
           <>
             <FitAreaBounds
