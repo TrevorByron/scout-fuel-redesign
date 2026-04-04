@@ -191,7 +191,8 @@ html[data-style="glass"] [data-slot="sidebar-group"] {
   padding: 0.5rem 0.5rem 0.25rem;
 }
 
-/* Pilot rebate progress: emerald-100 track vanishes on glass sidebar gradient — frosted track + edge so bar reads clearly */
+/* Rebate tier progress: emerald-100 track vanishes on glass sidebar gradient — frosted track + edge so bar reads clearly */
+html[data-style="glass"] [data-rebate-progress][role="progressbar"],
 html[data-style="glass"] [data-pilot-rebate-progress][role="progressbar"] {
   background: color-mix(in oklch, white 72%, transparent) !important;
   box-shadow:
@@ -200,6 +201,7 @@ html[data-style="glass"] [data-pilot-rebate-progress][role="progressbar"] {
   backdrop-filter: blur(6px);
 }
 
+html[data-style="glass"].dark [data-rebate-progress][role="progressbar"],
 html[data-style="glass"].dark [data-pilot-rebate-progress][role="progressbar"] {
   background: color-mix(in oklch, oklch(0.18 0.02 233) 78%, transparent) !important;
   box-shadow:
@@ -394,6 +396,14 @@ html[data-style="glass"].dark [data-slot="accordion"]::after {
 
 html[data-style="glass"].dark [data-slot="accordion-item"] {
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Rebate popover “By fuel” — dense row; drop the card-style outer shadow */
+html[data-style="glass"] [data-slot="accordion"][data-rebate-fuel-accordion] {
+  box-shadow: none;
+}
+html[data-style="glass"].dark [data-slot="accordion"][data-rebate-fuel-accordion] {
+  box-shadow: none;
 }
 
 /* Style 4: same chunky form controls as Style 1 (min-height 40px) */
