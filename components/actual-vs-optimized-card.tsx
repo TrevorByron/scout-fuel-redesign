@@ -72,19 +72,27 @@ type ActualVsOptimizedCardProps =
       variant: "comparison"
       comparison: LocationComparison
       position?: Position
+      /** `embedded` = sheet; `map` = inside Trips map stack (chrome from parent); `floating` = map overlay. */
+      layout?: "floating" | "embedded" | "map"
     }
   | {
       variant: "optimal"
       transaction: FuelTransaction
       position?: Position
+      layout?: "floating" | "embedded" | "map"
     }
 
 export function ActualVsOptimizedCard(
   props: ActualVsOptimizedCardProps
 ) {
   const position = props.position ?? "bottom"
+  const layout = props.layout ?? "floating"
   const baseClasses =
-    "absolute z-10 min-w-0 rounded-lg border border-border bg-card/95 p-3 text-xs shadow-md backdrop-blur-sm"
+    layout === "embedded"
+      ? "relative z-0 min-w-0 w-full max-w-none rounded-lg border border-border bg-card p-3 text-xs shadow-sm"
+      : layout === "map"
+        ? "relative z-0 min-w-0 w-full max-w-none border-0 bg-transparent p-0 text-xs shadow-none"
+        : "absolute z-10 min-w-0 rounded-lg border border-border bg-card/95 p-3 text-xs shadow-md backdrop-blur-sm"
 
   if (props.variant === "optimal") {
     const { transaction } = props
@@ -92,7 +100,7 @@ export function ActualVsOptimizedCard(
       <div
         className={cn(
           baseClasses,
-          positionClasses[position]
+          layout === "floating" && positionClasses[position]
         )}
       >
         <p className="font-medium text-muted-foreground pb-1">
@@ -122,7 +130,7 @@ export function ActualVsOptimizedCard(
     <div
       className={cn(
         baseClasses,
-        positionClasses[position]
+        layout === "floating" && positionClasses[position]
       )}
     >
       <div className="flex flex-wrap items-center gap-3 pb-2 font-medium text-muted-foreground">

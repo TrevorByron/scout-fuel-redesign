@@ -719,41 +719,9 @@ export function getFuelTransactions(asOfDate?: Date): FuelTransaction[] {
 /** @deprecated Use getFuelTransactions() so data always includes the current day. */
 export const fuelTransactions: FuelTransaction[] = getFuelTransactions()
 
-/** Transactions in the current trip window for T001, T002, T003 at seed trip stop locations. Merge with getFuelTransactions() on Trips page so "matching refuels" show. */
+/** @deprecated Use `getTransactionsForTripPlan` from `@/lib/trip-transactions` (per-trip, one txn per planned stop for seed trips). */
 export function getSeedTripTransactions(): FuelTransaction[] {
-  const base = new Date()
-  const locations: Array<{ truckId: string; location: string; lat: number; lng: number; stationBrand: string; daysOffset: number; gallons: number; totalCost: number }> = [
-    { truckId: "T001", location: "Phoenix, AZ", lat: 33.4484, lng: -112.074, stationBrand: "Pilot Flying J", daysOffset: -2, gallons: 120, totalCost: 446.4 },
-    { truckId: "T001", location: "Albuquerque, NM", lat: 35.0844, lng: -106.6504, stationBrand: "Love's", daysOffset: -1, gallons: 95, totalCost: 349.6 },
-    { truckId: "T002", location: "Denver, CO", lat: 39.7392, lng: -104.9903, stationBrand: "Pilot Flying J", daysOffset: -3, gallons: 115, totalCost: 434.7 },
-    { truckId: "T002", location: "Oklahoma City, OK", lat: 35.4676, lng: -97.5164, stationBrand: "Love's", daysOffset: -1, gallons: 98, totalCost: 357.7 },
-    { truckId: "T003", location: "El Paso, TX", lat: 31.7619, lng: -106.485, stationBrand: "Pilot Flying J", daysOffset: -2, gallons: 118, totalCost: 435.42 },
-    { truckId: "T003", location: "Tucson, AZ", lat: 32.2226, lng: -110.9747, stationBrand: "Love's", daysOffset: -1, gallons: 92, totalCost: 344.08 },
-  ]
-  return locations.map((loc, i) => {
-    const d = new Date(base)
-    d.setDate(d.getDate() + loc.daysOffset)
-    d.setHours(8 + (i % 6), 30, 0, 0)
-    const driverName = loc.truckId === "T001" ? "Mike Johnson" : loc.truckId === "T002" ? "Sarah Williams" : "James Davis"
-    return {
-      id: `txn-seed-${i + 1}`,
-      dateTime: d.toISOString(),
-      driverName,
-      truckId: loc.truckId,
-      location: loc.location,
-      stationBrand: loc.stationBrand,
-      fuelType: "Diesel" as FuelType,
-      gallons: loc.gallons,
-      pricePerGallon: Math.round((loc.totalCost / loc.gallons) * 100) / 100,
-      totalCost: loc.totalCost,
-      savedAmount: Math.round(loc.totalCost * 0.05 * 100) / 100,
-      variance: 0,
-      alert: false,
-      lat: loc.lat,
-      lng: loc.lng,
-      inNetwork: true,
-    }
-  })
+  return []
 }
 
 export const costOpportunities: CostOpportunity[] = [

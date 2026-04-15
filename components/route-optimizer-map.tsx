@@ -39,6 +39,7 @@ function FitRouteBounds({
   destinationCoords,
   routeCoordinates,
   fuelStopCoords = [],
+  extraBoundsCoords = [],
   mapLeftPadding = 0,
   mapBottomPadding = 0,
 }: {
@@ -46,6 +47,8 @@ function FitRouteBounds({
   destinationCoords: LngLat | null
   routeCoordinates: LngLat[]
   fuelStopCoords?: LngLat[]
+  /** Unioned into fitBounds (insight pair, actual refuel dots, etc.). */
+  extraBoundsCoords?: LngLat[]
   mapLeftPadding?: number
   mapBottomPadding?: number
 }) {
@@ -78,6 +81,13 @@ function FitRouteBounds({
       maxLat = Math.max(maxLat, lat)
     }
 
+    for (const [lng, lat] of extraBoundsCoords) {
+      minLng = Math.min(minLng, lng)
+      maxLng = Math.max(maxLng, lng)
+      minLat = Math.min(minLat, lat)
+      maxLat = Math.max(maxLat, lat)
+    }
+
     map.fitBounds(
       [
         [minLng, minLat],
@@ -94,7 +104,90 @@ function FitRouteBounds({
         duration: FLY_DURATION_MS,
       }
     )
-  }, [map, isLoaded, originCoords, destinationCoords, routeCoordinates, fuelStopCoords, mapLeftPadding, mapBottomPadding])
+  }, [
+    map,
+    isLoaded,
+    originCoords,
+    destinationCoords,
+    routeCoordinates,
+    fuelStopCoords,
+    extraBoundsCoords,
+    mapLeftPadding,
+    mapBottomPadding,
+  ])
+
+  return null
+}
+
+/** Zoom/fit when user selects a fuel stop on the Trips sheet (actual+optimized pair or single point). */
+export type StopSelectionMapFocus =
+  | { kind: "pair"; a: LngLat; b: LngLat }
+  | { kind: "point"; center: LngLat; zoom?: number }
+
+function FitStopSelectionFocus({
+  focus,
+  mapLeftPadding,
+  mapBottomPadding,
+}: {
+  focus: StopSelectionMapFocus
+  mapLeftPadding: number
+  mapBottomPadding: number
+}) {
+  const { map, isLoaded } = useMap()
+
+  const focusKey = React.useMemo(() => {
+    if (focus.kind === "pair") {
+      return `pair:${focus.a[0]},${focus.a[1]},${focus.b[0]},${focus.b[1]}`
+    }
+    return `point:${focus.center[0]},${focus.center[1]},${focus.zoom ?? 11.5}`
+  }, [focus])
+
+  React.useEffect(() => {
+    if (!isLoaded || !map) return
+    map.resize()
+
+    if (focus.kind === "pair") {
+      const [lng1, lat1] = focus.a
+      const [lng2, lat2] = focus.b
+      const minLng = Math.min(lng1, lng2)
+      const maxLng = Math.max(lng1, lng2)
+      const minLat = Math.min(lat1, lat2)
+      const maxLat = Math.max(lat1, lat2)
+      const lngSpan = maxLng - minLng
+      const latSpan = maxLat - minLat
+      if (lngSpan < 1e-5 && latSpan < 1e-5) {
+        map.flyTo({
+          center: focus.a,
+          zoom: 12,
+          duration: FLY_DURATION_MS,
+        })
+        return
+      }
+      map.fitBounds(
+        [
+          [minLng, minLat],
+          [maxLng, maxLat],
+        ],
+        {
+          padding: {
+            left: mapLeftPadding,
+            right: 80,
+            top: 80,
+            bottom: Math.max(80, mapBottomPadding),
+          },
+          maxZoom: 13,
+          duration: FLY_DURATION_MS,
+        }
+      )
+      return
+    }
+
+    map.flyTo({
+      center: focus.center,
+      zoom: focus.zoom ?? 11.5,
+      duration: FLY_DURATION_MS,
+    })
+  }, [map, isLoaded, focusKey, mapLeftPadding, mapBottomPadding, focus])
 
   return null
 }
@@ -115,11 +208,33 @@ export type RouteOptimizerMapProps = {
   onSelectRoute?: (index: number) => void
   /** e.g. duration/distance route chips — bottom-right, below zoom/locate controls. */
   routeSwitcher?: React.ReactNode
+  /** Trips: actual purchase vs optimized alternative (driver/location insights pattern). */
+  insightFocus?: {
+    actual: LngLat
+    optimized: LngLat
+    routePolyline: LngLat[] | null
+    loading?: boolean
+    stopIndex: number
+  } | null
+  /** Trips: all matched actual refuel locations (green = on plan, red = paid more). */
+  tripActualRefuels?: Array<{
+    coords: LngLat
+    outcome: "optimal" | "inefficient"
+    stopIndex: number
+  }>
+  /** Trips: select stop from map marker tap (syncs with sheet + insight card). */
+  onTripActualRefuelClick?: (stopIndex: number) => void
+  /** Trips: zoom map when user selects a stop in the sheet (overrides full-route fit until cleared). */
+  stopSelectionFocus?: StopSelectionMapFocus | null
+  /** Trips: selected-stop ActualVsOptimizedCard, stacked under the map legend (top-right). */
+  tripStopInsightCard?: React.ReactNode
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
 const ROUTE_LINE_SELECTED = "#2563eb"
 const ROUTE_LINE_ALT = "#94a3b8"
+const INSIGHT_CONNECTOR_COLOR = "#6366f1"
+const ACTUAL_OPTIMAL_HEX = "#22c55e"
 
 export function RouteOptimizerMap({
   originCoords,
@@ -133,6 +248,11 @@ export function RouteOptimizerMap({
   selectedRouteIndex = 0,
   onSelectRoute,
   routeSwitcher,
+  insightFocus = null,
+  tripActualRefuels,
+  stopSelectionFocus = null,
+  tripStopInsightCard,
+  onTripActualRefuelClick,
 }: RouteOptimizerMapProps) {
   const [mounted, setMounted] = React.useState(false)
 
@@ -141,6 +261,12 @@ export function RouteOptimizerMap({
   }, [])
 
   const hasRoute = routeCoordinates.length >= 2
+
+  const extraFitBoundsCoords = React.useMemo((): LngLat[] => {
+    const fromInsight = insightFocus ? [insightFocus.actual, insightFocus.optimized] : []
+    const fromActuals = (tripActualRefuels ?? []).map((r) => r.coords)
+    return [...fromInsight, ...fromActuals]
+  }, [insightFocus, tripActualRefuels])
 
   const alternatives = React.useMemo(() => {
     if (routeAlternatives && routeAlternatives.length > 0) return routeAlternatives
@@ -185,16 +311,24 @@ export function RouteOptimizerMap({
         {destinationCoords && !originCoords && (
           <FitSinglePoint coords={destinationCoords} />
         )}
-        {originCoords && destinationCoords && hasRoute && (
+        {originCoords && destinationCoords && hasRoute && !stopSelectionFocus && (
           <FitRouteBounds
             originCoords={originCoords}
             destinationCoords={destinationCoords}
             routeCoordinates={routeCoordinates}
             fuelStopCoords={fuelStopCoords}
+            extraBoundsCoords={extraFitBoundsCoords}
             mapLeftPadding={mapLeftPadding}
             mapBottomPadding={mapBottomPadding}
           />
         )}
+        {stopSelectionFocus ? (
+          <FitStopSelectionFocus
+            focus={stopSelectionFocus}
+            mapLeftPadding={mapLeftPadding}
+            mapBottomPadding={mapBottomPadding}
+          />
+        ) : null}
         {originCoords && (
           <MapMarker longitude={originCoords[0]} latitude={originCoords[1]}>
             <MarkerContent>
@@ -251,6 +385,17 @@ export function RouteOptimizerMap({
               />
             )
           })}
+        {insightFocus &&
+          insightFocus.routePolyline &&
+          insightFocus.routePolyline.length >= 2 && (
+            <MapRoute
+              id="trip-insight-connector"
+              coordinates={insightFocus.routePolyline}
+              color={INSIGHT_CONNECTOR_COLOR}
+              width={4}
+              opacity={0.9}
+            />
+          )}
         {routeLoading && !hasRoute && originCoords && destinationCoords && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/50 pointer-events-none">
             <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden />
@@ -271,6 +416,131 @@ export function RouteOptimizerMap({
             </MarkerContent>
           </MapMarker>
         ))}
+        {(tripActualRefuels ?? [])
+          .filter(
+            (r) =>
+              !(
+                insightFocus &&
+                r.stopIndex === insightFocus.stopIndex
+              )
+          )
+          .map((r) => (
+            <MapMarker
+              key={`actual-refuel-${r.stopIndex}`}
+              longitude={r.coords[0]}
+              latitude={r.coords[1]}
+              onClick={() => onTripActualRefuelClick?.(r.stopIndex)}
+            >
+              <MarkerContent>
+                <div
+                  className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center touch-manipulation"
+                  aria-label={
+                    r.outcome === "optimal"
+                      ? "On-plan refuel, open details"
+                      : "Paid more at this refuel, open details"
+                  }
+                >
+                  <div
+                    className="size-3.5 shrink-0 rounded-full border-2 border-background shadow-md"
+                    style={{
+                      backgroundColor:
+                        r.outcome === "optimal" ? ACTUAL_OPTIMAL_HEX : "var(--destructive)",
+                    }}
+                    aria-hidden
+                  />
+                </div>
+              </MarkerContent>
+            </MapMarker>
+          ))}
+        {insightFocus && (
+          <>
+            <MapMarker
+              longitude={insightFocus.actual[0]}
+              latitude={insightFocus.actual[1]}
+              onClick={() => onTripActualRefuelClick?.(insightFocus.stopIndex)}
+            >
+              <MarkerContent>
+                <div
+                  className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center touch-manipulation"
+                  aria-label="Actual purchase, open details"
+                >
+                  <div
+                    className="size-4 rounded-full border-2 border-background shadow-md bg-destructive"
+                    aria-hidden
+                  />
+                </div>
+              </MarkerContent>
+            </MapMarker>
+            <MapMarker
+              longitude={insightFocus.optimized[0]}
+              latitude={insightFocus.optimized[1]}
+              onClick={() => onTripActualRefuelClick?.(insightFocus.stopIndex)}
+            >
+              <MarkerContent>
+                <div
+                  className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center touch-manipulation"
+                  aria-label="Optimized alternative, open details"
+                >
+                  <div
+                    className="size-4 rounded-full border-2 border-background shadow-md"
+                    style={{ backgroundColor: "var(--chart-2)" }}
+                    aria-hidden
+                  />
+                </div>
+              </MarkerContent>
+            </MapMarker>
+          </>
+        )}
+        {insightFocus ||
+        (tripActualRefuels?.length ?? 0) > 0 ||
+        tripStopInsightCard ? (
+          <div className="pointer-events-none absolute right-3 top-3 z-20 flex w-full max-w-[min(100%-1.5rem,20rem)] flex-col items-end gap-2">
+            {insightFocus ? (
+              <div className="flex max-w-full flex-col gap-1.5 rounded-md border border-border bg-card/90 px-2 py-1.5 text-[length:var(--text-2xs)] font-medium text-muted-foreground shadow-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 shrink-0 rounded-full bg-destructive" />
+                    Actual
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: "var(--chart-2)" }}
+                    />
+                    Optimized
+                  </span>
+                </div>
+                {insightFocus.loading ? (
+                  <span className="flex items-center gap-1.5 font-normal text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin shrink-0" aria-hidden />
+                    Routing…
+                  </span>
+                ) : null}
+              </div>
+            ) : (tripActualRefuels?.length ?? 0) > 0 ? (
+              <div className="flex flex-col gap-1 rounded-md border border-border bg-card/90 px-2 py-1.5 text-[length:var(--text-2xs)] font-medium text-muted-foreground shadow-sm">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: ACTUAL_OPTIMAL_HEX }}
+                    />
+                    On plan
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="size-2 shrink-0 rounded-full bg-destructive" />
+                    Paid more
+                  </span>
+                </span>
+              </div>
+            ) : null}
+            {tripStopInsightCard ? (
+              <div className="pointer-events-auto w-full max-h-[min(42vh,340px)] overflow-y-auto rounded-lg border border-border bg-card/95 p-3 text-xs shadow-md backdrop-blur-sm">
+                {tripStopInsightCard}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="pointer-events-none absolute bottom-10 right-2 z-20 flex max-w-[min(100%-1rem,20rem)] flex-col-reverse items-end gap-2 sm:bottom-6">
           {routeSwitcher ? (
             <div className="pointer-events-auto flex w-full flex-col gap-2 items-end">

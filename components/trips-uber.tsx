@@ -7,7 +7,10 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
+import { computeTripProgress } from "@/lib/trips"
 import { trucks } from "@/lib/mock-data"
+import { getTransactionsForTripPlan } from "@/lib/trip-transactions"
+import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,9 +22,14 @@ import {
 } from "@/components/ui/select"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { TripDetailContentUber } from "@/components/trip-detail-uber"
+import {
+  ActualVsOptimizedCard,
+  transactionToComparison,
+} from "@/components/actual-vs-optimized-card"
 import { useTripRoute } from "@/lib/use-trip-route"
 import { useTouchSheetScrollEnabled } from "@/hooks/use-touch-sheet-scroll-enabled"
 import { MapSheetLayout } from "@/components/map-sheet-layout"
+import type { StopSelectionMapFocus } from "@/components/route-optimizer-map"
 
 const RouteOptimizerMapDynamic = dynamic(
   () =>
@@ -90,6 +98,162 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
 
   const mapProps = useTripRoute(selectedTrip)
 
+  const [selectedStopIndex, setSelectedStopIndex] = React.useState<number | null>(null)
+  const [insightPolyline, setInsightPolyline] = React.useState<[number, number][] | null>(null)
+  const [insightLoading, setInsightLoading] = React.useState(false)
+
+  const tripProgress = React.useMemo(() => {
+    if (!selectedTrip) return null
+    return computeTripProgress(selectedTrip, getTransactionsForTripPlan(selectedTrip))
+  }, [selectedTrip])
+
+  React.useEffect(() => {
+    setSelectedStopIndex(null)
+  }, [selectedTrip?.id])
+
+  const selectedStopProgress =
+    tripProgress && selectedStopIndex !== null
+      ? tripProgress.stopProgress[selectedStopIndex]
+      : undefined
+  const insightTxn = selectedStopProgress?.matchedTransaction
+  const insightBetter = insightTxn?.betterOption
+
+  React.useEffect(() => {
+    if (!insightTxn || !insightBetter) {
+      setInsightPolyline(null)
+      setInsightLoading(false)
+      return
+    }
+    const ac = new AbortController()
+    setInsightLoading(true)
+    setInsightPolyline(null)
+    fetchDrivingRoutes([insightTxn.lng, insightTxn.lat], [insightBetter.lng, insightBetter.lat], {
+      signal: ac.signal,
+    })
+      .then((routes) => {
+        const poly = pickDrivingRoutePolyline(routes)
+        setInsightPolyline(
+          poly && poly.length >= 2
+            ? (poly as [number, number][])
+            : [
+                [insightTxn.lng, insightTxn.lat],
+                [insightBetter.lng, insightBetter.lat],
+              ]
+        )
+      })
+      .catch(() => {
+        setInsightPolyline([
+          [insightTxn.lng, insightTxn.lat],
+          [insightBetter.lng, insightBetter.lat],
+        ])
+      })
+      .finally(() => setInsightLoading(false))
+    return () => ac.abort()
+  }, [insightTxn?.id, insightBetter?.lat, insightBetter?.lng])
+
+  const insightFocus = React.useMemo(() => {
+    if (
+      !insightTxn ||
+      !insightBetter ||
+      selectedStopIndex === null ||
+      selectedStopProgress?.status !== "completed"
+    ) {
+      return null
+    }
+    return {
+      stopIndex: selectedStopIndex,
+      actual: [insightTxn.lng, insightTxn.lat] as [number, number],
+      optimized: [insightBetter.lng, insightBetter.lat] as [number, number],
+      routePolyline: insightPolyline,
+      loading: insightLoading,
+    }
+  }, [
+    insightTxn,
+    insightBetter,
+    selectedStopIndex,
+    selectedStopProgress?.status,
+    insightPolyline,
+    insightLoading,
+  ])
+
+  const tripActualRefuels = React.useMemo(() => {
+    if (!tripProgress) return undefined
+    const rows: {
+      coords: [number, number]
+      outcome: "optimal" | "inefficient"
+      stopIndex: number
+    }[] = []
+    tripProgress.stopProgress.forEach((sp, stopIndex) => {
+      if (sp.status !== "completed" || !sp.matchedTransaction) return
+      const comp = transactionToComparison(sp.matchedTransaction)
+      rows.push({
+        coords: [sp.matchedTransaction.lng, sp.matchedTransaction.lat],
+        outcome: comp && comp.savings > 0 ? "inefficient" : "optimal",
+        stopIndex,
+      })
+    })
+    return rows.length > 0 ? rows : undefined
+  }, [tripProgress])
+
+  const stopSelectionFocus = React.useMemo((): StopSelectionMapFocus | null => {
+    if (selectedStopIndex === null || !selectedTrip || !tripProgress) return null
+    const sp = tripProgress.stopProgress[selectedStopIndex]
+    if (!sp) return null
+
+    const bo = sp.matchedTransaction?.betterOption
+    if (sp.status === "completed" && sp.matchedTransaction && bo) {
+      const mt = sp.matchedTransaction
+      return {
+        kind: "pair",
+        a: [mt.lng, mt.lat],
+        b: [bo.lng, bo.lat],
+      }
+    }
+    if (sp.status === "completed" && sp.matchedTransaction) {
+      const mt = sp.matchedTransaction
+      return { kind: "point", center: [mt.lng, mt.lat], zoom: 11.2 }
+    }
+    const planned = selectedTrip.stops[selectedStopIndex]
+    if (planned) {
+      return { kind: "point", center: [planned.lng, planned.lat], zoom: 11 }
+    }
+    return null
+  }, [selectedStopIndex, selectedTrip, tripProgress])
+
+  const tripStopInsightCard = React.useMemo(() => {
+    if (selectedStopIndex === null || !tripProgress) return undefined
+    const sp = tripProgress.stopProgress[selectedStopIndex]
+    if (!sp?.matchedTransaction) return undefined
+    const mt = sp.matchedTransaction
+    const when = format(new Date(mt.dateTime), "MMM d, yyyy · h:mm a")
+    const header = (
+      <p className="mb-2 text-xs text-muted-foreground tabular-nums">{when}</p>
+    )
+    const comp = transactionToComparison(mt)
+    if (comp && comp.savings > 0) {
+      return (
+        <>
+          {header}
+          <ActualVsOptimizedCard
+            variant="comparison"
+            comparison={comp}
+            layout="map"
+          />
+        </>
+      )
+    }
+    return (
+      <>
+        {header}
+        <ActualVsOptimizedCard
+          variant="optimal"
+          transaction={mt}
+          layout="map"
+        />
+      </>
+    )
+  }, [selectedStopIndex, tripProgress])
+
   return (
     <MapSheetLayout
       map={
@@ -100,6 +264,11 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
           routeLoading={mapProps.routeLoading}
           fuelStopCoords={mapProps.fuelStopCoords}
           mapLeftPadding={touchSheetScroll ? 0 : sidebarWidth}
+          insightFocus={insightFocus}
+          tripActualRefuels={tripActualRefuels}
+          onTripActualRefuelClick={setSelectedStopIndex}
+          stopSelectionFocus={stopSelectionFocus}
+          tripStopInsightCard={tripStopInsightCard}
         />
       }
       ariaLabel="Trip details"
@@ -123,7 +292,16 @@ export function TripsUber({ selectedTripId }: TripsUberProps) {
                   </Button>
                 </header>
                 <div className="max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-y-auto p-0 md:p-4">
-                  <TripDetailContentUber trip={selectedTrip} onBack={handleBack} hideBackButton />
+                  {tripProgress ? (
+                    <TripDetailContentUber
+                      trip={selectedTrip}
+                      progress={tripProgress}
+                      selectedStopIndex={selectedStopIndex}
+                      onSelectStopIndex={setSelectedStopIndex}
+                      onBack={handleBack}
+                      hideBackButton
+                    />
+                  ) : null}
                 </div>
                 <footer className="shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm max-md:sticky max-md:bottom-0 max-md:z-10 md:relative md:z-auto md:bg-background/20">
                   <Button

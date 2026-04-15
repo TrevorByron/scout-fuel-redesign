@@ -1,5 +1,7 @@
 // Trip plan types and client-side persistence for Route Optimizer / Trips
 
+import type { FuelTransaction } from "./mock-data"
+
 export type LngLat = [number, number]
 
 export interface TripPlanStop {
@@ -35,6 +37,11 @@ export interface TripPlan {
   summary: TripPlanSummary
   routeCoordinates: LngLat[]
   createdAt: string // ISO
+}
+
+/** True when calendar time is past the trip end (used for prototype “actual refuel” data). */
+export function isTripCompleted(trip: TripPlan): boolean {
+  return Date.now() > new Date(trip.tripEnd).getTime()
 }
 
 const STORAGE_KEY = "scout-fuel-trip-plans"
@@ -189,19 +196,87 @@ export function getDefaultTripsStore(): TripsContextValue {
 }
 
 const MILES_PER_DEGREE_APPROX = 69
-function distanceMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+
+/** Planar miles approximation; shared with trip corridor checks. */
+export function distanceMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const dLat = (lat2 - lat1) * MILES_PER_DEGREE_APPROX
   const dLng = (lng2 - lng1) * MILES_PER_DEGREE_APPROX * Math.cos((lat1 * Math.PI) / 180)
   return Math.sqrt(dLat * dLat + dLng * dLng)
 }
 
-const STOP_MATCH_MILES = 25
+/** Minimum distance (miles) from a point to a polyline of [lng, lat] vertices. */
+export function minDistanceMilesToRoutePolyline(
+  lat: number,
+  lng: number,
+  route: LngLat[]
+): number {
+  if (route.length === 0) return Infinity
+  if (route.length === 1) {
+    const [lng0, lat0] = route[0]
+    return distanceMiles(lat, lng, lat0, lng0)
+  }
+  let min = Infinity
+  for (let i = 0; i < route.length - 1; i++) {
+    const [lng1, lat1] = route[i]
+    const [lng2, lat2] = route[i + 1]
+    const d = distancePointToSegmentMiles(lat, lng, lat1, lng1, lat2, lng2)
+    if (d < min) min = d
+  }
+  return min
+}
+
+function distancePointToSegmentMiles(
+  lat: number,
+  lng: number,
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const x = lng
+  const y = lat
+  const x1 = lng1
+  const y1 = lat1
+  const x2 = lng2
+  const y2 = lat2
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const lenSq = dx * dx + dy * dy
+  if (lenSq < 1e-18) return distanceMiles(lat, lng, lat1, lng1)
+  let t = ((x - x1) * dx + (y - y1) * dy) / lenSq
+  t = Math.max(0, Math.min(1, t))
+  const projLat = y1 + t * dy
+  const projLng = x1 + t * dx
+  return distanceMiles(lat, lng, projLat, projLng)
+}
+
+/** Max miles from any planned stop or from the saved route polyline to count as "on corridor". */
+export const TRIP_CORRIDOR_MAX_MILES = 85
+
+export function transactionNearTripCorridor(
+  lat: number,
+  lng: number,
+  trip: TripPlan,
+  maxMiles: number = TRIP_CORRIDOR_MAX_MILES
+): boolean {
+  const nearStop = trip.stops.some((s) => distanceMiles(lat, lng, s.lat, s.lng) <= maxMiles)
+  if (nearStop) return true
+  if (trip.routeCoordinates.length >= 1) {
+    return minDistanceMilesToRoutePolyline(lat, lng, trip.routeCoordinates) <= maxMiles
+  }
+  return false
+}
+
+export const STOP_MATCH_MILES = 25
+export const OFF_ROUTE_DISPLAY_CAP = 2
 
 export interface StopProgress {
   stopIndex: number
   stop: TripPlanStop
   status: "completed" | "off_route" | "pending"
   transaction?: { dateTime: string; stationBrand: string; location: string; gallons: number; totalCost: number }
+  /** Full mock row for insights (actual vs optimized) when matched. */
+  matchedTransaction?: FuelTransaction
 }
 
 export interface TripProgressResult {
@@ -213,7 +288,7 @@ export interface TripProgressResult {
 
 export function computeTripProgress(
   trip: TripPlan,
-  transactions: Array<{ dateTime: string; truckId: string; lat: number; lng: number; stationBrand: string; location: string; gallons: number; totalCost: number; id?: string }>
+  transactions: FuelTransaction[]
 ): TripProgressResult {
   const start = new Date(trip.tripStart).getTime()
   const end = new Date(trip.tripEnd).getTime()
@@ -224,13 +299,15 @@ export function computeTripProgress(
 
   const usedTxnIds = new Set<string>()
   const stopProgress: StopProgress[] = trip.stops.map((stop, i) => {
-    let best: (typeof forTruck)[number] | undefined
+    let best: FuelTransaction | undefined
     let bestDist = STOP_MATCH_MILES + 1
     for (const t of forTruck) {
       const tid = t.id ?? t.dateTime
       if (usedTxnIds.has(tid)) continue
       const d = distanceMiles(stop.lat, stop.lng, t.lat, t.lng)
-      const sameStation = t.stationBrand.toLowerCase().includes(stop.station.toLowerCase()) || stop.station.toLowerCase().includes(t.stationBrand.toLowerCase())
+      const sameStation =
+        t.stationBrand.toLowerCase().includes(stop.station.toLowerCase()) ||
+        stop.station.toLowerCase().includes(t.stationBrand.toLowerCase())
       if (d < bestDist || (sameStation && d < STOP_MATCH_MILES * 2)) {
         bestDist = d
         best = t
@@ -242,19 +319,30 @@ export function computeTripProgress(
         stopIndex: i,
         stop,
         status: "completed" as const,
-        transaction: { dateTime: best.dateTime, stationBrand: best.stationBrand, location: best.location, gallons: best.gallons, totalCost: best.totalCost },
+        transaction: {
+          dateTime: best.dateTime,
+          stationBrand: best.stationBrand,
+          location: best.location,
+          gallons: best.gallons,
+          totalCost: best.totalCost,
+        },
+        matchedTransaction: best,
       }
     }
     return { stopIndex: i, stop, status: "pending" as const }
   })
 
   const followedCount = stopProgress.filter((s) => s.status === "completed").length
-  const offRouteTransactions = forTruck.filter((t) => {
-    const key = t.id ?? t.dateTime
-    if (usedTxnIds.has(key)) return false
-    const nearAny = trip.stops.some((s) => distanceMiles(s.lat, s.lng, t.lat, t.lng) <= STOP_MATCH_MILES)
-    return !nearAny
-  }).map((t) => ({ dateTime: t.dateTime, stationBrand: t.stationBrand, location: t.location }))
+  let offRouteTransactions = forTruck
+    .filter((t) => {
+      const key = t.id ?? t.dateTime
+      if (usedTxnIds.has(key)) return false
+      const nearAny = trip.stops.some((s) => distanceMiles(s.lat, s.lng, t.lat, t.lng) <= STOP_MATCH_MILES)
+      return !nearAny
+    })
+    .map((t) => ({ dateTime: t.dateTime, stationBrand: t.stationBrand, location: t.location }))
+
+  offRouteTransactions = offRouteTransactions.slice(0, OFF_ROUTE_DISPLAY_CAP)
 
   return { stopProgress, followedCount, totalStops: trip.stops.length, offRouteTransactions }
 }
