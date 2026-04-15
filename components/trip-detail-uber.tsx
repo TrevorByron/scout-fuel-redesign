@@ -69,7 +69,7 @@ export function TripDetailContentUber({
         </Button>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pl-4 pt-1 md:pl-0 md:pt-0">
         <h2 className="text-lg font-semibold truncate">
           {trip.name ?? `${trip.origin} → ${trip.destination}`}
         </h2>
