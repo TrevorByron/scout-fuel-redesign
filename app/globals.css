@@ -1,10 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "./styles/style-teal.css";
 @import "./styles/style-glass.css";
-/* Uber: must stay in the @import block (CSS ignores @import after other rules). Loads after Teal/Glass so html[data-style="uber"] tokens override. */
-@import "./styles/style-uber.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -65,15 +62,10 @@
 }
 
 @layer base {
-  /* Optional tokens not duplicated in each theme file */
-  html[data-style="teal"],
-  html[data-style="glass"],
-  html[data-style="uber"] {
+  html[data-style="glass"] {
     --gauge-pointer: oklch(0.22 0.02 233);
   }
-  html[data-style="teal"].dark,
-  html[data-style="glass"].dark,
-  html[data-style="uber"].dark {
+  html[data-style="glass"].dark {
     --gauge-pointer: oklch(1 0 0);
   }
 

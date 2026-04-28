@@ -895,7 +895,8 @@ export function DashboardDefault() {
             }}
             className="w-full min-w-0"
           >
-            <CardHeader className="flex shrink-0 flex-row items-start justify-between gap-2">
+            <CardHeader className="mb-4 shrink-0">
+              <CardTitle className="mb-2">In need of attention</CardTitle>
               <div className="flex w-full items-center justify-between gap-2">
                 <TabsList>
                   <TabsTrigger value="drivers">

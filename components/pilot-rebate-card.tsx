@@ -20,8 +20,6 @@ import {
   type RebateProgramSummary,
   type RebateTier,
 } from "@/lib/rebate"
-import { useStyle, type StyleId } from "@/components/style-provider"
-import { isUberStyle } from "@/lib/ui-styles"
 
 interface PilotRebateCardProps {
   overview: CarrierRebateOverview
@@ -53,10 +51,8 @@ function formatSpendToNextCompact(dollars: number): string {
 
 function RebateProgramSection({
   program,
-  style,
 }: {
   program: RebateProgramSummary
-  style: StyleId
 }) {
   const {
     shortLabel,
@@ -88,7 +84,7 @@ function RebateProgramSection({
           <div
             className={cn(
               "flex items-center gap-1.5 font-medium",
-              isUberStyle(style) ? "text-sm" : "text-base"
+              "text-base"
             )}
           >
             <span className="truncate">{shortLabel}</span>
@@ -219,7 +215,6 @@ function RebateProgramSection({
 }
 
 export function PilotRebateCard({ overview, className }: PilotRebateCardProps) {
-  const { style } = useStyle()
   const { programs, totalMtdRebateDollars, totalPreviousMonthRebateDollars } = overview
   const monthLabel = programs[0]?.currentMonth.monthLabel ?? ""
   const daysLeftInMonth = programs[0]?.daysLeftInMonth ?? 0
@@ -233,7 +228,7 @@ export function PilotRebateCard({ overview, className }: PilotRebateCardProps) {
             <CardTitle
               className={cn(
                 "flex flex-wrap items-center gap-1.5",
-                isUberStyle(style) ? "text-sm font-medium" : "text-base"
+                "text-base"
               )}
             >
               Fleet rebates — {monthLabel}
@@ -267,7 +262,7 @@ export function PilotRebateCard({ overview, className }: PilotRebateCardProps) {
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-0 pt-0 text-xs">
         {programs.map((program) => (
-          <RebateProgramSection key={program.programId} program={program} style={style} />
+          <RebateProgramSection key={program.programId} program={program} />
         ))}
       </CardContent>
     </Card>

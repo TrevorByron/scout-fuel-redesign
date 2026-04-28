@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
+import { sendTripToDriver } from "@/lib/trip-send-to-driver"
 import { computeTripProgress } from "@/lib/trips"
 import { trucks } from "@/lib/mock-data"
 import { getTransactionsForTripPlan } from "@/lib/trip-transactions"
@@ -54,7 +55,7 @@ export interface TripsDefaultProps {
 
 export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
   const router = useRouter()
-  const { tripPlans, getTripPlan } = useTrips()
+  const { tripPlans, getTripPlan, updateTripPlan } = useTrips()
   const [driverFilter, setDriverFilter] = React.useState<string>("all")
   const [sidebarWidth, setSidebarWidth] = React.useState(0)
   const sidebarRef = React.useRef<HTMLElement>(null)
@@ -95,6 +96,11 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
   const handleBack = React.useCallback(() => {
     router.push("/trips")
   }, [router])
+
+  const handleSendToDriver = React.useCallback(() => {
+    if (!selectedTrip) return
+    sendTripToDriver(selectedTrip, updateTripPlan)
+  }, [selectedTrip, updateTripPlan])
 
   const mapProps = useTripRoute(selectedTrip)
 
@@ -304,12 +310,37 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
                   ) : null}
                 </div>
                 <footer className="shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm max-md:sticky max-md:bottom-0 max-md:z-10 md:relative md:z-auto md:bg-background/20">
-                  <Button
-                    className="min-h-11 w-full sm:min-h-0"
-                    onClick={() => router.push(`/route-optimizer?tripId=${selectedTrip.id}`)}
-                  >
-                    Edit trip
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 w-full sm:min-h-0"
+                      onClick={() =>
+                        router.push(`/route-optimizer?tripId=${selectedTrip.id}`)
+                      }
+                    >
+                      Edit trip
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="min-h-11 w-full sm:min-h-0"
+                      disabled={!selectedTrip.driverId?.trim()}
+                      aria-describedby={
+                        !selectedTrip.driverId?.trim()
+                          ? "trips-send-driver-help"
+                          : undefined
+                      }
+                      onClick={handleSendToDriver}
+                    >
+                      Send to driver
+                    </Button>
+                    {!selectedTrip.driverId?.trim() ? (
+                      <p id="trips-send-driver-help" className="sr-only">
+                        Assign a driver on this trip to send the trip plan.
+                      </p>
+                    ) : null}
+                  </div>
                 </footer>
               </>
             ) : selectedTripId ? (

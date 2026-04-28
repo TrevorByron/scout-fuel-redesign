@@ -14,12 +14,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useStyle } from "@/components/style-provider"
-import { isUberStyle } from "@/lib/ui-styles"
 
 export function ForgotPasswordForm({ className }: { className?: string }) {
-  const { style } = useStyle()
-  const isUber = isUberStyle(style)
   const [email, setEmail] = React.useState("")
   const [submitted, setSubmitted] = React.useState(false)
 
@@ -30,7 +26,7 @@ export function ForgotPasswordForm({ className }: { className?: string }) {
           <h1
             className={cn(
               "tracking-tight",
-              isUber ? "text-xl font-medium sm:text-2xl" : "text-2xl font-bold"
+              "text-2xl font-bold"
             )}
           >
             Check your email
@@ -68,7 +64,7 @@ export function ForgotPasswordForm({ className }: { className?: string }) {
           <h1
             className={cn(
               "tracking-tight",
-              isUber ? "text-xl font-medium sm:text-2xl" : "text-2xl font-bold"
+              "text-2xl font-bold"
             )}
           >
             Forgot password
@@ -98,10 +94,7 @@ export function ForgotPasswordForm({ className }: { className?: string }) {
         <FieldDescription className="text-center">
           <Link
             href="/login"
-            className={cn(
-              "underline underline-offset-4 hover:underline",
-              isUber && "text-primary"
-            )}
+            className="underline underline-offset-4 hover:underline"
           >
             Back to log in
           </Link>

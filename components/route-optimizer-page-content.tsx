@@ -7,7 +7,8 @@ import { format } from "date-fns"
 import { toast } from "sonner"
 import { trucks, drivers, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
 import { useTrips } from "@/lib/trips-context"
-import type { TripPlanStop, TripPlanSummary, LngLat } from "@/lib/trips"
+import type { TripPlan, TripPlanStop, TripPlanSummary, LngLat } from "@/lib/trips"
+import { sendTripToDriver } from "@/lib/trip-send-to-driver"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -261,7 +262,8 @@ export function RouteOptimizerPageContent() {
   const displayStops = planStops.length ? planStops : mockRouteStops
   const displaySummary = planSummary ?? mockRouteSummary
 
-  const handleSaveTrip = () => {
+  const saveTrip = (opts: { sendToDriver?: boolean } = {}) => {
+    const sendToDriver = opts.sendToDriver ?? false
     const start = tripStart?.toISOString?.() ?? ""
     const end = tripEnd?.toISOString?.() ?? ""
     if (!start || !end || !planSummary) return
@@ -285,12 +287,31 @@ export function RouteOptimizerPageContent() {
       routeCoordinates: mapRouteCoordinates,
     }
     if (tripIdParam) {
+      const prev = getTripPlan(tripIdParam)
       updateTripPlan(tripIdParam, updates)
-      toast.success("Trip updated.")
+      if (sendToDriver && prev) {
+        const merged: TripPlan = { ...prev, ...updates }
+        sendTripToDriver(merged, updateTripPlan, {
+          successMessage: driverName
+            ? `Trip updated and sent to ${driverName}.`
+            : "Trip updated and sent to driver.",
+        })
+      } else if (!sendToDriver) {
+        toast.success("Trip updated.")
+      }
       router.push(`/trips?id=${tripIdParam}`)
     } else {
-      addTripPlan(updates)
-      toast.success("Trip saved. View it in Trips.")
+      const saved = addTripPlan(updates)
+      if (sendToDriver) {
+        sendTripToDriver(saved, updateTripPlan, {
+          successMessage: driverName
+            ? `Trip saved and sent to ${driverName}.`
+            : "Trip saved and sent to driver.",
+        })
+        router.push(`/trips?id=${saved.id}`)
+      } else {
+        toast.success("Trip saved. View it in Trips.")
+      }
     }
   }
 
@@ -450,13 +471,37 @@ export function RouteOptimizerPageContent() {
                   "md:relative md:z-auto md:bg-background/20 md:pb-4"
                 )}
               >
-                <Button
-                  variant="default"
-                  className="min-h-11 w-full sm:min-h-0"
-                  onClick={handleSaveTrip}
-                >
-                  {tripIdParam ? "Save changes" : "Save trip"}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full sm:min-h-0"
+                    onClick={() => saveTrip({ sendToDriver: false })}
+                  >
+                    {tripIdParam ? "Save changes" : "Save trip"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="min-h-11 w-full sm:min-h-0"
+                    disabled={!driverId?.trim()}
+                    aria-describedby={
+                      !driverId?.trim()
+                        ? "route-opt-send-driver-help"
+                        : undefined
+                    }
+                    onClick={() => saveTrip({ sendToDriver: true })}
+                  >
+                    {tripIdParam
+                      ? "Save changes and send to driver"
+                      : "Save trip and send to driver"}
+                  </Button>
+                  {!driverId?.trim() ? (
+                    <p id="route-opt-send-driver-help" className="sr-only">
+                      Select a driver to enable sending the trip plan.
+                    </p>
+                  ) : null}
+                </div>
               </footer>
             </div>
           ) : (

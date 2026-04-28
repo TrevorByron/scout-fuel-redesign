@@ -37,6 +37,8 @@ export interface TripPlan {
   summary: TripPlanSummary
   routeCoordinates: LngLat[]
   createdAt: string // ISO
+  /** When the trip plan was last shared with the assigned driver (prototype). */
+  lastSentToDriverAt?: string
 }
 
 /** True when calendar time is past the trip end (used for prototype “actual refuel” data). */

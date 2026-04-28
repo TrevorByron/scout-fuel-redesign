@@ -1,8 +1,0 @@
-/* Loaded after globals.css so it overrides Tailwind's .font-sans (which is generated at end of bundle).
-   Uber uses system/Helvetica stack instead of Inter. */
-html[data-style="uber"] body[data-font="system"],
-html[data-style="uber"] body[data-font="system"] *,
-html[data-style="uber"] body[data-font="system"] *::before,
-html[data-style="uber"] body[data-font="system"] *::after {
-  font-family: system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-}

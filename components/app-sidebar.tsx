@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { PilotRebateSidebarProgress } from "@/components/pilot-rebate-sidebar-progress"
-import { StyleSwitcher } from "@/components/style-switcher"
 import { NavUser } from "@/components/nav-user"
 import { OrgSwitcher } from "@/components/org-switcher"
 import {
@@ -20,6 +19,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare01Icon,
+  Settings02Icon,
   Location01Icon,
   MapsSquare01Icon,
   ReceiptDollarIcon,
@@ -30,6 +30,13 @@ import {
 } from "@hugeicons/core-free-icons"
 
 type NavMainItem = {
+  title: string
+  url: string
+  icon: React.ReactNode
+  items?: { title: string; url: string }[]
+}
+
+type NavSecondaryItem = {
   title: string
   url: string
   icon: React.ReactNode
@@ -90,6 +97,19 @@ const data = {
     { title: "Fuel Finder", url: "/fuel-finder", icon: <HugeiconsIcon icon={Search01Icon} strokeWidth={2} /> },
     { title: "Live Fleet Map", url: "/fleet", icon: <HugeiconsIcon icon={MapsSquare01Icon} strokeWidth={2} /> },
   ] as NavMainItem[],
+  navSecondary: [
+    {
+      title: "Settings",
+      url: "/settings",
+      icon: <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />,
+      items: [
+        { title: "General", url: "/settings/general" },
+        { title: "Team", url: "/settings/team" },
+        { title: "Billing", url: "/settings/billing" },
+        { title: "Limits", url: "/settings/limits" },
+      ],
+    },
+  ] as NavSecondaryItem[],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -97,6 +117,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navMainWithActive = React.useMemo(
     () =>
       data.navMain.map((item) => {
+        const isActive =
+          item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
+        const itemsWithActive =
+          item.items?.map((sub) => ({
+            ...sub,
+            isActive: pathname === sub.url,
+          }))
+        return {
+          ...item,
+          isActive,
+          items: itemsWithActive ?? item.items,
+        }
+      }),
+    [pathname]
+  )
+  const navSecondaryWithActive = React.useMemo(
+    () =>
+      data.navSecondary.map((item) => {
         const isActive =
           item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
         const itemsWithActive =
@@ -124,9 +162,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <PilotRebateSidebarProgress />
         </SidebarGroup>
         <NavSecondary
-          items={[]}
+          items={navSecondaryWithActive}
           className="mt-auto"
-          footer={<StyleSwitcher inline />}
         />
       </SidebarContent>
       <SidebarFooter>

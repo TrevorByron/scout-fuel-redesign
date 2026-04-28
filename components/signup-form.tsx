@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useStyle } from "@/components/style-provider"
-import { isUberStyle } from "@/lib/ui-styles"
 
 const signupSchema = z
   .object({
@@ -46,8 +44,6 @@ export function SignupForm({
 }: React.ComponentProps<"form"> & {
   onSubmit?: () => void
 }) {
-  const { style } = useStyle()
-  const isUber = isUberStyle(style)
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [confirm, setConfirm] = React.useState("")
@@ -93,7 +89,7 @@ export function SignupForm({
           <h1
             className={cn(
               "tracking-tight",
-              isUber ? "text-xl font-medium sm:text-2xl" : "text-2xl font-bold"
+              "text-2xl font-bold"
             )}
           >
             Create your account
@@ -179,10 +175,7 @@ export function SignupForm({
               I agree to the{" "}
               <a
                 href="#"
-                className={cn(
-                  "underline underline-offset-4 hover:underline",
-                  isUber && "text-primary"
-                )}
+                className="underline underline-offset-4 hover:underline"
               >
                 Terms of Service
               </a>
@@ -253,10 +246,7 @@ export function SignupForm({
             Already have an account?{" "}
             <Link
               href="/login"
-              className={cn(
-                "underline underline-offset-4 hover:underline",
-                isUber && "text-primary"
-              )}
+              className="underline underline-offset-4 hover:underline"
             >
               Log in
             </Link>
