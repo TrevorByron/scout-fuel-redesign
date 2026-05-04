@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning data-style="glass">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${fontSans.variable} ${fontGeist.variable} ${fontGeistMono.variable} ${fontRaleway.variable} font-sans antialiased`}
         suppressHydrationWarning

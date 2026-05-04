@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:theme": "bash scripts/check-theme-colors.sh",
     "test": "vitest run"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "react-dom": "19.2.3",
     "react-leaflet": "^5.0.0",
     "recharts": "^2.15.4",
+    "resend": "^4.8.0",
     "shadcn": "^3.8.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",

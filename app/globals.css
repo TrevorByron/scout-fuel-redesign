@@ -1,7 +1,595 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "./styles/style-glass.css";
+
+/* App theme: primitives → shadcn semantics + glass layout (see docs/design-system.md) */
+:root {
+  --glass-brand-h: 232.9;
+  --swatch-glass: oklch(0.6810 0.1370 232.9);
+  --gauge-pointer: oklch(0.22 0.02 233);
+
+  --background: oklch(1.0000 0 0);
+  --foreground: oklch(0.22 0.02 233);
+  --card: oklch(1.0000 0 0);
+  --card-foreground: oklch(0.22 0.02 233);
+  --popover: oklch(1.0000 0 0);
+  --popover-foreground: oklch(0.22 0.02 233);
+  --primary: oklch(0.6810 0.1370 232.9);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.92 0.02 233);
+  --secondary-foreground: oklch(0.22 0.02 233);
+  --muted: oklch(0.9650 0.0080 233);
+  --muted-foreground: oklch(0.45 0.03 233);
+  --accent: oklch(0.94 0.025 210);
+  --accent-foreground: oklch(0.22 0.02 233);
+  --destructive: oklch(0.5770 0.2450 27.3250);
+  --destructive-foreground: oklch(1.0000 0 0);
+  --border: oklch(0.88 0.018 233);
+  /* Solid fill via rules below; token is the visible surface */
+  --input: oklch(0.965 0.008 233);
+  --ring: oklch(0.6810 0.1370 232.9);
+  --chart-1: oklch(0.6810 0.1370 232.9);
+  --chart-2: oklch(0.76 0.115 196.5);
+  --chart-3: oklch(0.79 0.092 176.4);
+  --chart-4: oklch(0.86 0.128 155.8);
+  --chart-5: oklch(0.89 0.158 125.2);
+  --sidebar: oklch(1.0000 0 0);
+  --sidebar-foreground: oklch(0.22 0.02 233);
+  --sidebar-primary: oklch(1.0000 0 0);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  /* Inverse of dark Glass: light wash on hover + dark text (dark mode uses dark fill + light text) */
+  --sidebar-accent: color-mix(in oklch, var(--primary) 14%, white);
+  --sidebar-accent-foreground: oklch(0.22 0.02 233);
+  --sidebar-border: oklch(0.88 0.018 233);
+  --sidebar-ring: oklch(0.6810 0.1370 232.9);
+  --success: oklch(0.4532 0.1101 122.1507);
+  --warning: oklch(0.75 0.15 85);
+  /* App settings dialog: main content column (matches card in light; lifted in dark) */
+  --app-settings-main: var(--card);
+  --app-settings-main-foreground: var(--card-foreground);
+  --radius: 0.6rem;
+  --shadow-x: 0.5px;
+  --shadow-y: 1px;
+  --shadow-blur: 8px;
+  --shadow-spread: -1.5px;
+  --shadow-opacity: 0.14;
+  /* Shadow hue follows brand; L/C approximate former teal shadow at ~198° */
+  --shadow-color: color-mix(in oklch, var(--primary) 45%, oklch(0.22 0.1 var(--glass-brand-h)));
+  --shadow-2xs: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.07);
+  --shadow-xs: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.07);
+  --shadow-sm: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14), 0.5px 1px 2px -2.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14);
+  --shadow: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14), 0.5px 1px 2px -2.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14);
+  --shadow-md: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14), 0.5px 2px 4px -2.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14);
+  --shadow-lg: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14), 0.5px 4px 6px -2.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14);
+  --shadow-xl: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14), 0.5px 8px 10px -2.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.14);
+  --shadow-2xl: 0.5px 1px 8px -1.5px oklch(0.42 0.11 var(--glass-brand-h) / 0.35);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  /* Tune this one value to bump all Glass text weights (maps to Tailwind font-normal/medium/semibold/bold). */
+  --glass-fw-delta: 75;
+  --fw-normal: calc(400 + var(--glass-fw-delta));
+  --fw-medium: calc(500 + var(--glass-fw-delta));
+  --fw-semibold: calc(600 + var(--glass-fw-delta));
+  --fw-bold: calc(700 + var(--glass-fw-delta));
+}
+
+@media (max-width: 767px) {
+  :root {
+    --fw-normal: calc(500 + var(--glass-fw-delta));
+    --fw-medium: calc(600 + var(--glass-fw-delta));
+    --fw-semibold: calc(700 + var(--glass-fw-delta));
+    --fw-bold: calc(800 + var(--glass-fw-delta));
+  }
+}
+
+:root body {
+  font-weight: var(--fw-normal);
+}
+
+/* Style 4: sidebar wrapper – Framer-style gradient blobs (desktop + mobile) */
+:root [data-slot="sidebar-wrapper"] {
+  --sidebar-width: 16rem !important;
+  --sidebar-width-icon: 3rem !important;
+  position: relative;
+  background-color: oklch(0.98 0.005 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 18%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 22%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 16%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 14%, transparent) 0%, transparent 55%);
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  isolation: isolate;
+}
+
+/* Dark mode: same blob gradient with dark base */
+:root.dark [data-slot="sidebar-wrapper"] {
+  background-color: oklch(0.14 0.02 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 25%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 28%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 22%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 20%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 18%, transparent) 0%, transparent 55%);
+}
+
+/* App settings modal: same blob layout, ~50% softer tints + slightly lighter base */
+:root [data-app-settings-dialog] [data-slot="sidebar-wrapper"] {
+  background-color: oklch(0.99 0.003 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 9%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 11%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 10%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 8%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 7%, transparent) 0%, transparent 55%);
+}
+
+:root.dark [data-app-settings-dialog] [data-slot="sidebar-wrapper"] {
+  background-color: oklch(0.19 0.02 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 14%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 11%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 10%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 9%, transparent) 0%, transparent 55%);
+}
+
+/* App settings: frosted nav scroll area (milky wash over wrapper gradient) */
+:root [data-app-settings-dialog] [data-slot="sidebar-content"] {
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:root.dark [data-app-settings-dialog] [data-slot="sidebar-content"] {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Style 4: no solid bg on sidebar panel so wrapper gradient shows through */
+:root [data-slot="sidebar-inner"] {
+  background: transparent;
+}
+
+/* Main app sidebar: hide section labels (glass nav). Settings dialog uses the same primitives but needs labels. */
+:root [data-slot="sidebar-group-label"] {
+  display: none;
+}
+
+:root [data-app-settings-dialog] [data-slot="sidebar-group-label"] {
+  display: flex;
+}
+
+/* Glass sidebar: chunky rows + same hover pill as main nav (match CVA rounding, not Uber square). */
+:root [data-slot="sidebar-menu-button"],
+:root [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px;
+  height: 40px;
+  border-radius: calc(var(--radius-sm) + 2px);
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+:root [data-slot="popover-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px;
+  height: auto;
+  border-radius: calc(var(--radius-sm) + 2px);
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+:root [data-slot="sidebar-menu-button"] svg,
+:root [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] svg,
+:root [data-slot="popover-trigger"][data-sidebar="menu-button"] svg {
+  width: 20px;
+  height: 20px;
+}
+
+:root [data-slot="sidebar-menu-button"][data-active],
+:root [data-slot="sidebar-menu-button"][data-active]:hover,
+:root [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active],
+:root [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"][data-active]:hover,
+:root [data-slot="popover-trigger"][data-sidebar="menu-button"][data-active],
+:root [data-slot="popover-trigger"][data-sidebar="menu-button"][data-active]:hover {
+  background: transparent;
+  border-left: 2px solid var(--primary);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 6px;
+  font-weight: var(--fw-medium);
+}
+
+:root [data-slot="sidebar-header"],
+:root [data-slot="sidebar-footer"] {
+  padding: 0.5rem;
+}
+
+:root [data-slot="sidebar-header"] {
+  min-width: 0;
+}
+
+:root [data-slot="sidebar-header"] [data-sidebar="menu-button"],
+:root [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-width: 0;
+  min-height: 56px;
+  height: 56px;
+  padding-block: 0.75rem;
+  padding-inline: 0.5rem;
+}
+
+:root [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+:root [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+}
+
+:root [data-collapsible="icon"] [data-slot="sidebar-header"] [data-sidebar="menu-button"] > div:first-of-type,
+:root [data-collapsible="icon"] [data-slot="sidebar-header"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] > div:first-of-type {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+:root [data-slot="sidebar-group"] {
+  padding: 1rem 0.5rem 0.25rem;
+}
+
+/* Rebate tier progress: success-tinted track vanishes on glass sidebar gradient — frosted track + edge so bar reads clearly */
+:root [data-rebate-progress][role="progressbar"],
+:root [data-pilot-rebate-progress][role="progressbar"] {
+  background: color-mix(in oklch, white 72%, transparent) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--foreground) 14%, transparent),
+    inset 0 1px 1px color-mix(in oklch, var(--foreground) 6%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+:root.dark [data-rebate-progress][role="progressbar"],
+:root.dark [data-pilot-rebate-progress][role="progressbar"] {
+  background: color-mix(in oklch, oklch(0.18 0.02 233) 78%, transparent) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, white 16%, transparent),
+    inset 0 1px 2px color-mix(in oklch, black 35%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+:root [data-collapsible="icon"] [data-slot="sidebar-menu-button"],
+:root [data-collapsible="icon"] [data-slot="dropdown-menu-trigger"][data-sidebar="menu-button"] {
+  min-height: 40px !important;
+  height: 40px !important;
+  width: 40px !important;
+}
+
+/* Style 4: main content area – 30% white (light) / 30% black (dark) + backdrop blur */
+:root [data-slot="sidebar-inset"] {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+:root.dark [data-slot="sidebar-inset"] {
+  background: rgba(6, 29, 38, 0.3) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* Style 4: glass cards */
+:root [data-slot="card"] {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 8px 32px rgba(6, 29, 38, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 60px 30px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: clip;
+}
+
+:root [data-slot="card"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  pointer-events: none;
+}
+
+:root [data-slot="card"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+  pointer-events: none;
+}
+
+/* Style 4: glass cards – dark mode (inverted) */
+:root.dark [data-slot="card"] {
+  background: rgba(6, 29, 38, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 8px 32px rgba(6, 29, 38, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 60px 30px rgba(6, 29, 38, 0.1);
+}
+
+:root.dark [data-slot="card"]::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+}
+
+:root.dark [data-slot="card"]::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25),
+    transparent,
+    rgba(255, 255, 255, 0.08)
+  );
+}
+
+/* App / billing settings modals: theme --shadow on cards (overrides glass card stack) */
+:root [data-app-settings-dialog] [data-slot="card"],
+:root.dark [data-app-settings-dialog] [data-slot="card"] {
+  box-shadow: var(--shadow);
+}
+
+/* Dashboard KPI row: hover matches StatStrip muted wash (base card uses !important bg) */
+:root [data-dashboard-kpi-row] [data-slot="card"]:hover {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+:root.dark [data-dashboard-kpi-row] [data-slot="card"]:hover {
+  background: rgba(6, 29, 38, 0.72) !important;
+}
+
+/* Style 4: accordion – same glass treatment as cards */
+:root [data-slot="accordion"] {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 60px 30px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+:root [data-slot="accordion"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  pointer-events: none;
+}
+
+:root [data-slot="accordion"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+  pointer-events: none;
+}
+
+:root [data-slot="accordion-item"] {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+:root.dark [data-slot="accordion"] {
+  background: rgba(6, 29, 38, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 8px 32px rgba(6, 29, 38, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 60px 30px rgba(6, 29, 38, 0.1);
+}
+
+:root.dark [data-slot="accordion"]::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+}
+
+:root.dark [data-slot="accordion"]::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25),
+    transparent,
+    rgba(255, 255, 255, 0.08)
+  );
+}
+
+:root.dark [data-slot="accordion-item"] {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Rebate popover “By fuel” — dense row; drop the card-style outer shadow */
+:root [data-slot="accordion"][data-rebate-fuel-accordion] {
+  box-shadow: none;
+}
+:root.dark [data-slot="accordion"][data-rebate-fuel-accordion] {
+  box-shadow: none;
+}
+
+/* Style 4: same chunky form controls as Style 1 (min-height 40px) */
+:root [data-slot="button"] {
+  min-height: 40px;
+}
+
+:root [data-slot="input"] {
+  min-height: 40px;
+}
+
+:root [data-slot="select-trigger"] {
+  min-height: 40px;
+}
+
+:root [data-slot="input-group"] {
+  min-height: 40px;
+}
+
+:root [data-slot="textarea"] {
+  min-height: 40px;
+}
+
+:root [data-slot="popover-trigger"] {
+  min-height: 40px;
+}
+
+/* Sheet footer primary action (Apply filters) — same height as buttons */
+:root [data-slot="sheet-footer"] [data-slot="sheet-close"] {
+  min-height: 40px;
+}
+
+/* Glass: full-opacity input surfaces — light: white fill + light gray border (border-input uses --input, same as fill) */
+:root:not(.dark) [data-slot="input"],
+:root:not(.dark) [data-slot="select-trigger"],
+:root:not(.dark) [data-slot="input-group"],
+:root:not(.dark) [data-slot="textarea"],
+:root:not(.dark) [data-slot="combobox-chips"],
+:root:not(.dark) [data-slot="popover-trigger"][data-form-control] {
+  background-color: oklch(1 0 0) !important;
+  border-color: var(--border) !important;
+}
+
+:root.dark [data-slot="input"],
+:root.dark [data-slot="select-trigger"],
+:root.dark [data-slot="input-group"],
+:root.dark [data-slot="textarea"],
+:root.dark [data-slot="combobox-chips"],
+:root.dark [data-slot="popover-trigger"][data-form-control] {
+  background-color: var(--input) !important;
+}
+
+:root [data-slot="input"]:focus-visible,
+:root [data-slot="select-trigger"]:focus-visible,
+:root [data-slot="input-group"]:focus-within,
+:root [data-slot="textarea"]:focus-visible,
+:root [data-slot="combobox-chips"]:focus-within,
+:root [data-slot="popover-trigger"][data-form-control]:focus-visible {
+  border-color: var(--ring) !important;
+}
+
+/* Dark: select hover used bg-input/50; restore a subtle lift over solid fill */
+:root.dark [data-slot="select-trigger"]:hover,
+:root.dark [data-slot="popover-trigger"][data-form-control]:hover {
+  background-color: color-mix(in oklch, var(--input) 88%, white) !important;
+}
+
+:root.dark {
+  --gauge-pointer: oklch(1 0 0);
+  --background: oklch(0.14 0.02 233);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.18 0.02 233);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.20 0.02 233);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.72 0.12 232.9);
+  --primary-foreground: oklch(0.14 0 0);
+  --secondary: oklch(0.28 0.02 233);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.28 0.02 233);
+  --muted-foreground: oklch(0.70 0 0);
+  --accent: oklch(0.38 0.05 210);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.6459 0.1661 14.8585);
+  --destructive-foreground: oklch(0.9851 0 0);
+  --border: oklch(0.32 0.02 233);
+  --input: oklch(0.22 0.02 233);
+  --ring: oklch(0.72 0.12 232.9);
+  --chart-1: oklch(0.72 0.12 232.9);
+  --chart-2: oklch(0.76 0.115 196.5);
+  --chart-3: oklch(0.79 0.092 176.4);
+  --chart-4: oklch(0.86 0.128 155.8);
+  --chart-5: oklch(0.89 0.158 125.2);
+  --sidebar: oklch(0.18 0.02 233);
+  --sidebar-foreground: oklch(0.9851 0 0);
+  --sidebar-primary: oklch(0.72 0.12 232.9);
+  --sidebar-primary-foreground: oklch(0.14 0 0);
+  --sidebar-accent: oklch(0.28 0.02 233);
+  --sidebar-accent-foreground: oklch(0.9851 0 0);
+  --sidebar-border: oklch(0.32 0.02 233);
+  --sidebar-ring: oklch(0.72 0.12 232.9);
+  --success: oklch(0.5512 0.1351 142.4953);
+  --warning: oklch(0.75 0.15 85);
+  /* Lighter than --card (0.18) so settings content reads as a raised panel */
+  --app-settings-main: oklch(0.27 0.02 233);
+  --app-settings-main-foreground: var(--card-foreground);
+  --radius: .6rem;
+  --shadow-x: 0.5px;
+  --shadow-y: 1px;
+  --shadow-blur: 8px;
+  --shadow-spread: -1.5px;
+  --shadow-opacity: 0.14;
+  --shadow-color: color-mix(in oklch, var(--primary) 12%, black);
+  --shadow-2xs: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.07);
+  --shadow-xs: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.07);
+  --shadow-sm: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 1px 2px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 1px 2px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-md: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 2px 4px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-lg: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 4px 6px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.14), 0.5px 8px 10px -2.5px hsl(0 0% 0% / 0.14);
+  --shadow-2xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.35);
+}
+
+/* Dark: when TabsList explicitly uses bg-card, active tab stays primary (e.g. Fuel Finder route tabs).
+   Default segmented tabs use recessed track + muted pill from components/ui/tabs.tsx. */
+:root.dark
+  [data-slot="tabs-list"].bg-card
+  > [data-slot="tabs-trigger"][data-active] {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -40,6 +628,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-app-settings-main: var(--app-settings-main);
+  --color-app-settings-main-foreground: var(--app-settings-main-foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
@@ -62,63 +652,6 @@
 }
 
 @layer base {
-  html[data-style="glass"] {
-    --gauge-pointer: oklch(0.22 0.02 233);
-  }
-  html[data-style="glass"].dark {
-    --gauge-pointer: oklch(1 0 0);
-  }
-
-  /* Fallback only when no style is set; style files set variables when html[data-style] exists */
-  :root:not([data-style]) {
-    --background: oklch(1.0000 0 0);
-    --foreground: oklch(0.2686 0 0);
-    --card: oklch(1.0000 0 0);
-    --card-foreground: oklch(0.2686 0 0);
-    --popover: oklch(1.0000 0 0);
-    --popover-foreground: oklch(0.2686 0 0);
-    --primary: oklch(0.7686 0.1647 70.0804);
-    --primary-foreground: oklch(0 0 0);
-    --secondary: oklch(0.9670 0.0029 264.5419);
-    --secondary-foreground: oklch(0.4461 0.0263 256.8018);
-    --muted: oklch(0.9846 0.0017 247.8389);
-    --muted-foreground: oklch(0.5510 0.0234 264.3637);
-    --accent: oklch(0.9869 0.0214 95.2774);
-    --accent-foreground: oklch(0.4732 0.1247 46.2007);
-    --destructive: oklch(0.6368 0.2078 25.3313);
-    --destructive-foreground: oklch(1.0000 0 0);
-    --border: oklch(0.9276 0.0058 264.5313);
-    --input: oklch(0.9276 0.0058 264.5313);
-    --ring: oklch(0.7686 0.1647 70.0804);
-    --chart-1: oklch(0.7686 0.1647 70.0804);
-    --chart-2: oklch(0.6658 0.1574 58.3183);
-    --chart-3: oklch(0.5553 0.1455 48.9975);
-    --chart-4: oklch(0.4732 0.1247 46.2007);
-    --chart-5: oklch(0.4137 0.1054 45.9038);
-    --sidebar: oklch(0.9846 0.0017 247.8389);
-    --sidebar-foreground: oklch(0.2686 0 0);
-    --sidebar-primary: oklch(0.7686 0.1647 70.0804);
-    --sidebar-primary-foreground: oklch(0 0 0);
-    --sidebar-accent: oklch(0.9869 0.0214 95.2774);
-    --sidebar-accent-foreground: oklch(0.4732 0.1247 46.2007);
-    --sidebar-border: oklch(0.9276 0.0058 264.5313);
-    --sidebar-ring: oklch(0.7686 0.1647 70.0804);
-    --success: oklch(0.52 0.16 145);
-    --warning: oklch(0.75 0.15 85);
-    --gauge-pointer: oklch(0.22 0.02 233);
-    --radius: 0.375rem;
-    --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
-    --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
-    --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
-    --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
-    --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
-    --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
-  }
-  .dark {
-    --gauge-pointer: oklch(1 0 0);
-  }
   * {
     @apply border-border outline-ring/50;
   }

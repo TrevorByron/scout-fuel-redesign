@@ -10,6 +10,7 @@ import {
   useMap,
 } from "@/components/ui/map"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
+import { mapPaint } from "@/lib/map-paint-colors"
 import { Loader2 } from "lucide-react"
 const SINGLE_POINT_ZOOM = 13
 const FLY_DURATION_MS = 600
@@ -231,10 +232,10 @@ export type RouteOptimizerMapProps = {
 }
 
 /** MapLibre paint properties need literal colors; CSS variables are not resolved */
-const ROUTE_LINE_SELECTED = "#2563eb"
-const ROUTE_LINE_ALT = "#94a3b8"
-const INSIGHT_CONNECTOR_COLOR = "#6366f1"
-const ACTUAL_OPTIMAL_HEX = "#22c55e"
+const ROUTE_LINE_SELECTED = mapPaint.routeSelected
+const ROUTE_LINE_ALT = mapPaint.routeAlt
+const INSIGHT_CONNECTOR_COLOR = mapPaint.connector
+const ACTUAL_OPTIMAL_HEX = mapPaint.success
 
 export function RouteOptimizerMap({
   originCoords,

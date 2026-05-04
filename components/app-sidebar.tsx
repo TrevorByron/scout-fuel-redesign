@@ -3,11 +3,12 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 
+import { useAppSettings } from "@/components/app-settings-provider"
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { PilotRebateSidebarProgress } from "@/components/pilot-rebate-sidebar-progress"
 import { NavUser } from "@/components/nav-user"
 import { OrgSwitcher } from "@/components/org-switcher"
+import { useWorkspaceSettings } from "@/lib/workspace-settings-context"
 import {
   Sidebar,
   SidebarContent,
@@ -19,7 +20,6 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare01Icon,
-  Settings02Icon,
   Location01Icon,
   MapsSquare01Icon,
   ReceiptDollarIcon,
@@ -36,57 +36,12 @@ type NavMainItem = {
   items?: { title: string; url: string }[]
 }
 
-type NavSecondaryItem = {
-  title: string
-  url: string
-  icon: React.ReactNode
-  items?: { title: string; url: string }[]
-}
-
 const data = {
   user: {
-    name: "Fleet Manager",
+    name: "Trevor Borden",
     email: "admin@scoutfuel.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  organizations: [
-    {
-      name: "Frontier Trucking",
-      logo: (
-        <img
-          src="/logos/frontier-trucking.png"
-          alt=""
-          className="size-full object-contain"
-        />
-      ),
-      subtitle: "Fuel Management",
-      logoBackground: "dark" as const,
-    },
-    {
-      name: "Brink Truck Lines",
-      logo: (
-        <img
-          src="/logos/brink-truck-lines.png"
-          alt=""
-          className="size-full object-contain"
-        />
-      ),
-      subtitle: "Fuel Management",
-      logoBackground: "light" as const,
-    },
-    {
-      name: "JFW Trucking",
-      logo: (
-        <img
-          src="/logos/jfw-trucking.png"
-          alt=""
-          className="size-full object-contain"
-        />
-      ),
-      subtitle: "Fuel Management",
-      logoBackground: "light" as const,
-    },
-  ],
   navMain: [
     { title: "Dashboard", url: "/", icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} /> },
     { title: "Optimizer", url: "/route-optimizer", icon: <HugeiconsIcon icon={Route01Icon} strokeWidth={2} /> },
@@ -97,23 +52,12 @@ const data = {
     { title: "Fuel Finder", url: "/fuel-finder", icon: <HugeiconsIcon icon={Search01Icon} strokeWidth={2} /> },
     { title: "Live Fleet Map", url: "/fleet", icon: <HugeiconsIcon icon={MapsSquare01Icon} strokeWidth={2} /> },
   ] as NavMainItem[],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />,
-      items: [
-        { title: "General", url: "/settings/general" },
-        { title: "Team", url: "/settings/team" },
-        { title: "Billing", url: "/settings/billing" },
-        { title: "Limits", url: "/settings/limits" },
-      ],
-    },
-  ] as NavSecondaryItem[],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
+  const { setSettingsOpen } = useAppSettings()
+  const { organizations, activeOrgId, setActiveOrgId } = useWorkspaceSettings()
   const navMainWithActive = React.useMemo(
     () =>
       data.navMain.map((item) => {
@@ -132,39 +76,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }),
     [pathname]
   )
-  const navSecondaryWithActive = React.useMemo(
-    () =>
-      data.navSecondary.map((item) => {
-        const isActive =
-          item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
-        const itemsWithActive =
-          item.items?.map((sub) => ({
-            ...sub,
-            isActive: pathname === sub.url,
-          }))
-        return {
-          ...item,
-          isActive,
-          items: itemsWithActive ?? item.items,
-        }
-      }),
-    [pathname]
-  )
-
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <OrgSwitcher organizations={data.organizations} />
+        <OrgSwitcher
+          organizations={organizations}
+          activeOrgId={activeOrgId}
+          onActiveOrgChange={setActiveOrgId}
+          onWorkspaceSettings={() => setSettingsOpen(true)}
+        />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMainWithActive} />
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <PilotRebateSidebarProgress />
         </SidebarGroup>
-        <NavSecondary
-          items={navSecondaryWithActive}
-          className="mt-auto"
-        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

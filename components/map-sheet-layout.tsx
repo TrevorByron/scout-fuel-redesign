@@ -81,7 +81,7 @@ export function MapSheetLayout({
   const cardInner = (
     <div
       ref={formContentRef}
-      data-slot={cardDataSlot}
+      {...(cardDataSlot ? { "data-slot": cardDataSlot } : {})}
       {...cardProps}
       className={cn(
         "relative z-10 flex w-full flex-col",

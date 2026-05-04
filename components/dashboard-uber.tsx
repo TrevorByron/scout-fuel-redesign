@@ -727,7 +727,7 @@ export function DashboardUber() {
                             -${driver.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                           </span>
                           <span
-                            className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                            className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning dark:bg-warning/20 dark:text-warning"
                             aria-hidden
                           >
                             <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />
@@ -769,7 +769,7 @@ export function DashboardUber() {
                         -${loc.missedSavings.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                       </span>
                       <span
-                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:bg-amber-400"
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning dark:bg-warning/20 dark:text-warning"
                         aria-hidden
                       >
                         <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />

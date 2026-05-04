@@ -9,6 +9,7 @@ import {
   MapControls,
   useMap,
 } from "@/components/ui/map"
+import { mapPaint } from "@/lib/map-paint-colors"
 
 export type LocationMapItem = {
   displayName: string
@@ -19,17 +20,11 @@ export type LocationMapItem = {
   missedSavings: number
 }
 
-const EFFICIENCY_COLORS = {
-  red: "#ef4444",
-  yellow: "#eab308",
-  green: "#22c55e",
-} as const
-
 /** Red only when efficiency is low and there is a better option (missed savings). */
 function efficiencyToColor(pct: number, missedSavings: number): string {
-  if (pct < 50 && missedSavings > 0) return EFFICIENCY_COLORS.red
-  if (pct < 90) return EFFICIENCY_COLORS.yellow
-  return EFFICIENCY_COLORS.green
+  if (pct < 50 && missedSavings > 0) return mapPaint.destructive
+  if (pct < 90) return mapPaint.warning
+  return mapPaint.success
 }
 
 function locationsToGeoJSON(locations: LocationMapItem[]) {

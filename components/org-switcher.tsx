@@ -8,6 +8,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -17,10 +18,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { UnfoldMoreIcon } from "@hugeicons/core-free-icons"
+import { Settings02Icon, UnfoldMoreIcon } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
 
 export type Org = {
+  id: string
   name: string
   /** Logo: use <img src="..." alt="" className="..." /> or an icon. Image will be object-contain by default. */
   logo: React.ReactNode
@@ -33,7 +35,7 @@ export type Org = {
 const logoHolderBase =
   "flex aspect-square shrink-0 items-center justify-center overflow-hidden rounded-md ring-1 ring-sidebar-border/80 p-[2px] [&>img]:size-full [&>img]:object-contain [&>img]:select-none"
 
-function logoHolderClassName(background: Org["logoBackground"] = "dark"): string {
+export function orgLogoHolderClassName(background: Org["logoBackground"] = "dark"): string {
   return background === "light"
     ? cn(logoHolderBase, "bg-white")
     : cn(logoHolderBase, "bg-black/80")
@@ -41,11 +43,19 @@ function logoHolderClassName(background: Org["logoBackground"] = "dark"): string
 
 export function OrgSwitcher({
   organizations,
+  activeOrgId,
+  onActiveOrgChange,
+  onWorkspaceSettings,
 }: {
   organizations: Org[]
+  activeOrgId: string
+  onActiveOrgChange: (id: string) => void
+  /** Opens workspace admin (Company, Team, Billing, …). Omit to hide the row. */
+  onWorkspaceSettings?: () => void
 }) {
   const { isMobile } = useSidebar()
-  const [activeOrg, setActiveOrg] = React.useState(organizations[0])
+  const activeOrg =
+    organizations.find((o) => o.id === activeOrgId) ?? organizations[0]
   if (!activeOrg) {
     return null
   }
@@ -66,7 +76,7 @@ export function OrgSwitcher({
               />
             }
           >
-            <div className={cn(logoHolderClassName(activeOrg.logoBackground), "size-9 rounded-lg")}>
+            <div className={cn(orgLogoHolderClassName(activeOrg.logoBackground), "size-9 rounded-lg")}>
               {activeOrg.logo}
             </div>
             <div className="grid min-w-0 flex-1 text-left leading-tight">
@@ -97,17 +107,37 @@ export function OrgSwitcher({
               </DropdownMenuLabel>
               {organizations.map((org) => (
                 <DropdownMenuItem
-                  key={org.name}
-                  onClick={() => setActiveOrg(org)}
+                  key={org.id}
+                  onClick={() => onActiveOrgChange(org.id)}
                   className="gap-3 rounded-md px-2 py-2"
                 >
-                  <div className={cn(logoHolderClassName(org.logoBackground), "size-7")}>
+                  <div className={cn(orgLogoHolderClassName(org.logoBackground), "size-7")}>
                     {org.logo}
                   </div>
                   <span className="truncate font-medium">{org.name}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
+            {onWorkspaceSettings ? (
+              <>
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuGroup className="flex flex-col gap-0.5">
+                  <DropdownMenuItem
+                    onClick={() => onWorkspaceSettings()}
+                    className="gap-3 rounded-md px-2 py-2"
+                  >
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+                      <HugeiconsIcon
+                        icon={Settings02Icon}
+                        strokeWidth={2}
+                        className="size-4 text-muted-foreground"
+                      />
+                    </div>
+                    <span className="font-medium">Settings</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

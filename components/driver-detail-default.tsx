@@ -137,8 +137,8 @@ function efficiencyScoreColorClass(pct: number): string {
 
 /** Bar fill color by efficiency %: green 90%+, yellow 50–89%, red below 50%. */
 function getEfficiencyBarFill(scorePct: number): string {
-  if (scorePct >= 90) return "#22c55e"
-  if (scorePct >= 50) return "#eab308"
+  if (scorePct >= 90) return "var(--success)"
+  if (scorePct >= 50) return "var(--warning)"
   return "var(--destructive)"
 }
 

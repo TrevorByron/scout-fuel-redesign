@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 
+import { WORKSPACE_BRAND_LOGO_SRC } from "@/lib/workspace-brand"
 import { cn } from "@/lib/utils"
 
 export function AuthSplitLayout({
@@ -18,7 +19,7 @@ export function AuthSplitLayout({
         <div className="flex justify-center gap-2 md:justify-start">
           <Link href="/" className="flex items-center gap-2 font-medium">
             <Image
-              src="/full-logo.svg"
+              src={WORKSPACE_BRAND_LOGO_SRC}
               alt="Scout Fuel"
               width={139}
               height={79}

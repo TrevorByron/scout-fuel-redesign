@@ -1,7 +1,9 @@
 import { AppSidebar } from "@/components/app-sidebar"
+import { AppSettingsProvider } from "@/components/app-settings-provider"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TripsProvider } from "@/lib/trips-context"
+import { WorkspaceSettingsProvider } from "@/lib/workspace-settings-context"
 
 export default function DashboardLayout({
   children,
@@ -10,24 +12,28 @@ export default function DashboardLayout({
 }) {
   return (
     <TripsProvider>
-      <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="@container/main flex min-h-0 flex-1 flex-col gap-2">
-            {children}
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+      <WorkspaceSettingsProvider>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 72)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            } as React.CSSProperties
+          }
+        >
+          <AppSettingsProvider>
+            <AppSidebar variant="inset" />
+            <SidebarInset>
+              <SiteHeader />
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="@container/main flex min-h-0 flex-1 flex-col gap-2">
+                  {children}
+                </div>
+              </div>
+            </SidebarInset>
+          </AppSettingsProvider>
+        </SidebarProvider>
+      </WorkspaceSettingsProvider>
     </TripsProvider>
   )
 }

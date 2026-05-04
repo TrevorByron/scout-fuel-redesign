@@ -153,12 +153,12 @@ export function TripDetailContentUber({
                   All {progress.totalStops} refuels on plan — actual stops match optimized pricing
                 </span>
               ) : allStopsMatched && anyPaidMore ? (
-                <span className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-500">
+                <span className="inline-flex items-center gap-1.5 text-sm text-warning">
                   <AlertCircle className="size-4" />
                   All {progress.totalStops} refuels recorded — tap “Paid more” for missed savings
                 </span>
               ) : progress.followedCount > 0 ? (
-                <span className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-500">
+                <span className="inline-flex items-center gap-1.5 text-sm text-warning">
                   <AlertCircle className="size-4" />
                   {progress.followedCount}/{progress.totalStops} stops matched on corridor
                 </span>
@@ -183,7 +183,7 @@ export function TripDetailContentUber({
                         "min-h-11 w-full rounded-lg border p-3 text-left text-sm transition-colors",
                         sp.status === "completed"
                           ? comp && comp.savings > 0
-                            ? "border-amber-500/35 bg-amber-500/5"
+                            ? "border-warning/35 bg-warning/5"
                             : "border-[var(--success)]/30 bg-[var(--success)]/5"
                           : "border-border bg-muted/10",
                         isSelected && "ring-2 ring-ring ring-offset-2 ring-offset-background"
@@ -212,7 +212,7 @@ export function TripDetailContentUber({
                           ) : (
                             <Badge
                               variant="outline"
-                              className="shrink-0 border-emerald-600/35 bg-emerald-600/10 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 text-[length:var(--text-2xs)]"
+                              className="shrink-0 border-success/35 bg-success/10 text-success dark:border-success/40 dark:bg-success/10 dark:text-success text-[length:var(--text-2xs)]"
                             >
                               On plan
                             </Badge>
@@ -247,8 +247,8 @@ export function TripDetailContentUber({
                 })}
             </ul>
             {progress.offRouteTransactions.length > 0 && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                <p className="text-xs font-medium text-warning">
                   Off-route refuels
                 </p>
                 <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">

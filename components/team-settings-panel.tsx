@@ -4,17 +4,33 @@ import * as React from "react"
 import { z } from "zod"
 import { toast } from "sonner"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -31,9 +47,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { TEAM_ROLES, type TeamRole, TeamRoleLabel } from "@/components/team-role"
+import { inviteEmailPreviewShellStyle } from "@/lib/email/team-invite-html"
+import { useOptionalWorkspaceSettings } from "@/lib/workspace-settings-context"
 import { cn } from "@/lib/utils"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  Delete02Icon,
+  Key01Icon,
+  MoreVerticalCircle01Icon,
+} from "@hugeicons/core-free-icons"
 
-type TeamRole = "Admin" | "Dispatcher" | "Driver"
 type MemberStatus = "pending" | "active"
 
 type TeamMember = {
@@ -43,13 +80,24 @@ type TeamMember = {
   role: TeamRole
   status: MemberStatus
   invitedAt: string
+  /** Included in the invitation email for pending invites. */
+  inviteNote?: string
 }
 
-const roleOptions: TeamRole[] = ["Admin", "Dispatcher", "Driver"]
-
 const inviteSchema = z.object({
-  role: z.enum(["Admin", "Dispatcher", "Driver"]),
+  role: z.enum(TEAM_ROLES),
+  note: z.string().max(500, "Note must be 500 characters or less"),
 })
+
+type ApiInviteResult = { email: string; ok: boolean; error?: string; jti?: string }
+
+// TODO: Replace with the authenticated user once auth lands. Mirrors the mock
+// in `components/app-sidebar.tsx` so preview and outgoing emails can show
+// who sent the invitation.
+const CURRENT_USER = {
+  name: "Trevor Borden",
+  email: "admin@scoutfuel.com",
+} as const
 
 function parseEmailList(value: string): string[] {
   return value
@@ -84,11 +132,39 @@ function resolveEmailSegment(segment: string): string {
   return suggested ?? s
 }
 
-export function TeamSettingsPanel({ className }: { className?: string }) {
-  const [inviteEmails, setInviteEmails] = React.useState<string[]>([])
-  const [inviteInput, setInviteInput] = React.useState("")
+export type TeamSettingsPanelProps = {
+  className?: string
+  /** When used in settings shell, reset tab when section becomes visible (e.g. dialog). */
+  visible?: boolean
+}
+
+export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps) {
+  const workspace = useOptionalWorkspaceSettings()
+  const [activeTab, setActiveTab] = React.useState("invite")
+  const [inviteList, setInviteList] = React.useState("")
   const [inviteRole, setInviteRole] = React.useState<TeamRole>("Dispatcher")
+  const [inviteNote, setInviteNote] = React.useState("")
+  const [invitePreviewOpen, setInvitePreviewOpen] = React.useState(false)
+  const [inviteSending, setInviteSending] = React.useState(false)
+  const [resendLoadingId, setResendLoadingId] = React.useState<string | null>(null)
+  /** Validation for the email list field only (highlights that input). */
   const [inviteError, setInviteError] = React.useState<string | undefined>(undefined)
+  /** Send/API/config errors — shown in an alert, not as invalid email/message fields. */
+  const [inviteApiError, setInviteApiError] = React.useState<string | undefined>(undefined)
+
+  const invitePreviewSrc = React.useMemo(() => {
+    const params = new URLSearchParams()
+    params.set("role", inviteRole)
+    const note = inviteNote.trim()
+    if (note) params.set("note", note.slice(0, 500))
+    const org = workspace?.activeOrg?.name?.trim()
+    if (org) params.set("orgDisplayName", org)
+    params.set("inviterName", CURRENT_USER.name)
+    params.set("inviterEmail", CURRENT_USER.email)
+    return `/api/invites/preview?${params.toString()}`
+  }, [inviteRole, inviteNote, workspace?.activeOrg?.name])
+
+  const [removeCandidate, setRemoveCandidate] = React.useState<TeamMember | null>(null)
 
   const [members, setMembers] = React.useState<TeamMember[]>([
     {
@@ -117,62 +193,35 @@ export function TeamSettingsPanel({ className }: { className?: string }) {
     },
   ])
 
-  function addInviteEmails(rawValue: string) {
-    const parsed = parseEmailList(rawValue).map(resolveEmailSegment)
-    if (parsed.length === 0) return
-    setInviteEmails((current) => {
-      const existing = new Set(current.map((email) => email.toLowerCase()))
-      const next = [...current]
-      for (const email of parsed) {
-        if (existing.has(email.toLowerCase())) continue
-        next.push(email)
-        existing.add(email.toLowerCase())
-      }
-      return next
-    })
-  }
+  const prevVisibleRef = React.useRef(visible)
+  React.useEffect(() => {
+    if (visible === undefined) return
+    if (visible && !prevVisibleRef.current) {
+      setActiveTab("invite")
+    }
+    prevVisibleRef.current = visible
+  }, [visible])
 
-  function removeInviteEmail(emailToRemove: string) {
-    setInviteEmails((current) =>
-      current.filter((email) => email.toLowerCase() !== emailToRemove.toLowerCase())
-    )
-  }
-
-  const inviteSuggestion = React.useMemo(() => {
-    const first = inviteInput.split(/[,\n;]/)[0]?.trim() ?? ""
-    if (!first) return null
-    const completed = suggestGmailCompletion(first)
-    if (!completed) return null
-    const lower = completed.toLowerCase()
-    const existing = new Set([
-      ...inviteEmails.map((e) => e.toLowerCase()),
-      ...members.map((m) => m.email.toLowerCase()),
-    ])
-    if (existing.has(lower)) return null
-    return { completed }
-  }, [inviteInput, inviteEmails, members])
-
-  function acceptInviteSuggestion() {
-    if (!inviteSuggestion) return
-    addInviteEmails(inviteSuggestion.completed)
-    setInviteInput("")
-    setInviteError(undefined)
-  }
-
-  function handleInviteSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleInviteSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    setInviteApiError(undefined)
     const parsed = inviteSchema.safeParse({
       role: inviteRole,
+      note: inviteNote,
     })
     if (!parsed.success) {
-      setInviteError(parsed.error.issues[0]?.message)
+      const issue = parsed.error.issues[0]
+      const path0 = issue?.path[0]
+      const msg = issue?.message ?? "Invalid input"
+      if (path0 === "note") {
+        setInviteApiError(msg)
+      } else {
+        setInviteError(msg)
+      }
       return
     }
 
-    const inviteBatch = [...inviteEmails]
-    if (inviteInput.trim().length > 0) {
-      inviteBatch.push(...parseEmailList(inviteInput).map(resolveEmailSegment))
-    }
+    const inviteBatch = parseEmailList(inviteList).map(resolveEmailSegment)
 
     if (inviteBatch.length === 0) {
       setInviteError("Add at least one email address")
@@ -183,7 +232,7 @@ export function TeamSettingsPanel({ className }: { className?: string }) {
       const result = z.string().email().safeParse(email)
       if (!result.success) {
         setInviteError(`Invalid email: ${email}`)
-        toast.error("Fix invalid email addresses")
+        toast.error("Enter a valid email for each address")
         return
       }
     }
@@ -194,7 +243,7 @@ export function TeamSettingsPanel({ className }: { className?: string }) {
     )
     if (duplicateInBatch) {
       setInviteError(`Duplicate email in list: ${duplicateInBatch}`)
-      toast.error("Remove duplicate email addresses")
+      toast.error("Each email can only appear once")
       return
     }
 
@@ -203,236 +252,350 @@ export function TeamSettingsPanel({ className }: { className?: string }) {
     )
     if (duplicateExisting) {
       setInviteError(`Already on team: ${duplicateExisting}`)
-      toast.error("One or more users already exist")
+      toast.error("One or more people are already on the team")
       return
     }
 
-    setMembers((current) => [
-      ...inviteBatch.map((email) => ({
-        id: `tm_${crypto.randomUUID()}`,
-        name: "Pending user",
-        email,
-        role: parsed.data.role,
-        status: "pending" as const,
-        invitedAt: new Date().toISOString(),
-      })),
-      ...current,
-    ])
-
-    setInviteEmails([])
-    setInviteInput("")
-    setInviteRole("Dispatcher")
+    const noteTrimmed = parsed.data.note.trim()
+    setInviteSending(true)
     setInviteError(undefined)
-    toast.success(
-      inviteBatch.length === 1
-        ? "Invite sent"
-        : `Invites sent (${inviteBatch.length})`
-    )
+
+    try {
+      const res = await fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: normalizedBatch,
+          role: parsed.data.role,
+          note: noteTrimmed,
+          orgDisplayName: workspace?.activeOrg?.name,
+          inviterName: CURRENT_USER.name,
+          inviterEmail: CURRENT_USER.email,
+        }),
+      })
+
+      const data: { error?: string; results?: ApiInviteResult[] } = await res
+        .json()
+        .catch(() => ({}))
+
+      if (res.status === 503 || res.status === 400) {
+        const msg =
+          typeof data.error === "string" ? data.error : "Could not send invites"
+        setInviteApiError(msg)
+        toast.error(msg)
+        return
+      }
+
+      if (res.status !== 200 && res.status !== 207) {
+        setInviteApiError("Couldn't send invites. Try again.")
+        toast.error("Couldn't send invites. Try again.")
+        return
+      }
+
+      const results = Array.isArray(data.results) ? data.results : []
+      const failed = results.filter((r) => !r.ok)
+      const succeeded = results.filter((r) => r.ok)
+
+      if (succeeded.length > 0) {
+        setMembers((current) => [
+          ...succeeded.map((r) => ({
+            id: `tm_${crypto.randomUUID()}`,
+            name: "Pending user",
+            email: r.email,
+            role: parsed.data.role,
+            status: "pending" as const,
+            invitedAt: new Date().toISOString(),
+            ...(noteTrimmed ? { inviteNote: noteTrimmed } : {}),
+          })),
+          ...current,
+        ])
+      }
+
+      if (failed.length > 0) {
+        setInviteList(failed.map((f) => f.email).join(", "))
+        setInviteApiError(
+          failed.map((f) => `${f.email}: ${f.error ?? "Failed"}`).join(" · ")
+        )
+        toast.error(
+          succeeded.length > 0
+            ? `Some invites failed (${failed.length})`
+            : "Invites could not be sent"
+        )
+      }
+
+      if (failed.length === 0 && succeeded.length > 0) {
+        setInviteList("")
+        setInviteRole("Dispatcher")
+        setInviteNote("")
+        setInviteError(undefined)
+        setInviteApiError(undefined)
+        toast.success(
+          succeeded.length === 1
+            ? noteTrimmed
+              ? "Invite sent with your note"
+              : "Invite sent"
+            : noteTrimmed
+              ? `Invites sent (${succeeded.length}) with your note`
+              : `Invites sent (${succeeded.length})`
+        )
+      }
+
+      if (failed.length === 0 && succeeded.length === 0 && normalizedBatch.length > 0) {
+        setInviteApiError("No response from email service")
+        toast.error("No response from email service")
+      }
+    } catch {
+      setInviteApiError("Couldn't connect. Try again.")
+      toast.error("Couldn't connect. Try again.")
+    } finally {
+      setInviteSending(false)
+    }
   }
 
   function handleRoleChange(memberId: string, role: TeamRole) {
     setMembers((current) =>
       current.map((member) => (member.id === memberId ? { ...member, role } : member))
     )
-    toast.success("Permissions updated")
+    toast.success("Changes saved")
   }
 
-  function handleResendInvite(memberId: string) {
-    setMembers((current) =>
-      current.map((member) =>
-        member.id === memberId ? { ...member, invitedAt: new Date().toISOString() } : member
+  async function handleResendInvite(memberId: string) {
+    const member = members.find((m) => m.id === memberId)
+    if (!member || member.status !== "pending") return
+
+    setResendLoadingId(memberId)
+    try {
+      const res = await fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: [member.email.toLowerCase()],
+          role: member.role,
+          note: member.inviteNote?.trim() ?? "",
+          orgDisplayName: workspace?.activeOrg?.name,
+          inviterName: CURRENT_USER.name,
+          inviterEmail: CURRENT_USER.email,
+        }),
+      })
+      const data: { error?: string; results?: ApiInviteResult[] } = await res
+        .json()
+        .catch(() => ({}))
+
+      if (res.status === 503 || res.status === 400) {
+        toast.error(typeof data.error === "string" ? data.error : "Couldn't resend invite. Try again.")
+        return
+      }
+
+      const results = Array.isArray(data.results) ? data.results : []
+      const ok = results[0]?.ok === true
+      if (!ok) {
+        toast.error(results[0]?.error ?? "Couldn't resend invite. Try again.")
+        return
+      }
+
+      setMembers((current) =>
+        current.map((m) =>
+          m.id === memberId ? { ...m, invitedAt: new Date().toISOString() } : m
+        )
       )
-    )
-    toast.success("Invite sent")
+      toast.success("Invite sent")
+    } catch {
+      toast.error("Couldn't connect. Try again.")
+    } finally {
+      setResendLoadingId(null)
+    }
+  }
+
+  function requestRemoveMember(member: TeamMember) {
+    // Defer so the menu fully closes before the alert opens (focus management).
+    window.setTimeout(() => setRemoveCandidate(member), 0)
+  }
+
+  function confirmRemoveMember() {
+    if (!removeCandidate) return
+    const id = removeCandidate.id
+    const wasPending = removeCandidate.status === "pending"
+    setMembers((current) => current.filter((member) => member.id !== id))
+    setRemoveCandidate(null)
+    toast.success(wasPending ? "Invite cancelled" : "Team member removed")
   }
 
   return (
-    <div className={cn("flex flex-col gap-4 p-4 md:gap-6 md:p-6", className)}>
-      <Card variant="flat">
-        <CardHeader>
-          <CardTitle>Invite users</CardTitle>
-          <CardDescription>
-            Invite teammates and assign an initial permission role.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="flex flex-col gap-3" onSubmit={handleInviteSubmit}>
-            <FieldGroup>
-              <Field data-invalid={!!inviteError}>
-                <FieldLabel htmlFor="invite-emails">Email addresses</FieldLabel>
-                <div className="border-input bg-input/20 dark:bg-input/30 flex flex-col overflow-hidden rounded-md border">
-                  <div className="flex min-h-28 flex-wrap content-start gap-2 p-2">
-                    {inviteEmails.map((email) => (
-                      <Badge key={email} variant="outline" className="h-auto gap-1 px-2 py-1 text-xs">
-                        <span>{email}</span>
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => removeInviteEmail(email)}
-                          aria-label={`Remove ${email}`}
-                        >
-                          x
-                        </button>
-                      </Badge>
-                    ))}
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-3 p-4", className)}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-3">
+        <TabsList className="grid h-auto w-full grid-cols-2">
+          <TabsTrigger value="invite">Invite Team Members</TabsTrigger>
+          <TabsTrigger value="manage">Manage Team Members</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="invite" className="flex flex-col gap-3">
+          <div className="mb-4 space-y-1">
+            <h3 className="text-sm font-medium text-foreground">Invite Team Members</h3>
+            <p className="text-muted-foreground text-xs">
+              Invite people and choose a permission role.
+            </p>
+          </div>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => void handleInviteSubmit(e)}
+          >
+                <FieldGroup>
+                  <Field data-invalid={!!inviteError}>
+                    <FieldLabel htmlFor="invite-emails">Email addresses</FieldLabel>
                     <Input
                       id="invite-emails"
                       autoComplete="off"
-                      placeholder={
-                        inviteEmails.length === 0 ? "name@gmail.com, name@gmail.com, ..." : "Add more emails"
-                      }
-                      value={inviteInput}
+                      placeholder="e.g. alex@gmail.com, sam@gmail.com"
+                      value={inviteList}
                       onChange={(e) => {
-                        setInviteInput(e.target.value)
+                        setInviteList(e.target.value)
                         if (inviteError) setInviteError(undefined)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowDown" && inviteSuggestion) {
-                          e.preventDefault()
-                          document.getElementById("invite-email-suggestion")?.focus()
-                          return
-                        }
-                        if (
-                          e.key === "Enter" ||
-                          e.key === "," ||
-                          e.key === "Tab" ||
-                          e.key === " "
-                        ) {
-                          if (inviteInput.trim().length > 0) {
-                            e.preventDefault()
-                            if (inviteSuggestion && e.key === "Enter") {
-                              acceptInviteSuggestion()
-                            } else {
-                              addInviteEmails(inviteInput)
-                              setInviteInput("")
-                            }
-                          }
-                        } else if (
-                          e.key === "Backspace" &&
-                          inviteInput.length === 0 &&
-                          inviteEmails.length > 0
-                        ) {
-                          const last = inviteEmails[inviteEmails.length - 1]
-                          if (last) removeInviteEmail(last)
-                        }
-                      }}
-                      onBlur={(e) => {
-                        const next = e.relatedTarget as HTMLElement | null
-                        if (next?.id === "invite-email-suggestion") return
-                        if (inviteInput.trim().length > 0) {
-                          addInviteEmails(inviteInput)
-                          setInviteInput("")
-                        }
-                      }}
-                      onPaste={(e) => {
-                        const pasted = e.clipboardData.getData("text")
-                        if (/[,\n;]/.test(pasted)) {
-                          e.preventDefault()
-                          addInviteEmails(pasted)
-                        }
+                        if (inviteApiError) setInviteApiError(undefined)
                       }}
                       aria-invalid={!!inviteError}
-                      aria-autocomplete="list"
-                      aria-expanded={!!inviteSuggestion}
-                      aria-controls={inviteSuggestion ? "invite-email-suggestion-list" : undefined}
-                      className="h-10 min-w-[220px] flex-1 border-0 bg-transparent p-0 shadow-none ring-0 focus-visible:ring-0"
+                      className="min-h-11 w-full"
                     />
-                  </div>
-                  {inviteSuggestion ? (
-                    <div
-                      id="invite-email-suggestion-list"
-                      role="listbox"
-                      className="border-input border-t"
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="invite-role">
+                      <HugeiconsIcon
+                        icon={Key01Icon}
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                      Permission role
+                    </FieldLabel>
+                    <Select
+                      value={inviteRole}
+                      onValueChange={(v) => setInviteRole((v ?? "Dispatcher") as TeamRole)}
                     >
-                      <button
-                        id="invite-email-suggestion"
-                        type="button"
-                        role="option"
-                        aria-selected
-                        aria-label={`Add ${inviteSuggestion.completed}`}
-                        className={cn(
-                          "flex min-h-11 w-full items-center px-3 py-2 text-left text-sm font-medium",
-                          "text-primary bg-muted/50 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-                        )}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => acceptInviteSuggestion()}
-                      >
-                        {inviteSuggestion.completed}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
+                      <SelectTrigger id="invite-role" className="min-h-11 w-full">
+                        <SelectValue placeholder="Permission role">
+                          <TeamRoleLabel role={inviteRole} />
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        <SelectGroup>
+                          {TEAM_ROLES.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              <TeamRoleLabel role={role} />
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="invite-message">Message</FieldLabel>
+                    <Textarea
+                      id="invite-message"
+                      value={inviteNote}
+                      onChange={(e) => {
+                        setInviteNote(e.target.value)
+                        if (inviteError) setInviteError(undefined)
+                        if (inviteApiError) setInviteApiError(undefined)
+                      }}
+                      placeholder="Add a note to your invite..."
+                      rows={3}
+                      maxLength={500}
+                      className="min-h-[4.5rem] resize-y text-xs/relaxed"
+                    />
+                  </Field>
+                </FieldGroup>
+
+                {inviteApiError ? (
+                  <Alert>
+                    <AlertTitle>Could not send email</AlertTitle>
+                    <AlertDescription className="text-pretty text-muted-foreground">
+                      {inviteApiError}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
                 {inviteError ? <FieldError>{inviteError}</FieldError> : null}
-              </Field>
 
-              <Field>
-                <FieldLabel htmlFor="invite-role">Permission role</FieldLabel>
-                <Select
-                  value={inviteRole}
-                  onValueChange={(v) => setInviteRole((v ?? "Dispatcher") as TeamRole)}
-                >
-                  <SelectTrigger id="invite-role" className="min-h-11 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    <SelectGroup>
-                      {roleOptions.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {role}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </FieldGroup>
-
-            <Button
-              type="submit"
-              className="min-h-11 w-full sm:w-fit"
-              disabled={inviteEmails.length === 0}
-            >
-              Send invite
-            </Button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <Button
+                    type="submit"
+                    className="min-h-11 w-full sm:w-fit"
+                    disabled={!inviteList.trim() || inviteSending}
+                  >
+                    {inviteSending ? "Sending…" : "Send Invite"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full sm:w-fit"
+                    onClick={() => setInvitePreviewOpen(true)}
+                  >
+                    Preview Email
+                  </Button>
+                </div>
           </form>
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      <Card variant="flat">
-        <CardHeader>
-          <CardTitle>Team members</CardTitle>
-          <CardDescription>
-            Manage invites and update permissions for existing users.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
+        <TabsContent value="manage" className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-foreground">Manage Team Members</h3>
+              <p className="text-muted-foreground text-xs">
+                Review invites and update permissions.
+              </p>
+            </div>
+              <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name / Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="w-0 min-w-11 p-2 text-right">
+                  <span className="sr-only">Row actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.map((member) => (
-                <TableRow key={member.id}>
+                <TableRow key={member.id} className="group">
                   <TableCell>
-                    <div className="flex min-w-[220px] flex-col">
+                    <div className="flex min-w-[220px] flex-col gap-1">
                       <span className="font-medium">{member.name}</span>
                       <span className="text-muted-foreground">{member.email}</span>
+                      {member.status === "pending" && member.inviteNote ? (
+                        <p
+                          className="text-muted-foreground line-clamp-2 max-w-[min(100%,20rem)] text-[length:var(--text-2xs)]"
+                          title={member.inviteNote}
+                        >
+                          {member.inviteNote}
+                        </p>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={member.status === "pending" ? "outline" : "default"}
-                      className={
-                        member.status === "pending" ? "text-muted-foreground" : undefined
-                      }
-                    >
-                      {member.status === "pending" ? "Pending invite" : "Active"}
-                    </Badge>
+                    {member.status === "pending" ? (
+                      <div className="relative inline-flex w-fit items-center has-[button:focus-visible]:[&_.pending-invite-badge]:opacity-0">
+                        <Badge
+                          variant="outline"
+                          className="pending-invite-badge text-muted-foreground border-dashed transition-opacity [@media(hover:hover)]:group-hover:pointer-events-none [@media(hover:hover)]:group-hover:opacity-0 [@media(hover:none)]:pointer-events-none [@media(hover:none)]:opacity-0"
+                        >
+                          Pending Invite
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={resendLoadingId === member.id}
+                          className="absolute top-1/2 left-0 z-10 min-h-11 w-max max-w-[min(16rem,calc(100vw-3rem))] -translate-y-1/2 bg-background px-2 text-center text-xs whitespace-normal opacity-0 shadow-sm transition-opacity pointer-events-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                          onClick={() => void handleResendInvite(member.id)}
+                        >
+                          {resendLoadingId === member.id ? "Sending…" : "Send Invite Again"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Badge variant="default">Active</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select
@@ -442,39 +605,120 @@ export function TeamSettingsPanel({ className }: { className?: string }) {
                         handleRoleChange(member.id, v as TeamRole)
                       }}
                     >
-                      <SelectTrigger className="min-h-11 w-[150px]">
-                        <SelectValue />
+                      <SelectTrigger className="min-h-11 min-w-[13rem] max-w-full">
+                        <SelectValue>
+                          <TeamRoleLabel role={member.role} />
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent align="start">
                         <SelectGroup>
-                          {roleOptions.map((role) => (
+                          {TEAM_ROLES.map((role) => (
                             <SelectItem key={role} value={role}>
-                              {role}
+                              <TeamRoleLabel role={role} />
                             </SelectItem>
                           ))}
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>
-                    {member.status === "pending" ? (
-                      <Button
-                        variant="outline"
-                        className="min-h-11"
-                        onClick={() => handleResendInvite(member.id)}
+                  <TableCell className="p-2 text-right align-middle">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="min-h-11 min-w-11 text-muted-foreground shrink-0"
+                            aria-label={`More actions for ${member.name}`}
+                          />
+                        }
                       >
-                        Send invite again
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                        <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" side="bottom" className="w-44">
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => requestRemoveMember(member)}
+                        >
+                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                          <span>
+                            {member.status === "pending"
+                              ? "Cancel Invite"
+                              : "Remove From Team"}
+                          </span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </Table>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={invitePreviewOpen} onOpenChange={setInvitePreviewOpen}>
+        <DialogContent className="max-h-[90vh] max-w-[min(100vw-1rem,42rem)] gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-border border-b px-4 py-3">
+            <DialogTitle>Invite Email Preview</DialogTitle>
+            <DialogDescription>
+              Preview only. The email people receive includes a working join link.
+            </DialogDescription>
+          </DialogHeader>
+          <iframe
+            title="Invite Email Preview"
+            className="min-h-[min(70vh,480px)] w-full border-0"
+            style={inviteEmailPreviewShellStyle}
+            src={invitePreviewOpen ? invitePreviewSrc : "about:blank"}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={removeCandidate !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveCandidate(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {removeCandidate?.status === "pending"
+                ? "Cancel Invite?"
+                : removeCandidate
+                  ? `Remove "${removeCandidate.name}"?`
+                  : "Remove Member?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeCandidate?.status === "pending" ? (
+                <>
+                  This cancels the pending invite for{" "}
+                  <span className="text-foreground font-medium">{removeCandidate.email}</span>. They
+                  cannot join using the current link.
+                </>
+              ) : removeCandidate ? (
+                <>
+                  <span className="text-foreground font-medium">{removeCandidate.name}</span> (
+                  {removeCandidate.email}) will lose access to this workspace. You can invite them
+                  again later if needed.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              variant="destructive"
+              onClick={confirmRemoveMember}
+            >
+              {removeCandidate?.status === "pending" ? "Cancel Invite" : "Remove Member"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

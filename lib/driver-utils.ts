@@ -4,6 +4,13 @@ import { getFuelTransactions, driverDetails } from "@/lib/mock-data"
 /** All unique driver names from transactions (same source as drivers list page). */
 const FLEET_DRIVER_NAMES = [...new Set(getFuelTransactions().map((t) => t.driverName))].sort()
 
+/** Masked fleet card label from canonical driver id (e.g. D001 →···· 0001). */
+export function formatDriverFleetCardMasked(driverId: string): string {
+  const digits = driverId.replace(/\D/g, "")
+  const last4 = digits.slice(-4).padStart(4, "0")
+  return `···· ${last4}`
+}
+
 /** Convert "Karen White" -> "karen-white". */
 export function driverNameToSlug(name: string): string {
   return name
@@ -146,7 +153,7 @@ export function getDriverProfile(driverName: string): DriverProfile {
   const fuelCardLast4 = getFuelCardLast4(driverName)
 
   const byId = Object.entries(driverDetails).find(
-    ([_, d]) => d.driverName === driverName
+    ([, d]) => d.driverName === driverName
   )
   const detail = byId?.[1]
 

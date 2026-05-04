@@ -20,6 +20,7 @@ import {
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 import { cn } from "@/lib/utils"
+import { mapPaint } from "@/lib/map-paint-colors"
 
 function getWaste(t: FuelTransaction): number {
   return t.betterOption?.potentialSavings ?? 0
@@ -27,9 +28,8 @@ function getWaste(t: FuelTransaction): number {
 
 function getMarkerColor(t: FuelTransaction): string {
   const waste = getWaste(t)
-  // MapLibre paint doesn't resolve CSS variables; use hex so unclustered points show green/red
-  if (waste <= 0) return "#22c55e" // green (success)
-  return "#ef4444" // red (destructive)
+  if (waste <= 0) return mapPaint.success
+  return mapPaint.destructive
 }
 
 function transactionsToGeoJSON(transactions: FuelTransaction[]) {
@@ -290,7 +290,7 @@ export function DriverInsightsMap({
                 <div
                   className={cn(
                     "size-4 rounded-full ring-2 ring-background shadow-md",
-                    getWaste(popupTransaction) > 0 ? "bg-destructive" : "bg-[#22c55e]"
+                    getWaste(popupTransaction) > 0 ? "bg-destructive" : "bg-success"
                   )}
                 />
               </MarkerContent>

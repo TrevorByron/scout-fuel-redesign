@@ -392,8 +392,7 @@ export function RouteOptimizerPageContent() {
       ariaLabel="Route details"
       sidebarRef={sidebarRef}
       formContentRef={formContentRef}
-      cardDataSlot="card"
-      cardClassName="rounded-lg backdrop-blur-sm max-md:bg-background/95 max-md:ring-0 max-md:shadow-none md:bg-background/20 md:ring-1 md:ring-foreground/10 md:shadow-md text-card-foreground md:min-h-0 md:max-h-none md:flex-1"
+      cardClassName="rounded-lg text-card-foreground backdrop-blur-md max-md:bg-background/95 max-md:ring-0 max-md:shadow-none md:bg-background/88 md:ring-1 md:ring-border/40 md:shadow-md md:min-h-0 md:max-h-none md:flex-1"
     >
           {calculated ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-visible rounded-none border border-border shadow-sm md:flex-1 md:overflow-hidden md:rounded-xl">

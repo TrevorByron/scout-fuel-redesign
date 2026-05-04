@@ -338,7 +338,7 @@ export function DriversUber() {
               aria-label="Show all drivers"
             >
               <StatStripLabel count={summaryStats.totalDrivers}>All drivers</StatStripLabel>
-              <StatStripValue className="text-amber-600 dark:text-amber-500">
+              <StatStripValue className="text-warning">
                 {summaryStats.fleetAvgScore}%
               </StatStripValue>
             </StatStripItem>

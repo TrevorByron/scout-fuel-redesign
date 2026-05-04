@@ -353,7 +353,7 @@ export function DriversDefault() {
                   <CardTitle className="text-xs font-medium text-muted-foreground">
                     All drivers ({summaryStats.totalDrivers})
                   </CardTitle>
-                  <div className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-500">
+                  <div className="text-3xl font-bold tabular-nums text-warning">
                     {summaryStats.fleetAvgScore}%
                   </div>
                 </CardHeader>

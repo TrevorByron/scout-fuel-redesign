@@ -20,17 +20,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { BillingSettingsDialog } from "@/components/billing-settings-dialog"
 import { ProfileSettingsSheet } from "@/components/profile-settings-sheet"
-import {
-  defaultBilling,
-  loadBilling,
-  type BillingPayment,
-} from "@/lib/billing-store"
 import { loadProfile, saveProfile, type UserProfile } from "@/lib/profile-store"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UnfoldMoreIcon, LogoutIcon } from "@hugeicons/core-free-icons"
-import { CircleUser, CreditCard, Sparkles } from "lucide-react"
+import { CircleUser } from "lucide-react"
 
 export function NavUser({
   user,
@@ -42,7 +36,6 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const defaultBillingMemo = React.useMemo(() => defaultBilling(), [])
 
   const defaultProfile = React.useMemo<UserProfile>(
     () => ({
@@ -56,16 +49,10 @@ export function NavUser({
   )
   const [profile, setProfile] = React.useState<UserProfile>(defaultProfile)
   const [profileOpen, setProfileOpen] = React.useState(false)
-  const [billing, setBilling] = React.useState<BillingPayment>(defaultBillingMemo)
-  const [billingOpen, setBillingOpen] = React.useState(false)
 
   React.useEffect(() => {
     setProfile(loadProfile(defaultProfile))
   }, [defaultProfile])
-
-  React.useEffect(() => {
-    setBilling(loadBilling(defaultBillingMemo))
-  }, [defaultBillingMemo])
 
   const initials = React.useMemo(() => {
     const parts = profile.name.trim().split(/\s+/).filter(Boolean)
@@ -78,10 +65,6 @@ export function NavUser({
   function handleProfileSave(nextProfile: UserProfile) {
     setProfile(nextProfile)
     saveProfile(nextProfile)
-  }
-
-  function handleBillingSave(nextBilling: BillingPayment) {
-    setBilling(nextBilling)
   }
 
   return (
@@ -124,20 +107,9 @@ export function NavUser({
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <Sparkles />
-                  Upgrade to Pro
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => setProfileOpen(true)}>
                   <CircleUser />
                   Manage profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setBillingOpen(true)}>
-                  <CreditCard />
-                  Billing
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
@@ -156,12 +128,6 @@ export function NavUser({
         onOpenChange={setProfileOpen}
         profile={profile}
         onProfileSave={handleProfileSave}
-      />
-      <BillingSettingsDialog
-        open={billingOpen}
-        onOpenChange={setBillingOpen}
-        billing={billing}
-        onBillingSave={handleBillingSave}
       />
     </>
   )

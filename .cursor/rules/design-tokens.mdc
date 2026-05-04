@@ -1,0 +1,12 @@
+---
+description: Use design tokens and semantic Tailwind colors in UI code
+globs: components/**/*.tsx, app/**/*.tsx
+---
+
+# Design tokens
+
+- Use semantic utilities from `@theme` in `app/globals.css`: `bg-background`, `text-muted-foreground`, `text-success`, `bg-warning/10`, `text-destructive`, `border-border`, chart colors `text-chart-1`, etc.
+- Do not add `text-amber-*`, `bg-emerald-*`, `bg-[#...]`, or other one-off palette classes for product meaning. If you need a new meaning, add a CSS variable in `app/globals.css` (`:root` / `:root.dark`) and map it in `@theme inline`, then document it in `docs/design-system.md`.
+- MapLibre paint cannot use CSS variables: use `lib/map-paint-colors.ts` (`mapPaint`) for literal colors and keep values aligned with theme tokens.
+
+Full reference: `docs/design-system.md`.

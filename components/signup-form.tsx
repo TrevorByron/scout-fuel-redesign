@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TermsOfServiceDemoDialog } from "@/components/terms-of-service-demo"
 
 const signupSchema = z
   .object({
@@ -51,8 +52,10 @@ export function SignupForm({
   const [errors, setErrors] = React.useState<Partial<Record<FieldKey, string>>>(
     {}
   )
+  const [termsDialogOpen, setTermsDialogOpen] = React.useState(false)
 
   return (
+    <>
     <form
       className={cn("flex flex-col gap-5", className)}
       onSubmit={(e) => {
@@ -173,12 +176,17 @@ export function SignupForm({
           <FieldContent className="gap-1">
             <Label htmlFor="signup-terms" className="text-sm font-normal leading-snug">
               I agree to the{" "}
-              <a
-                href="#"
-                className="underline underline-offset-4 hover:underline"
+              <button
+                type="button"
+                className="inline min-h-0 border-0 bg-transparent p-0 text-inherit underline underline-offset-4 hover:underline"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setTermsDialogOpen(true)
+                }}
               >
                 Terms of Service
-              </a>
+              </button>
             </Label>
             {errors.terms ? <FieldError>{errors.terms}</FieldError> : null}
           </FieldContent>
@@ -254,5 +262,7 @@ export function SignupForm({
         </Field>
       </FieldGroup>
     </form>
+    <TermsOfServiceDemoDialog open={termsDialogOpen} onOpenChange={setTermsDialogOpen} />
+    </>
   )
 }

@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { mapPaint } from "@/lib/map-paint-colors";
 
 const defaultStyles = {
   dark: "https://tiles.openfreemap.org/styles/dark",
@@ -1291,7 +1292,7 @@ type MapClusterLayerProps<
   clusterMaxZoom?: number;
   /** Radius of each cluster when clustering points in pixels (default: 50). Ignored when cluster is false. */
   clusterRadius?: number;
-  /** Colors for cluster circles: [small, medium, large] based on point count (default: ["#22c55e", "#eab308", "#ef4444"]) */
+  /** Colors for cluster circles: [small, medium, large] based on point count (defaults from `mapPaint`) */
   clusterColors?: [string, string, string];
   /** Point count thresholds for color/size steps: [medium, large] (default: [100, 750]) */
   clusterThresholds?: [number, number];
@@ -1299,7 +1300,7 @@ type MapClusterLayerProps<
   pointColor?: string;
   /** When set, unclustered points use this feature property for circle color (e.g. "color" for green/red per point) */
   pointColorProperty?: string;
-  /** When set, unclustered points use a step expression: [threshold, color][] with defaultColor for values below first threshold. E.g. { property: "efficiencyPct", defaultColor: "#ef4444", stops: [[50, "#eab308"], [90, "#22c55e"]] } */
+  /** When set, unclustered points use a step expression: [threshold, color][] with defaultColor for values below first threshold. Use literal hex from `mapPaint` (MapLibre does not resolve CSS vars). */
   pointColorStep?: {
     property: string;
     defaultColor: string;
@@ -1325,7 +1326,7 @@ function MapClusterLayer<
   cluster = true,
   clusterMaxZoom = 14,
   clusterRadius = 50,
-  clusterColors = ["#22c55e", "#eab308", "#ef4444"],
+  clusterColors = [mapPaint.success, mapPaint.warning, mapPaint.destructive],
   clusterThresholds = [100, 750],
   pointColor = "#3b82f6",
   pointColorProperty,

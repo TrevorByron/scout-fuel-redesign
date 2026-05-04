@@ -136,7 +136,7 @@ function RebateProgramSection({
           <Progress
             value={progressPctToNextTier}
             data-rebate-progress=""
-            className="h-2 bg-emerald-100/80 dark:bg-emerald-900/30"
+            className="h-2 bg-success/20 dark:bg-success/25"
           />
           <div className="flex items-center justify-between gap-1 text-[length:var(--text-2xs)]">
             <span className="min-w-0 text-muted-foreground">

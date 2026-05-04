@@ -28,8 +28,11 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
   return (
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
+      // Nested dialogs (e.g. preview inside workspace settings) skip the backdrop by default;
+      // forceRender restores the viewport scrim for stacked modals.
+      forceRender
       className={cn(
-        "fixed inset-0 z-50 bg-black/35 duration-100 data-ending-style:opacity-0 data-starting-style:opacity-0 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-[100] bg-black/80 duration-100 data-ending-style:opacity-0 data-starting-style:opacity-0 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 sm:bg-black/35",
         className
       )}
       {...props}
@@ -45,28 +48,39 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
 }) {
+  const closeButton = showCloseButton ? (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      render={
+        <Button
+          variant="ghost"
+          className="pointer-events-auto absolute top-4 right-4 z-[110] shrink-0"
+          size="icon-sm"
+        />
+      }
+    >
+      <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+      <span className="sr-only">Close</span>
+    </DialogPrimitive.Close>
+  ) : null
+
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-background shadow-lg outline-none",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={<Button variant="ghost" className="absolute top-4 right-4" size="icon-sm" />}
-          >
-            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
+      <div className="pointer-events-none fixed inset-0 z-[100] flex min-h-0 items-center justify-center p-3 sm:p-4">
+        <DialogPrimitive.Popup
+          data-slot="dialog-content"
+          className={cn(
+            "pointer-events-auto relative z-[100] flex min-h-0 w-[calc(100%-1rem)] max-w-lg min-w-0 flex-col rounded-lg border bg-background shadow-lg outline-none",
+            "max-h-[min(94vh,calc(100dvh-2rem))]",
+            className
+          )}
+          {...props}
+        >
+          {children}
+          {closeButton}
+        </DialogPrimitive.Popup>
+      </div>
     </DialogPortal>
   )
 }

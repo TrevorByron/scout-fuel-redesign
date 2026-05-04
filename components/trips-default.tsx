@@ -280,8 +280,7 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
       ariaLabel="Trip details"
       sidebarRef={sidebarRef}
       formContentRef={formContentRef}
-      cardDataSlot="card"
-      cardClassName="rounded-lg bg-card text-card-foreground shadow-md ring-1 ring-foreground/10 max-md:pb-[env(safe-area-inset-bottom,0px)] md:min-h-0 md:max-h-none md:flex-1"
+      cardClassName="rounded-lg text-card-foreground backdrop-blur-md max-md:bg-background/95 md:bg-background/88 shadow-md ring-1 ring-border/40 max-md:pb-[env(safe-area-inset-bottom,0px)] md:min-h-0 md:max-h-none md:flex-1"
     >
             {selectedTrip ? (
               <>
