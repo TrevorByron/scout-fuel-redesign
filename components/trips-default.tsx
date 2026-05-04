@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlan } from "@/lib/trips"
-import { sendTripToDriver } from "@/lib/trip-send-to-driver"
+import { SendToDriverDialog } from "@/components/send-to-driver-dialog"
 import { computeTripProgress } from "@/lib/trips"
 import { trucks } from "@/lib/mock-data"
 import { getTransactionsForTripPlan } from "@/lib/trip-transactions"
@@ -51,9 +51,14 @@ function getTripStatus(trip: TripPlan): "upcoming" | "in_progress" | "completed"
 
 export interface TripsDefaultProps {
   selectedTripId: string | null
+  /** When true (e.g. `?send=1` after saving from Route Optimizer), open the send dialog once for the selected trip. */
+  autoOpenSendDriver?: boolean
 }
 
-export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
+export function TripsDefault({
+  selectedTripId,
+  autoOpenSendDriver = false,
+}: TripsDefaultProps) {
   const router = useRouter()
   const { tripPlans, getTripPlan, updateTripPlan } = useTrips()
   const [driverFilter, setDriverFilter] = React.useState<string>("all")
@@ -97,10 +102,30 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
     router.push("/trips")
   }, [router])
 
-  const handleSendToDriver = React.useCallback(() => {
-    if (!selectedTrip) return
-    sendTripToDriver(selectedTrip, updateTripPlan)
-  }, [selectedTrip, updateTripPlan])
+  const [sendDriverDialogOpen, setSendDriverDialogOpen] = React.useState(false)
+  const autoSendConsumedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (!autoOpenSendDriver) {
+      autoSendConsumedRef.current = false
+      return
+    }
+    if (!selectedTripId || autoSendConsumedRef.current) return
+    const trip = tripPlans.find((p) => p.id === selectedTripId)
+    if (!trip) return
+    if (!trip.driverId?.trim()) {
+      autoSendConsumedRef.current = true
+      router.replace(`/trips?id=${encodeURIComponent(selectedTripId)}`)
+      return
+    }
+    autoSendConsumedRef.current = true
+    setSendDriverDialogOpen(true)
+    router.replace(`/trips?id=${encodeURIComponent(selectedTripId)}`)
+  }, [autoOpenSendDriver, selectedTripId, tripPlans, router])
+
+  React.useEffect(() => {
+    if (!selectedTrip) setSendDriverDialogOpen(false)
+  }, [selectedTrip])
 
   const mapProps = useTripRoute(selectedTrip)
 
@@ -261,6 +286,13 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
   }, [selectedStopIndex, tripProgress])
 
   return (
+    <>
+    <SendToDriverDialog
+      trip={selectedTrip ?? null}
+      open={sendDriverDialogOpen}
+      onOpenChange={setSendDriverDialogOpen}
+      updateTripPlan={updateTripPlan}
+    />
     <MapSheetLayout
       map={
         <RouteOptimizerMapDynamic
@@ -330,7 +362,7 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
                           ? "trips-send-driver-help"
                           : undefined
                       }
-                      onClick={handleSendToDriver}
+                      onClick={() => setSendDriverDialogOpen(true)}
                     >
                       Send to driver
                     </Button>
@@ -451,5 +483,6 @@ export function TripsDefault({ selectedTripId }: TripsDefaultProps) {
               </>
             )}
     </MapSheetLayout>
+    </>
   )
 }

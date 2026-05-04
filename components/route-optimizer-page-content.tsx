@@ -7,8 +7,7 @@ import { format } from "date-fns"
 import { toast } from "sonner"
 import { trucks, drivers, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
 import { useTrips } from "@/lib/trips-context"
-import type { TripPlan, TripPlanStop, TripPlanSummary, LngLat } from "@/lib/trips"
-import { sendTripToDriver } from "@/lib/trip-send-to-driver"
+import type { TripPlanStop, TripPlanSummary, LngLat } from "@/lib/trips"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -287,28 +286,19 @@ export function RouteOptimizerPageContent() {
       routeCoordinates: mapRouteCoordinates,
     }
     if (tripIdParam) {
-      const prev = getTripPlan(tripIdParam)
       updateTripPlan(tripIdParam, updates)
-      if (sendToDriver && prev) {
-        const merged: TripPlan = { ...prev, ...updates }
-        sendTripToDriver(merged, updateTripPlan, {
-          successMessage: driverName
-            ? `Trip updated and sent to ${driverName}.`
-            : "Trip updated and sent to driver.",
-        })
-      } else if (!sendToDriver) {
+      if (sendToDriver) {
+        router.push(
+          `/trips?id=${encodeURIComponent(tripIdParam)}&send=1`
+        )
+      } else {
         toast.success("Trip updated.")
+        router.push(`/trips?id=${encodeURIComponent(tripIdParam)}`)
       }
-      router.push(`/trips?id=${tripIdParam}`)
     } else {
       const saved = addTripPlan(updates)
       if (sendToDriver) {
-        sendTripToDriver(saved, updateTripPlan, {
-          successMessage: driverName
-            ? `Trip saved and sent to ${driverName}.`
-            : "Trip saved and sent to driver.",
-        })
-        router.push(`/trips?id=${saved.id}`)
+        router.push(`/trips?id=${encodeURIComponent(saved.id)}&send=1`)
       } else {
         toast.success("Trip saved. View it in Trips.")
       }

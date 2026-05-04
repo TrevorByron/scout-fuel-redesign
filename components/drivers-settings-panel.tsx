@@ -21,13 +21,28 @@ import { formatDriverFleetCardMasked } from "@/lib/driver-utils"
 import { drivers } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
+/** Deep-link target for focusing a driver phone or email field in this panel. */
+export type DriverContactFocusTarget = { driverId: string; field: "phone" | "email" }
+
+export function driverContactInputId(driverId: string, field: "phone" | "email"): string {
+  return `driver-contact-${driverId}-${field}`
+}
+
 export type DriversSettingsPanelProps = {
   className?: string
   /** When used in settings shell, reload from storage when the section becomes visible. */
   visible?: boolean
+  /** When set while visible, scroll to and focus the matching input, then call `onContactFocusConsumed`. */
+  contactFocusTarget?: DriverContactFocusTarget | null
+  onContactFocusConsumed?: () => void
 }
 
-export function DriversSettingsPanel({ className, visible }: DriversSettingsPanelProps) {
+export function DriversSettingsPanel({
+  className,
+  visible,
+  contactFocusTarget,
+  onContactFocusConsumed,
+}: DriversSettingsPanelProps) {
   const [contacts, setContacts] = React.useState<DriverContactsState>(() =>
     defaultDriverContacts(drivers)
   )
@@ -62,6 +77,47 @@ export function DriversSettingsPanel({ className, visible }: DriversSettingsPane
     })
   }
 
+  const focusKey = contactFocusTarget
+    ? `${contactFocusTarget.driverId}-${contactFocusTarget.field}`
+    : null
+
+  React.useLayoutEffect(() => {
+    if (!contactFocusTarget || !visible || !focusKey) return
+
+    const id = driverContactInputId(contactFocusTarget.driverId, contactFocusTarget.field)
+    let cancelled = false
+    let attempts = 0
+    const maxAttempts = 16
+
+    function tryFocus() {
+      if (cancelled) return
+      attempts += 1
+      const el = document.getElementById(id)
+      if (!el || !(el instanceof HTMLElement)) {
+        if (attempts >= maxAttempts) {
+          onContactFocusConsumed?.()
+          return
+        }
+        requestAnimationFrame(tryFocus)
+        return
+      }
+      el.scrollIntoView({ block: "center", behavior: "auto" })
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (cancelled) return
+          el.focus()
+          if (el instanceof HTMLInputElement) el.select()
+          onContactFocusConsumed?.()
+        })
+      })
+    }
+
+    tryFocus()
+    return () => {
+      cancelled = true
+    }
+  }, [contactFocusTarget, visible, focusKey, onContactFocusConsumed])
+
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col px-3 pb-4 pt-2", className)}>
       <div className="flex flex-col gap-4">
@@ -86,6 +142,7 @@ export function DriversSettingsPanel({ className, visible }: DriversSettingsPane
                       </TableCell>
                       <TableCell className="p-2 align-middle">
                         <Input
+                          id={driverContactInputId(d.driverId, "phone")}
                           aria-label={`Phone for ${d.driverName}`}
                           type="tel"
                           autoComplete="tel"
@@ -107,6 +164,7 @@ export function DriversSettingsPanel({ className, visible }: DriversSettingsPane
                       </TableCell>
                       <TableCell className="p-2 align-middle">
                         <Input
+                          id={driverContactInputId(d.driverId, "email")}
                           aria-label={`Email for ${d.driverName}`}
                           type="email"
                           autoComplete="email"

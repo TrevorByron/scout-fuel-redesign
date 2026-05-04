@@ -136,6 +136,40 @@
     radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 9%, transparent) 0%, transparent 55%);
 }
 
+/* App settings mobile drill-in: same blob gradient as desktop sidebar wrapper */
+:root [data-app-settings-dialog] [data-app-settings-mobile-shell] {
+  background-color: oklch(0.99 0.003 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 9%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 11%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 10%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 8%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 7%, transparent) 0%, transparent 55%);
+}
+
+:root.dark [data-app-settings-dialog] [data-app-settings-mobile-shell] {
+  background-color: oklch(0.19 0.02 233);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 20%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 100% at 85% 30%, color-mix(in oklch, var(--chart-2) 14%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 11%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 10%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 9%, transparent) 0%, transparent 55%);
+}
+
+/* App settings mobile list scroll: frosted wash over shell (matches sidebar-content) */
+:root [data-app-settings-dialog] [data-app-settings-mobile-list] {
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:root.dark [data-app-settings-dialog] [data-app-settings-mobile-list] {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 /* App settings: frosted nav scroll area (milky wash over wrapper gradient) */
 :root [data-app-settings-dialog] [data-slot="sidebar-content"] {
   background-color: rgba(255, 255, 255, 0.5);

@@ -7,7 +7,13 @@ import { TripsDefault } from "@/components/trips-default"
 function TripsPageContent() {
   const searchParams = useSearchParams()
   const selectedTripId = searchParams.get("id")
-  return <TripsDefault selectedTripId={selectedTripId} />
+  const autoOpenSendDriver = searchParams.get("send") === "1"
+  return (
+    <TripsDefault
+      selectedTripId={selectedTripId}
+      autoOpenSendDriver={autoOpenSendDriver}
+    />
+  )
 }
 
 export default function TripsPage() {
