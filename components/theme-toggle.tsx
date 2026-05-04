@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { SunIcon, MoonIcon } from "@hugeicons/core-free-icons"
+import { cn } from "@/lib/utils"
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme()
@@ -27,12 +28,12 @@ export function ThemeToggle() {
             size="icon"
             onClick={toggle}
             aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            className="size-8"
+            className={cn("size-8 max-sm:size-11 max-sm:rounded-lg")}
           >
             {isDark ? (
-              <HugeiconsIcon icon={SunIcon} strokeWidth={2} className="size-4" />
+              <HugeiconsIcon icon={SunIcon} strokeWidth={2} className="size-4 max-sm:size-5" />
             ) : (
-              <HugeiconsIcon icon={MoonIcon} strokeWidth={2} className="size-4" />
+              <HugeiconsIcon icon={MoonIcon} strokeWidth={2} className="size-4 max-sm:size-5" />
             )}
           </Button>
         }

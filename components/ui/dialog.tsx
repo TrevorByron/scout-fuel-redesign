@@ -44,9 +44,15 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  fullViewportMobile = false,
+  closeButtonClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  /** Below `sm`, drop outer padding and fill the viewport (stacked “page” layout). */
+  fullViewportMobile?: boolean
+  /** Merged onto the built-in close control (e.g. mobile `top` to align with a tall header). */
+  closeButtonClassName?: string
 }) {
   const closeButton = showCloseButton ? (
     <DialogPrimitive.Close
@@ -54,7 +60,11 @@ function DialogContent({
       render={
         <Button
           variant="ghost"
-          className="pointer-events-auto absolute top-4 right-4 z-[110] shrink-0"
+          className={cn(
+            "pointer-events-auto absolute top-4 right-4 z-[110] shrink-0",
+            "max-sm:size-11 max-sm:rounded-lg max-sm:[&_svg:not([class*='size-'])]:size-4",
+            closeButtonClassName
+          )}
           size="icon-sm"
         />
       }
@@ -66,13 +76,22 @@ function DialogContent({
 
   return (
     <DialogPortal>
-      <DialogOverlay />
-      <div className="pointer-events-none fixed inset-0 z-[100] flex min-h-0 items-center justify-center p-3 sm:p-4">
+      <DialogOverlay
+        className={cn(fullViewportMobile && "max-sm:bg-background")}
+      />
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-0 z-[100] flex min-h-0 items-center justify-center p-3 sm:p-4",
+          fullViewportMobile && "max-sm:p-0 max-sm:items-stretch max-sm:justify-stretch"
+        )}
+      >
         <DialogPrimitive.Popup
           data-slot="dialog-content"
           className={cn(
             "pointer-events-auto relative z-[100] flex min-h-0 w-[calc(100%-1rem)] max-w-lg min-w-0 flex-col rounded-lg border bg-background shadow-lg outline-none",
             "max-h-[min(94vh,calc(100dvh-2rem))]",
+            fullViewportMobile &&
+              "max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:min-h-[100dvh] max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 max-sm:shadow-none",
             className
           )}
           {...props}

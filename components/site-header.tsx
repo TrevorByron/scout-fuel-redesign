@@ -42,7 +42,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="text-base font-medium">{title}</h1>
+        <h1 className="text-lg font-medium sm:text-base">{title}</h1>
         <div className="ml-auto">
           <ThemeToggle />
         </div>

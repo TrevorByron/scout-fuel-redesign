@@ -66,7 +66,10 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-4 right-4"
+                className={cn(
+                  "absolute top-4 right-4 z-10",
+                  "max-sm:size-11 max-sm:rounded-lg max-sm:[&_svg:not([class*='size-'])]:size-4"
+                )}
                 size="icon-sm"
               />
             }

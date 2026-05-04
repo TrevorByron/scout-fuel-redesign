@@ -66,9 +66,11 @@ import { useOptionalWorkspaceSettings } from "@/lib/workspace-settings-context"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
+  Cancel01Icon,
   Delete02Icon,
   Key01Icon,
   MoreVerticalCircle01Icon,
+  UserAdd01Icon,
 } from "@hugeicons/core-free-icons"
 
 type MemberStatus = "pending" | "active"
@@ -99,9 +101,12 @@ const CURRENT_USER = {
   email: "admin@scoutfuel.com",
 } as const
 
+/** Commas, semicolons, newlines, or whitespace (e.g. space) between addresses. */
+const INVITE_EMAIL_SPLIT = /[,\n;\s]+/g
+
 function parseEmailList(value: string): string[] {
   return value
-    .split(/[,\n;]/g)
+    .split(INVITE_EMAIL_SPLIT)
     .map((item) => item.trim())
     .filter(Boolean)
 }
@@ -132,6 +137,70 @@ function resolveEmailSegment(segment: string): string {
   return suggested ?? s
 }
 
+/** Split on delimiters and peel complete segments into tags; remainder stays as draft. */
+function peelInviteEmailInput(
+  raw: string,
+  existing: string[],
+  options: { memberEmailsLower: Set<string> }
+): { nextTags: string[]; draft: string; error?: string } {
+  let rest = raw
+  const lowerExisting = new Set(existing.map((e) => e.toLowerCase()))
+  const nextTags = [...existing]
+
+  while (true) {
+    const idx = rest.search(/[,;\s]/)
+    if (idx === -1) {
+      return { nextTags, draft: rest, error: undefined }
+    }
+    const seg = rest.slice(0, idx).trim()
+    rest = rest.slice(idx + 1)
+    if (!seg) continue
+
+    const resolved = resolveEmailSegment(seg)
+    const parsed = z.string().email().safeParse(resolved)
+    if (!parsed.success) {
+      return { nextTags: existing, draft: raw, error: `Invalid email: ${seg}` }
+    }
+    const email = parsed.data.toLowerCase()
+    if (lowerExisting.has(email)) {
+      return { nextTags: existing, draft: raw, error: `Already added: ${email}` }
+    }
+    if (options.memberEmailsLower.has(email)) {
+      return {
+        nextTags: existing,
+        draft: raw,
+        error: `Already on team: ${email}`,
+      }
+    }
+    nextTags.push(email)
+    lowerExisting.add(email)
+  }
+}
+
+function tryCommitInviteDraft(
+  draft: string,
+  existing: string[],
+  options: { memberEmailsLower: Set<string> }
+): { nextTags: string[]; draft: string; error?: string } {
+  const seg = draft.trim()
+  if (!seg) {
+    return { nextTags: existing, draft: "", error: undefined }
+  }
+  const resolved = resolveEmailSegment(seg)
+  const parsed = z.string().email().safeParse(resolved)
+  if (!parsed.success) {
+    return { nextTags: existing, draft, error: `Invalid email: ${seg}` }
+  }
+  const email = parsed.data.toLowerCase()
+  if (existing.some((e) => e.toLowerCase() === email)) {
+    return { nextTags: existing, draft, error: `Already added: ${email}` }
+  }
+  if (options.memberEmailsLower.has(email)) {
+    return { nextTags: existing, draft, error: `Already on team: ${email}` }
+  }
+  return { nextTags: [...existing, email], draft: "", error: undefined }
+}
+
 export type TeamSettingsPanelProps = {
   className?: string
   /** When used in settings shell, reset tab when section becomes visible (e.g. dialog). */
@@ -141,7 +210,9 @@ export type TeamSettingsPanelProps = {
 export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps) {
   const workspace = useOptionalWorkspaceSettings()
   const [activeTab, setActiveTab] = React.useState("invite")
-  const [inviteList, setInviteList] = React.useState("")
+  const [inviteEmailTags, setInviteEmailTags] = React.useState<string[]>([])
+  const [inviteEmailDraft, setInviteEmailDraft] = React.useState("")
+  const inviteEmailsInputRef = React.useRef<HTMLInputElement>(null)
   const [inviteRole, setInviteRole] = React.useState<TeamRole>("Dispatcher")
   const [inviteNote, setInviteNote] = React.useState("")
   const [invitePreviewOpen, setInvitePreviewOpen] = React.useState(false)
@@ -193,6 +264,11 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
     },
   ])
 
+  const memberEmailsLower = React.useMemo(
+    () => new Set(members.map((m) => m.email.toLowerCase())),
+    [members]
+  )
+
   const prevVisibleRef = React.useRef(visible)
   React.useEffect(() => {
     if (visible === undefined) return
@@ -221,7 +297,10 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
       return
     }
 
-    const inviteBatch = parseEmailList(inviteList).map(resolveEmailSegment)
+    const inviteBatch = [
+      ...inviteEmailTags,
+      ...parseEmailList(inviteEmailDraft).map(resolveEmailSegment),
+    ].filter(Boolean)
 
     if (inviteBatch.length === 0) {
       setInviteError("Add at least one email address")
@@ -312,7 +391,8 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
       }
 
       if (failed.length > 0) {
-        setInviteList(failed.map((f) => f.email).join(", "))
+        setInviteEmailTags(failed.map((f) => f.email.toLowerCase()))
+        setInviteEmailDraft("")
         setInviteApiError(
           failed.map((f) => `${f.email}: ${f.error ?? "Failed"}`).join(" · ")
         )
@@ -324,7 +404,8 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
       }
 
       if (failed.length === 0 && succeeded.length > 0) {
-        setInviteList("")
+        setInviteEmailTags([])
+        setInviteEmailDraft("")
         setInviteRole("Dispatcher")
         setInviteNote("")
         setInviteError(undefined)
@@ -411,6 +492,54 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
     window.setTimeout(() => setRemoveCandidate(member), 0)
   }
 
+  function handleInviteEmailsChange(raw: string) {
+    const { nextTags, draft, error } = peelInviteEmailInput(raw, inviteEmailTags, {
+      memberEmailsLower,
+    })
+    setInviteEmailTags(nextTags)
+    setInviteEmailDraft(draft)
+    if (error) setInviteError(error)
+    else if (inviteError) setInviteError(undefined)
+    if (inviteApiError) setInviteApiError(undefined)
+  }
+
+  function handleInviteEmailKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.nativeEvent.isComposing) return
+    if (e.key === "Enter") {
+      e.preventDefault()
+      return
+    }
+    if (e.key === "Backspace" && inviteEmailDraft === "" && inviteEmailTags.length > 0) {
+      e.preventDefault()
+      setInviteEmailTags((t) => t.slice(0, -1))
+      if (inviteError) setInviteError(undefined)
+    }
+  }
+
+  function handleInviteEmailsBlur() {
+    const d = inviteEmailDraft.trim()
+    if (!d) return
+    const resolved = resolveEmailSegment(d)
+    if (!z.string().email().safeParse(resolved).success) return
+    const { nextTags, draft, error } = tryCommitInviteDraft(
+      inviteEmailDraft,
+      inviteEmailTags,
+      { memberEmailsLower }
+    )
+    if (error) {
+      setInviteError(error)
+      return
+    }
+    setInviteEmailTags(nextTags)
+    setInviteEmailDraft(draft)
+    if (inviteError) setInviteError(undefined)
+  }
+
+  function removeInviteEmailTag(index: number) {
+    setInviteEmailTags((tags) => tags.filter((_, i) => i !== index))
+    if (inviteError) setInviteError(undefined)
+  }
+
   function confirmRemoveMember() {
     if (!removeCandidate) return
     const id = removeCandidate.id
@@ -430,7 +559,15 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
 
         <TabsContent value="invite" className="flex flex-col gap-3">
           <div className="mb-4 space-y-1">
-            <h3 className="text-sm font-medium text-foreground">Invite Team Members</h3>
+            <div className="flex items-center gap-2">
+              <HugeiconsIcon
+                icon={UserAdd01Icon}
+                className="size-4 shrink-0 text-muted-foreground"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <h3 className="text-sm font-medium text-foreground">Invite Team Members</h3>
+            </div>
             <p className="text-muted-foreground text-xs">
               Invite people and choose a permission role.
             </p>
@@ -442,19 +579,55 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
                 <FieldGroup>
                   <Field data-invalid={!!inviteError}>
                     <FieldLabel htmlFor="invite-emails">Email addresses</FieldLabel>
-                    <Input
-                      id="invite-emails"
-                      autoComplete="off"
-                      placeholder="e.g. alex@gmail.com, sam@gmail.com"
-                      value={inviteList}
-                      onChange={(e) => {
-                        setInviteList(e.target.value)
-                        if (inviteError) setInviteError(undefined)
-                        if (inviteApiError) setInviteApiError(undefined)
+                    <div
+                      className={cn(
+                        "flex min-h-11 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-input/20 px-2 py-1.5 transition-colors",
+                        "focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
+                        inviteError &&
+                          "border-destructive focus-within:border-destructive focus-within:ring-destructive/20"
+                      )}
+                      onPointerDown={(e) => {
+                        const el = e.target as HTMLElement
+                        if (el.closest("button")) return
+                        if (el === inviteEmailsInputRef.current) return
+                        inviteEmailsInputRef.current?.focus()
                       }}
-                      aria-invalid={!!inviteError}
-                      className="min-h-11 w-full"
-                    />
+                    >
+                      {inviteEmailTags.map((email, index) => (
+                        <span
+                          key={`${email}-${index}`}
+                          className="inline-flex h-8 max-w-full shrink-0 items-center gap-0.5 rounded-full border border-border bg-muted/50 pl-2.5 text-xs text-foreground"
+                        >
+                          <span className="min-w-0 truncate leading-none">{email}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                            aria-label={`Remove ${email}`}
+                            onClick={() => removeInviteEmailTag(index)}
+                          >
+                            <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" strokeWidth={2} aria-hidden />
+                          </Button>
+                        </span>
+                      ))}
+                      <Input
+                        ref={inviteEmailsInputRef}
+                        id="invite-emails"
+                        autoComplete="off"
+                        placeholder={
+                          inviteEmailTags.length > 0
+                            ? "Add another…"
+                            : "e.g. alex@gmail.com sam@gmail.com"
+                        }
+                        value={inviteEmailDraft}
+                        onChange={(e) => handleInviteEmailsChange(e.target.value)}
+                        onKeyDown={handleInviteEmailKeyDown}
+                        onBlur={handleInviteEmailsBlur}
+                        aria-invalid={!!inviteError}
+                        className="h-7 min-h-7 min-w-[10rem] flex-1 border-0 bg-transparent px-0 py-1 text-sm shadow-none outline-none focus-visible:ring-0"
+                      />
+                    </div>
                   </Field>
 
                   <Field>
@@ -521,7 +694,10 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
                   <Button
                     type="submit"
                     className="min-h-11 w-full sm:w-fit"
-                    disabled={!inviteList.trim() || inviteSending}
+                    disabled={
+                      (inviteEmailTags.length === 0 && !inviteEmailDraft.trim()) ||
+                      inviteSending
+                    }
                   >
                     {inviteSending ? "Sending…" : "Send Invite"}
                   </Button>
@@ -660,7 +836,7 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
       </Tabs>
 
       <Dialog open={invitePreviewOpen} onOpenChange={setInvitePreviewOpen}>
-        <DialogContent className="max-h-[90vh] max-w-[min(100vw-1rem,42rem)] gap-0 overflow-hidden p-0">
+        <DialogContent className="max-h-[92vh] max-w-[min(100vw-1rem,48rem)] gap-0 overflow-hidden p-0">
           <DialogHeader className="border-border border-b px-4 py-3">
             <DialogTitle>Invite Email Preview</DialogTitle>
             <DialogDescription>
@@ -669,7 +845,7 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
           </DialogHeader>
           <iframe
             title="Invite Email Preview"
-            className="min-h-[min(70vh,480px)] w-full border-0"
+            className="min-h-[min(78vh,560px)] w-full border-0"
             style={inviteEmailPreviewShellStyle}
             src={invitePreviewOpen ? invitePreviewSrc : "about:blank"}
           />

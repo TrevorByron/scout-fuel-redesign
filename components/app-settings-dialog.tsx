@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeft, ChevronRight, ImagePlus, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, ImagePlus, Settings, X } from "lucide-react"
 
 import { BillingSettingsPanel } from "@/components/billing-settings-panel"
 import {
@@ -14,13 +14,6 @@ import { TeamSettingsPanel } from "@/components/team-settings-panel"
 import { TermsOfServiceDemoPage } from "@/components/terms-of-service-demo"
 import { Button } from "@/components/ui/button"
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -40,8 +34,6 @@ import {
 } from "@/components/ui/sidebar"
 import {
   SETTINGS_NAV_GROUPS,
-  getGroupIdForSection,
-  getNavGroup,
   getNavItemForSection,
   type AppSettingsSection,
 } from "@/lib/app-settings-nav"
@@ -241,7 +233,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 shrink-0 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Company</h2>
+                <h2 className="text-lg font-semibold text-foreground">Company Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Update your workspace name and company logo.
                 </p>
@@ -362,7 +354,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Team</h2>
+                <h2 className="text-lg font-semibold text-foreground">Team Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Invite people and set their roles.
                 </p>
@@ -379,7 +371,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Drivers</h2>
+                <h2 className="text-lg font-semibold text-foreground">Drivers Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Add phone numbers and emails for fleet drivers.
                 </p>
@@ -398,7 +390,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Trucks</h2>
+                <h2 className="text-lg font-semibold text-foreground">Trucks Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Set truck numbers and fuel capacity in gallons for each unit.
                 </p>
@@ -415,7 +407,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Billing</h2>
+                <h2 className="text-lg font-semibold text-foreground">Billing Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Payment method and invoices. Card details are stored locally for demo only.
                 </p>
@@ -441,20 +433,25 @@ export function AppSettingsDialog({
   }
 
   const mobileListRowClass =
-    "flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/10 outline-none transition-[box-shadow,background-color] hover:bg-card/90 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    "flex min-h-11 w-full items-center gap-3 rounded-lg border border-border/35 bg-card px-3 py-2 text-left text-sm font-medium text-foreground shadow-md outline-none transition-[box-shadow,background-color,border-color] hover:border-border/55 hover:bg-card/92 hover:shadow-lg focus-visible:border-border/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 
   const dialogShellClass = cn(
-    "flex flex-col overflow-hidden border bg-background p-0 shadow-lg",
+    "flex flex-col overflow-hidden p-0",
     narrow
-      ? "h-[min(100dvh,100svh)] max-h-[min(100dvh,100svh)] w-[calc(100vw-0.5rem)] max-w-none rounded-xl"
-      : "h-[min(90vh,920px)] max-h-[94vh] w-[min(94vw,calc(100vw-1rem))] max-w-[min(1400px,94vw)]"
+      ? "h-full min-h-0 flex-1 max-h-none border-0 bg-transparent shadow-none"
+      : "h-[min(90vh,920px)] max-h-[94vh] w-[min(94vw,calc(100vw-1rem))] max-w-[min(1400px,94vw)] border bg-background shadow-lg"
   )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-app-settings-dialog className={dialogShellClass}>
+      <DialogContent
+        data-app-settings-dialog
+        fullViewportMobile
+        className={dialogShellClass}
+        closeButtonClassName={narrow ? "max-sm:top-0.5" : undefined}
+      >
         <div className="sr-only">
-          <DialogTitle>Workspace settings</DialogTitle>
+          <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
             Manage company profile, team, billing, drivers, trucks, and terms in one place.
           </DialogDescription>
@@ -467,16 +464,25 @@ export function AppSettingsDialog({
           >
             {mobilePhase === "list" ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="shrink-0 border-b border-border/60 bg-card/45 px-4 pb-3 pt-4 pr-14 backdrop-blur-md">
+                <header className="flex h-12 w-full shrink-0 items-center gap-1 border-b bg-background px-4 pr-14">
+                  <span
+                    className="flex size-11 shrink-0 items-center justify-center -ml-1 text-muted-foreground"
+                    aria-hidden
+                  >
+                    <Settings className="size-4 max-sm:size-5" strokeWidth={2} />
+                  </span>
+                  <Separator
+                    orientation="vertical"
+                    className="mx-2 h-4 data-vertical:self-auto"
+                  />
                   <h2
                     ref={mobileTitleRef}
                     tabIndex={-1}
-                    className="text-lg font-semibold text-foreground outline-none"
+                    className="min-w-0 flex-1 truncate text-lg font-medium text-foreground outline-none sm:text-base"
                   >
-                    Workspace settings
+                    Settings
                   </h2>
-                  <p className="text-sm text-muted-foreground">Choose a setting</p>
-                </div>
+                </header>
                 <div
                   data-app-settings-mobile-list
                   className="min-h-0 flex-1 overflow-y-auto p-3"
@@ -517,50 +523,34 @@ export function AppSettingsDialog({
 
             {mobilePhase === "detail" ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="sticky top-0 z-10 shrink-0 border-b border-border/60 bg-card/50 px-2 pb-2 pt-2 pr-14 shadow-sm backdrop-blur-md">
+                <header className="sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-1 border-b bg-background px-4 pr-14">
                   <Button
                     type="button"
                     variant="ghost"
-                    className="min-h-11 -ml-1 gap-1 px-2 font-normal"
+                    size="icon-lg"
+                    className="size-8 shrink-0 -ml-1 max-sm:size-11"
                     onClick={mobileBack}
                     aria-label={mobileBackAriaLabel()}
                   >
-                    <ChevronLeft className="size-5 shrink-0" aria-hidden />
-                    Back
+                    <ChevronLeft
+                      className="size-4 shrink-0 max-sm:size-5"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <span className="sr-only">Back</span>
                   </Button>
-                  {(() => {
-                    const item = getNavItemForSection(section)
-                    const gid = getGroupIdForSection(section)
-                    const g = gid ? getNavGroup(gid) : undefined
-                    const title = item?.label ?? "Settings"
-                    return (
-                      <>
-                        <h2
-                          ref={mobileTitleRef}
-                          tabIndex={-1}
-                          className="pl-2 text-lg font-semibold text-foreground outline-none"
-                        >
-                          {title}
-                        </h2>
-                        {g && item && g.id !== "terms" ? (
-                          <Breadcrumb className="pl-2 pt-0.5">
-                            <BreadcrumbList className="text-sm">
-                              <BreadcrumbItem>
-                                <span className="text-muted-foreground">{g.label}</span>
-                              </BreadcrumbItem>
-                              <BreadcrumbSeparator />
-                              <BreadcrumbItem>
-                                <BreadcrumbPage className="text-sm font-medium">
-                                  {item.label}
-                                </BreadcrumbPage>
-                              </BreadcrumbItem>
-                            </BreadcrumbList>
-                          </Breadcrumb>
-                        ) : null}
-                      </>
-                    )
-                  })()}
-                </div>
+                  <Separator
+                    orientation="vertical"
+                    className="mx-2 h-4 data-vertical:self-auto"
+                  />
+                  <h2
+                    ref={mobileTitleRef}
+                    tabIndex={-1}
+                    className="min-w-0 flex-1 truncate text-lg font-medium text-foreground outline-none sm:text-base"
+                  >
+                    {`${getNavItemForSection(section)?.label ?? "Workspace"} Settings`}
+                  </h2>
+                </header>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-app-settings-main text-app-settings-main-foreground">
                   <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[800px] flex-1 flex-col overflow-hidden">
                     {renderSectionBody({ showPageIntro: false })}
