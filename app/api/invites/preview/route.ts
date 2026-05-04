@@ -6,20 +6,11 @@ import { TEAM_ROLES, type TeamRole } from "@/lib/team-roles"
 
 export const dynamic = "force-dynamic"
 
-function previewAllowed(): boolean {
-  if (process.env.NODE_ENV !== "production") return true
-  return process.env.ALLOW_INVITE_EMAIL_PREVIEW === "true"
-}
-
 function isTeamRole(v: string): v is TeamRole {
   return (TEAM_ROLES as readonly string[]).includes(v)
 }
 
 export async function GET(request: Request) {
-  if (!previewAllowed()) {
-    return NextResponse.json({ error: "Preview is not available" }, { status: 404 })
-  }
-
   const { searchParams } = new URL(request.url)
   const roleRaw = searchParams.get("role")?.trim() || "Dispatcher"
   const role = isTeamRole(roleRaw) ? roleRaw : "Dispatcher"
