@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
+  BalanceScaleIcon,
   DashboardSquare01Icon,
   Location01Icon,
-  MapsSquare01Icon,
   ReceiptDollarIcon,
   UserGroupIcon,
   Route01Icon,
@@ -50,7 +50,7 @@ const data = {
     { title: "Location Insights", url: "/locations", icon: <HugeiconsIcon icon={Location01Icon} strokeWidth={2} /> },
     { title: "Fuel Data", url: "/transactions", icon: <HugeiconsIcon icon={ReceiptDollarIcon} strokeWidth={2} /> },
     { title: "Fuel Finder", url: "/fuel-finder", icon: <HugeiconsIcon icon={Search01Icon} strokeWidth={2} /> },
-    { title: "Live Fleet Map", url: "/fleet", icon: <HugeiconsIcon icon={MapsSquare01Icon} strokeWidth={2} /> },
+    { title: "Deal Analyzer", url: "/deal-analyzer", icon: <HugeiconsIcon icon={BalanceScaleIcon} strokeWidth={2} /> },
   ] as NavMainItem[],
 }
 

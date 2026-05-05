@@ -23,7 +23,11 @@ const OUT_OF_NETWORK_BRANDS = STATION_BRANDS.filter(
 
 const LOCATION_KEY_SEP = "\u001f"
 
-function getLocationKey(stationBrand: string, location: string): string {
+/** Stable key for grouping transactions by chain + city (matches Locations concept). */
+export function getFuelTransactionLocationKey(
+  stationBrand: string,
+  location: string
+): string {
   return `${stationBrand}${LOCATION_KEY_SEP}${location}`
 }
 
@@ -39,7 +43,7 @@ function ensureMinimumLocationsWithBadStops(
 ): void {
   const byKey = new Map<string, FuelTransaction[]>()
   for (const t of list) {
-    const key = getLocationKey(t.stationBrand, t.location)
+    const key = getFuelTransactionLocationKey(t.stationBrand, t.location)
     const arr = byKey.get(key) ?? []
     arr.push(t)
     byKey.set(key, arr)
@@ -99,7 +103,7 @@ function isInWeekOfJan1(t: FuelTransaction): boolean {
 function ensureAtLeastOneLocationNeedsAttention(list: FuelTransaction[]): void {
   const byKey = new Map<string, FuelTransaction[]>()
   for (const t of list) {
-    const key = getLocationKey(t.stationBrand, t.location)
+    const key = getFuelTransactionLocationKey(t.stationBrand, t.location)
     const arr = byKey.get(key) ?? []
     arr.push(t)
     byKey.set(key, arr)
@@ -152,7 +156,7 @@ function ensureAtLeastOneLocationNeedsAttentionOnDay(
   const dayTxns = list.filter(onDay)
   const byKey = new Map<string, FuelTransaction[]>()
   for (const t of dayTxns) {
-    const key = getLocationKey(t.stationBrand, t.location)
+    const key = getFuelTransactionLocationKey(t.stationBrand, t.location)
     const arr = byKey.get(key) ?? []
     arr.push(t)
     byKey.set(key, arr)

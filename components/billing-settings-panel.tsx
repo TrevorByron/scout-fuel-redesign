@@ -169,7 +169,7 @@ export function BillingSettingsPanel({
         )}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-3">
-          <TabsList className="grid h-auto w-full grid-cols-2">
+          <TabsList className="mb-3 grid h-auto w-full grid-cols-2">
             <TabsTrigger value="payment">Payment Method</TabsTrigger>
             <TabsTrigger value="history">Billing History</TabsTrigger>
           </TabsList>
@@ -423,27 +423,25 @@ export function BillingSettingsPanel({
               <ul className="divide-y divide-border">
                   {MOCK_INVOICES.map((inv) => (
                     <li key={inv.id}>
-                      <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
-                            <FileText className="size-5 text-muted-foreground" aria-hidden />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium leading-tight">{inv.label}</p>
-                            <p className="text-xs text-muted-foreground">{inv.dateLine}</p>
-                          </div>
+                      <div className="flex min-h-11 flex-row items-center gap-2 py-3 sm:min-h-0 sm:gap-3 sm:py-4">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
+                          <FileText className="size-5 text-muted-foreground" aria-hidden />
                         </div>
-                        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                        <p className="min-w-0 flex-1 truncate text-sm leading-tight">
+                          <span className="font-medium text-foreground">{inv.label}</span>
+                          <span className="text-muted-foreground"> · {inv.dateLine}</span>
+                        </p>
+                        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                           <Badge variant="outline" className="font-normal">
                             {inv.status}
                           </Badge>
-                          <span className="min-w-[4rem] text-right text-sm font-semibold tabular-nums">
+                          <span className="text-sm font-semibold tabular-nums text-foreground">
                             {inv.amount}
                           </span>
                           <Button
                             type="button"
                             variant="ghost"
-                            className="size-11 shrink-0 rounded-md"
+                            className="size-11 min-h-11 min-w-11 shrink-0 rounded-md p-0"
                             aria-label={`Download ${inv.label}`}
                             onClick={() => handleInvoiceDownload(inv.id)}
                           >

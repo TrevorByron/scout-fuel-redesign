@@ -42,7 +42,7 @@
   --sidebar-accent-foreground: oklch(0.22 0.02 233);
   --sidebar-border: oklch(0.88 0.018 233);
   --sidebar-ring: oklch(0.6810 0.1370 232.9);
-  --success: oklch(0.4532 0.1101 122.1507);
+  --success: oklch(0.64 0.097 172);
   --warning: oklch(0.75 0.15 85);
   /* App settings dialog: main content column (matches card in light; lifted in dark) */
   --app-settings-main: var(--card);
@@ -155,19 +155,6 @@
     radial-gradient(ellipse 80% 70% at 50% 85%, color-mix(in oklch, var(--chart-4) 11%, transparent) 0%, transparent 60%),
     radial-gradient(ellipse 70% 90% at 70% 60%, color-mix(in oklch, var(--chart-3) 10%, transparent) 0%, transparent 55%),
     radial-gradient(ellipse 100% 60% at 25% 70%, color-mix(in oklch, var(--chart-5) 9%, transparent) 0%, transparent 55%);
-}
-
-/* App settings mobile list scroll: frosted wash over shell (matches sidebar-content) */
-:root [data-app-settings-dialog] [data-app-settings-mobile-list] {
-  background-color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-:root.dark [data-app-settings-dialog] [data-app-settings-mobile-list] {
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 /* App settings: frosted nav scroll area (milky wash over wrapper gradient) */
@@ -592,7 +579,7 @@
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.32 0.02 233);
   --sidebar-ring: oklch(0.72 0.12 232.9);
-  --success: oklch(0.5512 0.1351 142.4953);
+  --success: oklch(0.64 0.097 172);
   --warning: oklch(0.75 0.15 85);
   /* Lighter than --card (0.18) so settings content reads as a raised panel */
   --app-settings-main: oklch(0.27 0.02 233);
@@ -614,10 +601,9 @@
   --shadow-2xl: 0.5px 1px 8px -1.5px hsl(0 0% 0% / 0.35);
 }
 
-/* Dark: when TabsList explicitly uses bg-card, active tab stays primary (e.g. Fuel Finder route tabs).
-   Default segmented tabs use recessed track + muted pill from components/ui/tabs.tsx. */
-:root.dark
-  [data-slot="tabs-list"].bg-card
+/* When TabsList uses bg-card, active tab uses primary (date presets, Fuel Finder route tabs, …).
+   Default segmented tabs on muted track keep recessed pill styling from components/ui/tabs.tsx. */
+[data-slot="tabs-list"].bg-card
   > [data-slot="tabs-trigger"][data-active] {
   background-color: var(--primary);
   color: var(--primary-foreground);

@@ -232,7 +232,7 @@ export function AppSettingsDialog({
         {section === "general" ? (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-6">
             {showPageIntro ? (
-              <div className="mb-4 shrink-0 space-y-1">
+              <div className="mb-8 shrink-0 space-y-1">
                 <h2 className="text-lg font-semibold text-foreground">Company Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Update your workspace name and company logo.
@@ -464,7 +464,7 @@ export function AppSettingsDialog({
           >
             {mobilePhase === "list" ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <header className="flex h-12 w-full shrink-0 items-center gap-1 border-b bg-background px-4 pr-14">
+                <header className="flex h-12 w-full shrink-0 items-center gap-1 border-b border-border/60 bg-app-settings-main px-4 pr-14 text-app-settings-main-foreground">
                   <span
                     className="flex size-11 shrink-0 items-center justify-center -ml-1 text-muted-foreground"
                     aria-hidden
@@ -485,7 +485,7 @@ export function AppSettingsDialog({
                 </header>
                 <div
                   data-app-settings-mobile-list
-                  className="min-h-0 flex-1 overflow-y-auto p-3"
+                  className="min-h-0 flex-1 overflow-y-auto bg-app-settings-main p-3 text-app-settings-main-foreground"
                 >
                   <ul className="list-none space-y-2">
                     {SETTINGS_NAV_GROUPS.map((g) => (
@@ -523,7 +523,7 @@ export function AppSettingsDialog({
 
             {mobilePhase === "detail" ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <header className="sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-1 border-b bg-background px-4 pr-14">
+                <header className="sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-1 border-b border-border/60 bg-app-settings-main px-4 pr-14 text-app-settings-main-foreground">
                   <Button
                     type="button"
                     variant="ghost"

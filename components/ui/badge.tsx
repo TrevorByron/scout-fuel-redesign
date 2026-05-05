@@ -15,6 +15,8 @@ const badgeVariants = cva(
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground bg-input/20 dark:bg-input/30",
         success:
           "border-[var(--success)] bg-transparent text-[var(--success)] [a]:hover:bg-[var(--success)]/10 [a]:hover:text-[var(--success)]",
+        successFilled:
+          "border-transparent bg-[var(--success)] text-white [a]:hover:bg-[var(--success)]/90 [a]:hover:text-white",
         destructiveOutline:
           "border-destructive bg-transparent text-destructive [a]:hover:bg-destructive/10 [a]:hover:text-destructive",
         warning:

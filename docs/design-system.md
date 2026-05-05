@@ -69,6 +69,8 @@ The app currently ships a single Glass theme on `:root`. To add another brand la
 
 MapLibre paint properties do not resolve CSS variables. Shared fallbacks that should stay visually aligned with `--success`, `--warning`, and `--destructive` live in [`lib/map-paint-colors.ts`](../lib/map-paint-colors.ts). Prefer `mapPaint.*` imports over inline hex in components.
 
+Deal Analyzer location map adds **`laneBaseline`** (neutral stops), **`proposedBetter`** / **`proposedWorse`** (muted vs baseline net $/gal at a city), while optimized tier pins reuse **`success`** for “bright green.”
+
 ## Optional: Figma / Style Dictionary
 
 A JSON token pipeline and CI sync are not required for day-to-day work in this repo. If design delivers tokens from Figma, consider Style Dictionary or Tokens Studio export → CSS variables, then merge into the same three-layer structure above.

@@ -105,10 +105,7 @@ export function SendToDriverDialog({
       <DialogContent className="flex max-h-[min(94vh,calc(100dvh-2rem))] flex-col gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="border-b border-border px-4 pb-3 pt-4">
           <DialogTitle>Send to driver</DialogTitle>
-          <DialogDescription>
-            Preview and edit the message, then choose text or email. This app records the send for
-            your records (no carrier is contacted from the browser).
-          </DialogDescription>
+          <DialogDescription>Preview, edit and send the message.</DialogDescription>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain px-4 py-3">
@@ -129,9 +126,6 @@ export function SendToDriverDialog({
             <TabsContent value="sms" className="mt-0 flex flex-col gap-3">
               <Field>
                 <FieldLabel>Phone number</FieldLabel>
-                <p className="text-xs text-muted-foreground">
-                  Hover or click to edit in Workspace settings → Drivers.
-                </p>
                 <button
                   type="button"
                   onClick={() => navigateToDriversContactEditor("phone")}
@@ -167,9 +161,6 @@ export function SendToDriverDialog({
             <TabsContent value="email" className="mt-0 flex flex-col gap-3">
               <Field>
                 <FieldLabel>Email address</FieldLabel>
-                <p className="text-xs text-muted-foreground">
-                  Hover or click to edit in Workspace settings → Drivers.
-                </p>
                 <button
                   type="button"
                   onClick={() => navigateToDriversContactEditor("email")}

@@ -33,12 +33,35 @@ const tabsListDesktopClassName =
 const tabsListMobileClassName =
   "h-10 min-h-10 group-data-horizontal/tabs:h-10 w-full max-w-md bg-card text-card-foreground rounded-lg border border-border shadow-[0_-20px_56px_-10px_rgba(0,0,0,0.2)] dark:shadow-[0_-20px_56px_-10px_rgba(0,0,0,0.5)]"
 
+export type DateRangePresetOption = {
+  value: string
+  label: string
+}
+
+const DEFAULT_PRESETS: DateRangePresetOption[] = [
+  { value: "yesterday", label: "Yesterday" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+]
+
 export type DateRangePresetTabsProps = {
   value: string
   onValueChange: (value: string) => void
+  /** Defaults to Yesterday / This Week / This Month. */
+  presets?: DateRangePresetOption[]
+  /**
+   * `dock`: desktop strip + fixed bottom dock below `md` (transactions, dashboard, …).
+   * `inline`: one strip everywhere (e.g. deal analyzer results column).
+   */
+  variant?: "dock" | "inline"
 }
 
-export function DateRangePresetTabs({ value, onValueChange }: DateRangePresetTabsProps) {
+export function DateRangePresetTabs({
+  value,
+  onValueChange,
+  presets = DEFAULT_PRESETS,
+  variant = "dock",
+}: DateRangePresetTabsProps) {
   const isMaxMd = React.useSyncExternalStore(subscribeMaxMd, getMaxMdSnapshot, getServerMaxMdSnapshot)
   const [mounted, setMounted] = React.useState(false)
 
@@ -46,21 +69,32 @@ export function DateRangePresetTabs({ value, onValueChange }: DateRangePresetTab
     setMounted(true)
   }, [])
 
-  const strip = (tabsListClassName: string) => (
+  const strip = (tabsListClassName: string, triggerExtra?: string) => (
     <Tabs value={value} onValueChange={onValueChange}>
       <TabsList className={tabsListClassName}>
-        <TabsTrigger value="yesterday" className={triggerClassName}>
-          Yesterday
-        </TabsTrigger>
-        <TabsTrigger value="week" className={triggerClassName}>
-          This Week
-        </TabsTrigger>
-        <TabsTrigger value="month" className={triggerClassName}>
-          This Month
-        </TabsTrigger>
+        {presets.map((p) => (
+          <TabsTrigger
+            key={p.value}
+            value={p.value}
+            className={cn(triggerClassName, triggerExtra)}
+          >
+            {p.label}
+          </TabsTrigger>
+        ))}
       </TabsList>
     </Tabs>
   )
+
+  if (variant === "inline") {
+    /** Same visual language as dock presets (white pill + blue segment); full-width equal segments. */
+    return strip(
+      cn(
+        tabsListDesktopClassName,
+        "!flex h-10 min-h-10 w-full max-w-none gap-0 rounded-xl border border-border/60 p-[3px] shadow-sm ring-1 ring-border/30 dark:border-border dark:ring-border/40"
+      ),
+      "min-h-0 min-w-0 flex-1 px-1 text-center text-[11px] font-normal leading-tight text-muted-foreground data-[active]:font-medium data-[active]:!bg-primary data-[active]:!text-primary-foreground data-[active]:shadow-none sm:px-2 sm:text-sm sm:leading-normal"
+    )
+  }
 
   const mobileDock = (
     <div

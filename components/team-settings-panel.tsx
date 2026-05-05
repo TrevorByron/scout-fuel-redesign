@@ -552,7 +552,7 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col gap-3 p-4", className)}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-3">
-        <TabsList className="grid h-auto w-full grid-cols-2">
+        <TabsList className="mb-3 grid h-auto w-full grid-cols-2">
           <TabsTrigger value="invite">Invite Team Members</TabsTrigger>
           <TabsTrigger value="manage">Manage Team Members</TabsTrigger>
         </TabsList>
