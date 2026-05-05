@@ -28,7 +28,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/route-optimizer": "Optimizer",
   "/transactions": "Fuel Data",
   "/deal-analyzer/analyze": "Analyze deal",
-  "/deal-analyzer": "Fuel Deal Analyzer",
+  "/deal-analyzer": "Deal Analyzer",
   "/trips/": "Trip",
   "/trips": "Trips",
 }
@@ -57,7 +57,7 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
               render={<Link href="/deal-analyzer" />}
               className="inline-flex min-h-11 max-w-full items-center truncate rounded-md px-1 text-xs font-normal sm:min-h-9 sm:text-sm"
             >
-              Fuel Deal Analyzer
+              Deal Analyzer
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">

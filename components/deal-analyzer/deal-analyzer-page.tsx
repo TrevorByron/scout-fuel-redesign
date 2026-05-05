@@ -50,7 +50,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel, FieldLegend } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -142,6 +142,10 @@ const DEAL_ANALYZER_SHELL_STYLE: React.CSSProperties = {
   height: "100%",
   maxHeight: "calc(100dvh - var(--header-height, 3rem))",
 }
+
+/** Align fieldset legends with `FieldLabel` / base `Label` typography. */
+const DEAL_FORM_LEGEND_CLASS =
+  "mb-0 flex w-fit items-center gap-2 text-foreground leading-snug select-none"
 
 /** Older saved runs omitted `defRebatePricingMode`; keep them on the flat path. */
 function normalizeLoadedDealConfig(c: DealAnalyzerFormInput): DealAnalyzerFormInput {
@@ -448,9 +452,9 @@ export function DealAnalyzerPage() {
               </div>
 
               <fieldset className="m-0 min-w-0 space-y-2 border-0 p-0">
-                <legend className="text-xs font-medium text-muted-foreground">
+                <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
                   Program type
-                </legend>
+                </FieldLegend>
                 <RadioGroup
                   value={form.programType}
                   onValueChange={(v) =>
@@ -495,9 +499,9 @@ export function DealAnalyzerPage() {
               {strategyProgram ? (
                 <>
                   <fieldset className="m-0 min-w-0 space-y-2 border-0 p-0">
-                    <legend className="text-xs font-medium text-muted-foreground">
+                    <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
                       Strategy
-                    </legend>
+                    </FieldLegend>
                     <RadioGroup
                       value={form.discountStructure}
                       onValueChange={(v) =>
@@ -655,9 +659,9 @@ export function DealAnalyzerPage() {
               {form.programType === "def_rebate" ? (
                 <>
                   <fieldset className="m-0 min-w-0 space-y-2 border-0 p-0">
-                    <legend className="text-xs font-medium text-muted-foreground">
+                    <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
                       DEF rebate structure
-                    </legend>
+                    </FieldLegend>
                     <RadioGroup
                       value={defRebateModeSelected}
                       onValueChange={(v) =>
@@ -725,9 +729,9 @@ export function DealAnalyzerPage() {
               <Separator className="bg-border/70" aria-hidden />
 
               <fieldset className="m-0 min-w-0 space-y-3 border-0 p-0">
-                <legend className="text-xs font-medium text-muted-foreground">
+                <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
                   State coverage
-                </legend>
+                </FieldLegend>
                 <RadioGroup
                   value={form.stateRestriction}
                   onValueChange={(v) =>
@@ -755,7 +759,7 @@ export function DealAnalyzerPage() {
                 </RadioGroup>
 
                 {form.stateRestriction === "specific" ? (
-                  <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="space-y-2">
                     <p className="text-muted-foreground text-xs">
                       {form.selectedStates.length} states selected
                     </p>
@@ -829,7 +833,7 @@ export function DealAnalyzerPage() {
                     Comparison range
                   </h2>
                   <p className="text-muted-foreground text-xs">
-                    Compare deal to past transactions.
+                    Compare deal to your past transactions.
                   </p>
                 </div>
                 {savedId ? (

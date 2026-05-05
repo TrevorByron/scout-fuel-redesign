@@ -54,7 +54,8 @@ export function DealAnalyzerHub() {
               Evaluate fuel proposals in real-time as they&apos;re pitched to you.
             </p>
             <p className="text-pretty text-xs text-muted-foreground sm:text-sm">
-              Type in the deal details as you hear them—get instant analysis.
+              Type in the deal details as you hear them, compare them to your
+              historic transaction data and get instant analysis.
             </p>
           </div>
           <Link

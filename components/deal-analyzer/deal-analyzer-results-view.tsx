@@ -1,13 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { CheckCircle2, BarChart3, XCircle } from "lucide-react"
+import { AlertCircle, BarChart3, CheckCircle2, XCircle } from "lucide-react"
 import type {
   DealAnalyzerFormInput,
   DealAnalyzerResults,
   DealBaselineStats,
   DealFuelNetwork,
   DealLocationComparisonRow,
+  DealVerdict,
 } from "@/lib/deal-analyzer-types"
 import { NETWORK_LABELS } from "@/lib/deal-analyzer-engine"
 import { DealAnalyzerLocationComparisonSection } from "@/components/deal-analyzer/deal-analyzer-location-comparison"
@@ -48,12 +49,79 @@ function savingsTone(amount: number): SavingsTone {
   return "neutral"
 }
 
-/** Proposed deal block — aligns with map popup “match” cards (`--warning`). */
-function proposedDealSectionClass(tone: SavingsTone): string {
-  if (tone === "bad") {
-    return "rounded-lg border-2 border-destructive/35 bg-destructive/10"
+type VerdictTier = DealVerdict["tier"]
+
+/** Hero + proposed breakdown: green excellent/good, yellow marginal, red bad. */
+function verdictTierHeroShellClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "border-[var(--success)]/40 bg-[var(--success)]/5"
+    case "marginal":
+      return "border-[var(--warning)]/45 bg-[var(--warning)]/10"
+    case "bad":
+      return "border-destructive/40 bg-destructive/10"
+    default:
+      return "border-border bg-muted/30"
   }
-  return "rounded-lg border border-[var(--warning)]/45 bg-[var(--warning)]/10"
+}
+
+function verdictTierSectionShellClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "rounded-lg border-2 border-[var(--success)]/35 bg-[var(--success)]/5"
+    case "marginal":
+      return "rounded-lg border border-[var(--warning)]/45 bg-[var(--warning)]/10"
+    case "bad":
+      return "rounded-lg border-2 border-destructive/35 bg-destructive/10"
+    default:
+      return "rounded-lg border border-border bg-muted/30"
+  }
+}
+
+function verdictTierIconShellClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "bg-[var(--success)]/15 text-[var(--success)]"
+    case "marginal":
+      return "bg-[var(--warning)]/15 text-[var(--warning)]"
+    case "bad":
+      return "bg-destructive/15 text-destructive"
+    default:
+      return "bg-muted text-muted-foreground"
+  }
+}
+
+function verdictTierHeadlineClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "text-[var(--success)]"
+    case "marginal":
+      return "text-[var(--warning)]"
+    case "bad":
+      return "text-destructive"
+    default:
+      return "text-foreground"
+  }
+}
+
+function verdictTierProposedBadgeVariant(
+  tier: VerdictTier
+): "success" | "warning" | "destructiveOutline" | "outline" {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "success"
+    case "marginal":
+      return "warning"
+    case "bad":
+      return "destructiveOutline"
+    default:
+      return "outline"
+  }
 }
 
 function breakdownCardClass(
@@ -185,15 +253,12 @@ export function DealAnalyzerResultsView({
   }
 
   const { baseline, proposed, optimized, verdict, insights } = results
-  const isPositive = proposed.savings >= 0
-  const proposedTone = savingsTone(proposed.savings)
+  const verdictTier = verdict.tier
   const optNorm = optimized
     ? normalizedOptimizedStats(optimized, baseline)
     : null
   const optimizedTone = optNorm ? savingsTone(optNorm.totalSavingsVsBaseline) : null
-  const verdictCardClass = isPositive
-    ? "border-[var(--success)]/40 bg-[var(--success)]/5"
-    : "border-destructive/40 bg-destructive/10"
+  const verdictCardClass = verdictTierHeroShellClass(verdictTier)
 
   return (
     <div
@@ -211,13 +276,15 @@ export function DealAnalyzerResultsView({
         <div
           className={cn(
             "flex size-12 shrink-0 items-center justify-center rounded-full",
-            isPositive ? "bg-[var(--success)]/15 text-[var(--success)]" : "bg-destructive/15 text-destructive"
+            verdictTierIconShellClass(verdictTier)
           )}
         >
-          {isPositive ? (
-            <CheckCircle2 className="size-7" aria-hidden />
-          ) : (
+          {verdictTier === "bad" ? (
             <XCircle className="size-7" aria-hidden />
+          ) : verdictTier === "marginal" ? (
+            <AlertCircle className="size-7" aria-hidden />
+          ) : (
+            <CheckCircle2 className="size-7" aria-hidden />
           )}
         </div>
         <div className="min-w-0 flex-1 space-y-2">
@@ -229,7 +296,7 @@ export function DealAnalyzerResultsView({
             <p
               className={cn(
                 "text-3xl font-bold tabular-nums tracking-tight sm:text-4xl",
-                isPositive ? "text-[var(--success)]" : "text-destructive"
+                verdictTierHeadlineClass(verdictTier)
               )}
             >
               {proposed.savings >= 0 ? "−" : "+"}
@@ -268,14 +335,10 @@ export function DealAnalyzerResultsView({
             </div>
           </section>
 
-          <section className={cn("p-4", proposedDealSectionClass(proposedTone))}>
+          <section className={cn("p-4", verdictTierSectionShellClass(verdictTier))}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium">With {networkLabel}</span>
-              <Badge
-                variant={
-                  proposedTone === "bad" ? "destructiveOutline" : "warning"
-                }
-              >
+              <Badge variant={verdictTierProposedBadgeVariant(verdictTier)}>
                 Proposed
               </Badge>
             </div>
@@ -290,7 +353,7 @@ export function DealAnalyzerResultsView({
               <MetricBlock
                 label="Total savings"
                 value={formatSavingsUsd(proposed.savings)}
-                valueClassName={savingsValueClass(proposedTone)}
+                valueClassName={verdictTierHeadlineClass(verdictTier)}
               />
             </div>
           </section>
@@ -387,12 +450,7 @@ export function DealAnalyzerResultsView({
         <DealAnalyzerLocationComparisonSection
           rows={locationComparisonRows}
           transactionSlice={analysisTransactionSlice}
-          proposedSavings={proposed.savings}
-          optimizedTotalSavingsVsBaseline={
-            optimized
-              ? normalizedOptimizedStats(optimized, baseline).totalSavingsVsBaseline
-              : null
-          }
+          verdictTier={verdictTier}
           showOptimizedColumn={
             optimized != null &&
             proposed.avgPricePerGallon > 0 &&

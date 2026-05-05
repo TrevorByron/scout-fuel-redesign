@@ -4,6 +4,7 @@ import * as React from "react"
 import type {
   DealLocationComparisonRow,
   DealLocationMetricCard,
+  DealVerdict,
 } from "@/lib/deal-analyzer-types"
 import {
   Map as GeoMap,
@@ -16,19 +17,21 @@ import {
   MAP_US_CENTER,
   MAP_US_ZOOM_NARROW_VIEWPORT,
 } from "@/lib/map-us-defaults"
-import { buildLocationComparisonMapModel } from "@/lib/deal-analyzer-location-map"
+import {
+  buildLocationComparisonMapModel,
+  verdictTierToProposedMapColor,
+} from "@/lib/deal-analyzer-location-map"
 import type { LocationMapPointRole } from "@/lib/deal-analyzer-location-map"
 import { mapPaint } from "@/lib/map-paint-colors"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { MapPin } from "lucide-react"
 
-type MapLayerFilterId = "baseline" | "proposedBetter" | "proposedWorse" | "optimized"
+type MapLayerFilterId = "baseline" | "proposed" | "optimized"
 
 const DEFAULT_MAP_LAYER_FILTERS: Record<MapLayerFilterId, boolean> = {
   baseline: true,
-  proposedBetter: true,
-  proposedWorse: true,
+  proposed: true,
   optimized: true,
 }
 
@@ -38,14 +41,9 @@ function featureMatchesLayerFilters(
   showOptimizedLayer: boolean
 ): boolean {
   const role = feature.properties?.role
-  const color = feature.properties?.color
   if (role === "baseline") return filters.baseline
   if (role === "optimized") return showOptimizedLayer && filters.optimized
-  if (role === "proposed") {
-    if (color === mapPaint.proposedBetter) return filters.proposedBetter
-    if (color === mapPaint.proposedWorse) return filters.proposedWorse
-    return filters.proposedBetter || filters.proposedWorse
-  }
+  if (role === "proposed") return filters.proposed
   return true
 }
 
@@ -72,48 +70,30 @@ function countPinsByLayer(
   >
 ): Record<MapLayerFilterId, number> {
   let baseline = 0
-  let proposedBetter = 0
-  let proposedWorse = 0
+  let proposed = 0
   let optimized = 0
   for (const f of collection.features) {
     const role = f.properties?.role
-    const color = f.properties?.color
     if (role === "baseline") baseline++
     else if (role === "optimized") optimized++
-    else if (role === "proposed") {
-      if (color === mapPaint.proposedBetter) proposedBetter++
-      else if (color === mapPaint.proposedWorse) proposedWorse++
-    }
+    else if (role === "proposed") proposed++
   }
-  return { baseline, proposedBetter, proposedWorse, optimized }
+  return { baseline, proposed, optimized }
 }
 
 function MapLayerFilterCard({
   label,
-  caption,
   pinCount,
   selected,
   swatchColor,
-  metricTone,
   onToggle,
 }: {
   label: string
-  caption: string
   pinCount: number
   selected: boolean
   swatchColor: string
-  metricTone?: "default" | "destructive"
   onToggle: () => void
 }) {
-  const metricClass =
-    metricTone === "destructive"
-      ? selected
-        ? "text-destructive"
-        : "text-destructive/50"
-      : selected
-        ? "text-foreground"
-        : "text-muted-foreground"
-
   return (
     <button
       type="button"
@@ -121,11 +101,16 @@ function MapLayerFilterCard({
       aria-checked={selected}
       aria-label={`${label}: ${selected ? "shown on map" : "hidden from map"}, ${pinCount} pins`}
       onClick={onToggle}
+      style={
+        selected
+          ? { borderColor: swatchColor }
+          : undefined
+      }
       className={cn(
-        "flex min-h-[4.75rem] min-w-[10rem] shrink-0 snap-start flex-col gap-1 rounded-2xl border-2 bg-card p-3 text-left shadow-sm outline-none transition-[border-color,box-shadow,opacity]",
+        "flex min-h-11 min-w-[10rem] shrink-0 snap-start flex-col gap-1 rounded-2xl border-2 bg-card p-3 text-left shadow-sm outline-none transition-[border-color,box-shadow,opacity]",
         "focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         selected
-          ? "border-primary shadow-md ring-1 ring-primary/20"
+          ? "shadow-md"
           : "border-border opacity-[0.92] hover:border-muted-foreground/35 hover:opacity-100"
       )}
     >
@@ -141,28 +126,9 @@ function MapLayerFilterCard({
             <span className="tabular-nums">({pinCount})</span>
           </span>
         </div>
-        <span
-          className={cn(
-            "text-2xl font-bold tabular-nums tracking-tight",
-            metricClass
-          )}
-        >
-          {pinCount}
-        </span>
-        <span className="text-muted-foreground text-[10px] leading-snug">
-          {caption}
-        </span>
       </div>
     </button>
   )
-}
-
-function fmtUsd0(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(n)
 }
 
 function fmtCpg(n: number): string {
@@ -337,14 +303,12 @@ function rolePopupTitle(role: LocationMapPointRole): string {
 export function DealAnalyzerLocationComparisonSection({
   rows,
   transactionSlice,
-  proposedSavings,
-  optimizedTotalSavingsVsBaseline,
+  verdictTier,
   showOptimizedColumn,
 }: {
   rows: DealLocationComparisonRow[]
   transactionSlice: FuelTransaction[]
-  proposedSavings: number
-  optimizedTotalSavingsVsBaseline: number | null
+  verdictTier: DealVerdict["tier"]
   showOptimizedColumn: boolean
 }) {
   const [mounted, setMounted] = React.useState(false)
@@ -362,9 +326,10 @@ export function DealAnalyzerLocationComparisonSection({
       buildLocationComparisonMapModel(
         transactionSlice,
         rows,
-        showOptimizedColumn
+        showOptimizedColumn,
+        verdictTier
       ),
-    [transactionSlice, rows, showOptimizedColumn]
+    [transactionSlice, rows, showOptimizedColumn, verdictTier]
   )
 
   const layerPinCounts = React.useMemo(
@@ -377,6 +342,8 @@ export function DealAnalyzerLocationComparisonSection({
       ),
     [points]
   )
+
+  const proposedFilterSwatchColor = verdictTierToProposedMapColor(verdictTier)
 
   const filteredPoints = React.useMemo(
     () =>
@@ -439,12 +406,6 @@ export function DealAnalyzerLocationComparisonSection({
     return m
   }, [rows])
 
-  const matchHeaderSubtitle = `Total savings: ${fmtUsd0(proposedSavings)}`
-  const optHeaderSubtitle =
-    optimizedTotalSavingsVsBaseline != null
-      ? `Total savings: ${fmtUsd0(optimizedTotalSavingsVsBaseline)}`
-      : null
-
   if (!mounted) {
     return (
       <section className="flex flex-col gap-3 overflow-visible pt-2">
@@ -470,29 +431,8 @@ export function DealAnalyzerLocationComparisonSection({
 
   return (
     <section className="flex flex-col gap-3 overflow-visible pt-2">
-      <header className="flex flex-col gap-1">
+      <header>
         <h3 className="text-base font-semibold">Top fuel locations</h3>
-        <p className="text-muted-foreground text-sm">
-          Gray baseline, green or red modeled proposed deal, and bright green optimized
-          (illustrative offset—not a geocoded station). Filters control which pins show
-          in the overview; after you open a cluster, its baseline, proposed, and
-          optimized pins stay visible together even if some filters are off. Tap any
-          visible pin to compare—the map zooms to that cluster&apos;s related dots.
-        </p>
-        <div className="flex flex-col gap-1 pt-1 text-xs text-muted-foreground">
-          <p>
-            <span className="font-medium text-foreground">Proposed deal</span>
-            {": "}
-            {matchHeaderSubtitle}
-          </p>
-          {showOptimizedColumn && optHeaderSubtitle ? (
-            <p>
-              <span className="font-medium text-foreground">Optimized</span>
-              {": "}
-              {optHeaderSubtitle}
-            </p>
-          ) : null}
-        </div>
       </header>
 
       <div
@@ -562,37 +502,21 @@ export function DealAnalyzerLocationComparisonSection({
         >
           <MapLayerFilterCard
             label="Baseline stops"
-            caption="Where you fueled today"
             pinCount={layerPinCounts.baseline}
             selected={layerFilters.baseline}
             swatchColor={mapPaint.laneBaseline}
             onToggle={() => toggleLayer("baseline", !layerFilters.baseline)}
           />
           <MapLayerFilterCard
-            label="Proposed — better"
-            caption="Modeled deal beats baseline"
-            pinCount={layerPinCounts.proposedBetter}
-            selected={layerFilters.proposedBetter}
-            swatchColor={mapPaint.proposedBetter}
-            onToggle={() =>
-              toggleLayer("proposedBetter", !layerFilters.proposedBetter)
-            }
-          />
-          <MapLayerFilterCard
-            label="Proposed — worse"
-            caption="Modeled deal above baseline"
-            pinCount={layerPinCounts.proposedWorse}
-            selected={layerFilters.proposedWorse}
-            swatchColor={mapPaint.proposedWorse}
-            metricTone="destructive"
-            onToggle={() =>
-              toggleLayer("proposedWorse", !layerFilters.proposedWorse)
-            }
+            label="Proposed stops"
+            pinCount={layerPinCounts.proposed}
+            selected={layerFilters.proposed}
+            swatchColor={proposedFilterSwatchColor}
+            onToggle={() => toggleLayer("proposed", !layerFilters.proposed)}
           />
           {showOptimizedColumn ? (
             <MapLayerFilterCard
               label="Optimized tier"
-              caption="Illustrative map offset"
               pinCount={layerPinCounts.optimized}
               selected={layerFilters.optimized}
               swatchColor={mapPaint.success}
@@ -608,11 +532,11 @@ export function DealAnalyzerLocationComparisonSection({
 function clusterPopupHint(role: LocationMapPointRole): string {
   switch (role) {
     case "baseline":
-      return "Baseline card is gray. Proposed is green if net CPG beats baseline, red if higher; optimized stays green."
+      return "Baseline reflects actual stops. Proposed pins share the deal verdict color; per-location cards still compare net CPG vs baseline."
     case "proposed":
-      return "Gray baseline card; proposed green or red vs baseline net CPG; optimized green."
+      return "Map color follows overall deal verdict; detail cards show green or red vs baseline net CPG per stop."
     case "optimized":
-      return "Gray baseline; proposed green or red by price vs baseline; optimized green."
+      return "Optimized pin stays bright green (illustrative offset). Proposed layer color matches deal verdict."
     default:
       return ""
   }

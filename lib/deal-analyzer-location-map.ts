@@ -3,7 +3,10 @@
  */
 
 import { representativeTxnWithBetterOption } from "@/lib/deal-analyzer-engine"
-import type { DealLocationComparisonRow } from "@/lib/deal-analyzer-types"
+import type {
+  DealLocationComparisonRow,
+  DealVerdict,
+} from "@/lib/deal-analyzer-types"
 import { mapPaint } from "@/lib/map-paint-colors"
 import {
   getFuelTransactionLocationKey,
@@ -47,17 +50,34 @@ function centroidLngLat(txs: FuelTransaction[]): [number, number] | null {
   return [slng / valid.length, slat / valid.length]
 }
 
-function proposedPinColor(row: DealLocationComparisonRow): string | null {
+/** Whether this row can show a modeled proposed stop on the map. */
+function rowHasProposedMapPin(row: DealLocationComparisonRow): boolean {
   if (
     !row.match.hasData ||
     row.match.netCpg == null ||
     row.current.netCpg == null
   ) {
-    return null
+    return false
   }
-  if (row.match.netCpg < row.current.netCpg) return mapPaint.proposedBetter
-  if (row.match.netCpg > row.current.netCpg) return mapPaint.proposedWorse
-  return mapPaint.proposedBetter
+  return true
+}
+
+/**
+ * Proposed pins use the overall deal verdict color (matches results hero styling).
+ * MapLibre literals only — keep aligned with `app/globals.css` semantic tokens.
+ */
+export function verdictTierToProposedMapColor(
+  tier: DealVerdict["tier"]
+): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return mapPaint.success
+    case "marginal":
+      return mapPaint.warning
+    case "bad":
+      return mapPaint.destructive
+  }
 }
 
 /** Illustrative offset for synthetic optimized tier (not a real station coordinate). */
@@ -86,10 +106,12 @@ function offsetOptimized(
 export function buildLocationComparisonMapModel(
   slice: FuelTransaction[],
   rows: DealLocationComparisonRow[],
-  showOptimizedColumn: boolean
+  showOptimizedColumn: boolean,
+  verdictTier: DealVerdict["tier"]
 ): LocationComparisonMapModel {
   const groups = groupTransactionsByLocationKey(slice)
   const features: GeoJSON.Feature<GeoJSON.Point, LocationMapPointProps>[] = []
+  const proposedPinColor = verdictTierToProposedMapColor(verdictTier)
 
   for (const row of rows) {
     const txs = groups.get(row.locationKey)
@@ -111,8 +133,7 @@ export function buildLocationComparisonMapModel(
     })
 
     const rep = representativeTxnWithBetterOption(txs)
-    const proposedColor = proposedPinColor(row)
-    if (proposedColor && rep?.betterOption) {
+    if (rowHasProposedMapPin(row) && rep?.betterOption) {
       const bo = rep.betterOption
       features.push({
         type: "Feature",
@@ -121,7 +142,7 @@ export function buildLocationComparisonMapModel(
           coordinates: [bo.lng, bo.lat],
         },
         properties: {
-          color: proposedColor,
+          color: proposedPinColor,
           role: "proposed",
           locationKey: row.locationKey,
         },
