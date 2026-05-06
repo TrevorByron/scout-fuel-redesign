@@ -539,10 +539,25 @@
   border-color: var(--ring) !important;
 }
 
-/* Dark: select hover used bg-input/50; restore a subtle lift over solid fill */
-:root.dark [data-slot="select-trigger"]:hover,
-:root.dark [data-slot="popover-trigger"][data-form-control]:hover {
-  background-color: color-mix(in oklch, var(--input) 88%, white) !important;
+/* Hover: same surface as menu / select items (focus:bg-accent), not input+white mix (reads muddy/reddish on dark) */
+:root:not(.dark) [data-slot="input"]:hover:not(:disabled),
+:root:not(.dark) [data-slot="textarea"]:hover:not(:disabled),
+:root:not(.dark) [data-slot="select-trigger"]:hover:not(:disabled):not([aria-disabled="true"]),
+:root:not(.dark) [data-slot="popover-trigger"][data-form-control]:hover:not(:disabled):not([aria-disabled="true"]),
+:root:not(.dark) [data-slot="input-group"]:hover:not(:has(:disabled)),
+:root:not(.dark) [data-slot="combobox-chips"]:hover {
+  background-color: var(--accent) !important;
+  color: var(--accent-foreground);
+}
+
+:root.dark [data-slot="input"]:hover:not(:disabled),
+:root.dark [data-slot="textarea"]:hover:not(:disabled),
+:root.dark [data-slot="select-trigger"]:hover:not(:disabled):not([aria-disabled="true"]),
+:root.dark [data-slot="popover-trigger"][data-form-control]:hover:not(:disabled):not([aria-disabled="true"]),
+:root.dark [data-slot="input-group"]:hover:not(:has(:disabled)),
+:root.dark [data-slot="combobox-chips"]:hover {
+  background-color: var(--accent) !important;
+  color: var(--accent-foreground);
 }
 
 :root.dark {

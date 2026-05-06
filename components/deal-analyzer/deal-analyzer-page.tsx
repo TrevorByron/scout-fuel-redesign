@@ -196,6 +196,8 @@ export function DealAnalyzerPage() {
   const [results, setResults] = React.useState<DealAnalyzerResults | null>(null)
   const [analysisError, setAnalysisError] = React.useState<string | null>(null)
   const [showResults, setShowResults] = React.useState(false)
+  const [lastCalculatedFormSignature, setLastCalculatedFormSignature] =
+    React.useState<string | null>(null)
 
   const [deleteSavedOpen, setDeleteSavedOpen] = React.useState(false)
   const [saveOpen, setSaveOpen] = React.useState(false)
@@ -207,14 +209,18 @@ export function DealAnalyzerPage() {
     if (!savedId) return
     const entry = getSavedDealAnalysis(savedId)
     if (!entry) return
-    setForm(normalizeLoadedDealConfig(entry.dealConfig))
+    const normalizedForm = normalizeLoadedDealConfig(entry.dealConfig)
+    setForm(normalizedForm)
     setResults(entry.results)
     const period = normalizeDealAnalyzerPeriod(entry.periodUsed)
     setLockedPeriod(period)
     setSelectedPeriod(period)
     setShowResults(true)
     setAnalysisError(null)
+    setLastCalculatedFormSignature(JSON.stringify(normalizedForm))
   }, [savedId])
+
+  const currentFormSignature = React.useMemo(() => JSON.stringify(form), [form])
 
   const periodSnapshots = React.useMemo(() => {
     const anchor = anchorRef.current
@@ -262,6 +268,9 @@ export function DealAnalyzerPage() {
       ? form.defRebatePricingMode === "flat" ||
         form.defRebatePricingMode === "retail_minus"
       : true)
+  const hasUncalculatedChanges =
+    lastCalculatedFormSignature === null ||
+    lastCalculatedFormSignature !== currentFormSignature
 
   const strategyProgram =
     form.programType === "discount" || form.programType === "rebate"
@@ -308,6 +317,7 @@ export function DealAnalyzerPage() {
       setResults(computed)
       setLockedPeriod(period)
       setShowResults(true)
+      setLastCalculatedFormSignature(currentFormSignature)
 
       if (periodOverride === undefined) {
         const prefersReduced =
@@ -321,7 +331,7 @@ export function DealAnalyzerPage() {
         })
       }
     },
-    [allTransactions, form, selectedPeriod]
+    [allTransactions, currentFormSignature, form, selectedPeriod]
   )
 
   const handleDeleteSaved = () => {
@@ -798,7 +808,7 @@ export function DealAnalyzerPage() {
                   <Button
                     type="button"
                     className="min-h-11 w-full gap-2 sm:min-h-10"
-                    disabled={!canCalculate}
+                    disabled={!canCalculate || !hasUncalculatedChanges}
                     onClick={() => runAnalysis()}
                   >
                     <Zap className="size-4" aria-hidden />

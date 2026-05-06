@@ -51,7 +51,7 @@ export function DealAnalyzerHub() {
               Fuel Deal Analyzer
             </h1>
             <p className="text-pretty text-sm text-muted-foreground sm:text-base">
-              Evaluate fuel proposals in real-time as they&apos;re pitched to you.
+              Evaluate fuel proposals in real-time.
             </p>
             <p className="text-pretty text-xs text-muted-foreground sm:text-sm">
               Type in the deal details as you hear them, compare them to your
