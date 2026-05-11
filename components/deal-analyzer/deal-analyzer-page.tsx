@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Zap } from "lucide-react"
+import { Upload, Zap } from "lucide-react"
 import { getFuelTransactions } from "@/lib/mock-data"
 import type {
   DealAnalyzerFormInput,
@@ -201,6 +201,7 @@ export function DealAnalyzerPage() {
 
   const [deleteSavedOpen, setDeleteSavedOpen] = React.useState(false)
   const [saveOpen, setSaveOpen] = React.useState(false)
+  const [uploadOpen, setUploadOpen] = React.useState(false)
   const [saveName, setSaveName] = React.useState("")
 
   const resultsRef = React.useRef<HTMLDivElement>(null)
@@ -857,17 +858,29 @@ export function DealAnalyzerPage() {
                     Delete saved
                   </Button>
                 ) : (
-                  <Button
-                    type="button"
-                    className="min-h-11 shrink-0 sm:min-h-9"
-                    disabled={!results || !lockedPeriod}
-                    onClick={() => {
-                      setSaveName("")
-                      setSaveOpen(true)
-                    }}
-                  >
-                    Save deal
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 shrink-0 gap-2 sm:min-h-9"
+                      onClick={() => setUploadOpen(true)}
+                    >
+                      <Upload className="size-4" aria-hidden />
+                      Upload Transactions
+                    </Button>
+                    <Button
+                      type="button"
+                      className="min-h-11 shrink-0 sm:min-h-9"
+                      disabled={!results || !lockedPeriod}
+                      onClick={() => {
+                        setSaveName("")
+                        setSaveOpen(true)
+                      }}
+                    >
+                      Save deal
+                    </Button>
+                  </div>
                 )}
               </div>
               <DateRangePresetTabs
@@ -931,6 +944,42 @@ export function DealAnalyzerPage() {
             </Button>
             <Button type="button" onClick={handleSaveDeal}>
               Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent fullViewportMobile showCloseButton className="gap-0">
+          <DialogHeader>
+            <DialogTitle>Upload transactions</DialogTitle>
+            <DialogDescription>
+              Custom CSV uploads will replace the preset historical range for
+              this comparison when enabled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 px-4 pb-4">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-sm font-medium text-foreground">
+                CSV requirements
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Include transaction date, station, gallons, price, spend, and
+                fuel type so the analyzer can build a custom comparison
+                baseline.
+              </p>
+            </div>
+            <Button type="button" variant="outline" disabled className="min-h-11">
+              Choose CSV
+            </Button>
+          </div>
+          <div className="flex justify-end gap-2 border-t px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setUploadOpen(false)}
+            >
+              Cancel
             </Button>
           </div>
         </DialogContent>
