@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { buildTeamInviteEmailHtml } from "@/lib/email/team-invite-html"
-import { getPublicAppUrl } from "@/lib/invite-app-url"
+import { getPublicAppUrlForRequest } from "@/lib/invite-app-url"
 import { TEAM_ROLES, type TeamRole } from "@/lib/team-roles"
 
 export const dynamic = "force-dynamic"
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const inviterEmail =
     searchParams.get("inviterEmail")?.trim().slice(0, 160) || undefined
 
-  const appUrl = getPublicAppUrl()
+  const appUrl = getPublicAppUrlForRequest(request)
   const html = buildTeamInviteEmailHtml({
     appUrl,
     joinToken: "preview",

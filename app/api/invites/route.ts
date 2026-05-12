@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
 import { buildTeamInviteEmailHtml } from "@/lib/email/team-invite-html"
-import { getPublicAppUrl } from "@/lib/invite-app-url"
+import { getPublicAppUrlForRequest } from "@/lib/invite-app-url"
 import { postInvitesBodySchema } from "@/lib/invite-request-schemas"
 import { createInviteToken, verifyInviteToken } from "@/lib/invite-token"
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   const body = parsed.data
-  const appUrl = getPublicAppUrl()
+  const appUrl = getPublicAppUrlForRequest(request)
   const subject = DEFAULT_SUBJECT
   const resend = new Resend(apiKey)
 

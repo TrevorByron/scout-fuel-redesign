@@ -68,10 +68,12 @@ export type TeamInviteEmailParams = {
 }
 
 export function buildTeamInviteEmailHtml(p: TeamInviteEmailParams): string {
-  const logoUrl = `${p.appUrl}/full-logo.svg`
+  const base = p.appUrl.replace(/\/$/, "")
+  /** Preview runs in an iframe on this app; root-relative URL always matches the open tab’s origin. */
+  const logoUrl = p.isPreview ? "/full-logo.svg" : `${base}/full-logo.svg`
   const joinUrl = p.isPreview
-    ? `${p.appUrl.replace(/\/$/, "")}/join`
-    : `${p.appUrl.replace(/\/$/, "")}/join?token=${encodeURIComponent(p.joinToken)}`
+    ? `${base}/join`
+    : `${base}/join?token=${encodeURIComponent(p.joinToken)}`
   const safeNote = escapeHtml(p.personalNote.trim())
   const safeOrg = p.orgDisplayName?.trim() ? escapeHtml(p.orgDisplayName.trim()) : ""
   const safeRole = escapeHtml(p.roleLabel)
@@ -109,7 +111,7 @@ export function buildTeamInviteEmailHtml(p: TeamInviteEmailParams): string {
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
 <tr>
 <td align="left" style="vertical-align:middle;">
-<img src="${logoUrl}" alt="ScoutFuel" width="120" height="32" style="display:block;height:auto;max-width:120px;"/>
+<img src="${escapeHtml(logoUrl)}" alt="ScoutFuel" width="120" height="32" style="display:block;height:auto;max-width:120px;"/>
 </td>
 <td align="right" style="vertical-align:middle;font-family:${FONT_STACK};font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:${EMAIL_BRAND.mutedForeground};font-weight:600;">
 Invitation
