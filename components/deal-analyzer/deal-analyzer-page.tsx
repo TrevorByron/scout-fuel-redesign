@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ChevronLeft, LineChart, Upload, Zap } from "lucide-react"
+import { ChevronLeft, LineChart, Plus, Upload, Zap } from "lucide-react"
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 import { getFuelTransactions } from "@/lib/mock-data"
 import { getAllLocationKeys } from "@/lib/location-utils"
@@ -10,6 +10,7 @@ import type {
   DealAnalyzerFormInput,
   DealAnalyzerPeriod,
   DealAnalyzerResults,
+  DealBrand,
   DealFuelNetwork,
   DealPricingTier,
 } from "@/lib/deal-analyzer-types"
@@ -24,6 +25,7 @@ import {
   summarizePeriod,
 } from "@/lib/deal-analyzer-engine"
 import {
+  defaultBrand,
   defaultDealAnalyzerForm,
   defaultPricingTier,
   migrateDealConfigToCurrentShape,
@@ -67,6 +69,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowDown01Icon, BalanceScaleIcon } from "@hugeicons/core-free-icons"
 import { DateRangePresetTabs } from "@/components/date-range-preset-tabs"
@@ -249,6 +252,8 @@ export function DealAnalyzerPage() {
   const [saveOpen, setSaveOpen] = React.useState(false)
   const [uploadOpen, setUploadOpen] = React.useState(false)
   const [saveName, setSaveName] = React.useState("")
+  const [addBrandOpen, setAddBrandOpen] = React.useState(false)
+  const [pendingBrandNetwork, setPendingBrandNetwork] = React.useState<DealFuelNetwork | ("")>("")
 
   const resultsRef = React.useRef<HTMLDivElement>(null)
   const dealConfigScrollRef = React.useRef<HTMLDivElement>(null)
@@ -263,12 +268,12 @@ export function DealAnalyzerPage() {
     tierIdCounterRef.current += 1
     return `tier-${tierIdCounterRef.current}`
   }, [])
-  const [tierIds, setTierIds] = React.useState<string[]>(() =>
-    Array.from({ length: 1 }, () => {
-      tierIdCounterRef.current += 1
-      return `tier-${tierIdCounterRef.current}`
-    })
-  )
+  // One string[] per brand; each string is a stable tier ID for accordion keying.
+  const [brandTierIds, setBrandTierIds] = React.useState<string[][]>(() => {
+    tierIdCounterRef.current += 1
+    return [[`tier-${tierIdCounterRef.current}`]]
+  })
+  const [activeBrandIndex, setActiveBrandIndex] = React.useState(0)
   const [expandedTierIds, setExpandedTierIds] = React.useState<string[]>([])
   const [mobileDealStep, setMobileDealStep] =
     React.useState<MobileDealStep>("details")
@@ -294,11 +299,14 @@ export function DealAnalyzerPage() {
     if (!entry) return
     const normalizedForm = normalizeLoadedDealConfig(entry.dealConfig)
     setForm(normalizedForm)
-    const freshTierIds = normalizedForm.tiers.map(() => mintTierId())
-    setTierIds(freshTierIds)
-    // Default: first tier expanded when there are multiple tiers in the saved
-    // analysis. Single-tier saves don't render an accordion at all.
-    setExpandedTierIds(freshTierIds.length > 1 ? [freshTierIds[0]] : [])
+    const freshBrandTierIds = normalizedForm.brands.map((b) =>
+      b.tiers.map(() => mintTierId())
+    )
+    setBrandTierIds(freshBrandTierIds)
+    setActiveBrandIndex(0)
+    // Default: first tier expanded when there are multiple tiers in the first brand.
+    const firstIds = freshBrandTierIds[0] ?? []
+    setExpandedTierIds(firstIds.length > 1 ? [firstIds[0]] : [])
     setResults(entry.results)
     const period = normalizeDealAnalyzerPeriod(entry.periodUsed)
     setLockedPeriod(period)
@@ -326,8 +334,9 @@ export function DealAnalyzerPage() {
   const currentFormSignature = React.useMemo(() => JSON.stringify(form), [form])
 
   React.useLayoutEffect(() => {
-    tierCardRefs.current.splice(form.tiers.length)
-  }, [form.tiers.length])
+    const activeTierCount = form.brands[activeBrandIndex]?.tiers.length ?? 0
+    tierCardRefs.current.splice(activeTierCount)
+  }, [form.brands, activeBrandIndex])
 
   React.useLayoutEffect(() => {
     if (enteringTierIndex === null) return
@@ -371,14 +380,19 @@ export function DealAnalyzerPage() {
     }
   }, [enteringTierIndex])
 
+  const allTiers = React.useMemo(
+    () => form.brands.flatMap((b) => b.tiers),
+    [form.brands]
+  )
+
   const periodSnapshots = React.useMemo(() => {
     const anchor = anchorRef.current
     return DEAL_ANALYZER_PERIOD_PRESETS.map((p) => ({
       id: p.value,
       label: p.label,
-      stats: summarizePeriod(allTransactions, p.value, form.tiers, anchor),
+      stats: summarizePeriod(allTransactions, p.value, allTiers, anchor),
     }))
-  }, [allTransactions, form.tiers])
+  }, [allTransactions, allTiers])
 
   const selectedPeriodSnapshot = React.useMemo(
     () => periodSnapshots.find((s) => s.id === selectedPeriod),
@@ -389,8 +403,8 @@ export function DealAnalyzerPage() {
     if (!results || !lockedPeriod) return []
     const range = resolvePeriodRange(lockedPeriod, anchorRef.current)
     const inRange = filterTransactionsInRange(allTransactions, range)
-    return filterTransactionsByDealTiers(inRange, form.tiers)
-  }, [allTransactions, results, lockedPeriod, form.tiers])
+    return filterTransactionsByDealTiers(inRange, allTiers)
+  }, [allTransactions, results, lockedPeriod, allTiers])
 
   const locationComparisonRows = React.useMemo(() => {
     if (!results || analysisTransactionSlice.length === 0) return []
@@ -401,26 +415,28 @@ export function DealAnalyzerPage() {
     )
   }, [analysisTransactionSlice, form, results])
 
-  const tiersComplete =
-    form.tiers.length > 0 &&
-    form.tiers.every((tier) => {
-      if (tier.locationCoverage === "") return false
-      if (tier.programType === "") return false
-      if (tier.programType === "discount" || tier.programType === "rebate") {
-        if (tier.discountStructure === "") return false
-      }
-      if (tier.programType === "def_rebate") {
-        if (
-          tier.defRebatePricingMode !== "flat" &&
-          tier.defRebatePricingMode !== "retail_minus"
-        ) {
-          return false
+  const canCalculate =
+    form.brands.length > 0 &&
+    form.brands.every((brand) => {
+      if (brand.network === "") return false
+      if (brand.tiers.length === 0) return false
+      return brand.tiers.every((tier) => {
+        if (tier.locationCoverage === "") return false
+        if (tier.programType === "") return false
+        if (tier.programType === "discount" || tier.programType === "rebate") {
+          if (tier.discountStructure === "") return false
         }
-      }
-      return true
+        if (tier.programType === "def_rebate") {
+          if (
+            tier.defRebatePricingMode !== "flat" &&
+            tier.defRebatePricingMode !== "retail_minus"
+          ) {
+            return false
+          }
+        }
+        return true
+      })
     })
-
-  const canCalculate = form.network !== "" && tiersComplete
   const hasUncalculatedChanges =
     lastCalculatedFormSignature === null ||
     lastCalculatedFormSignature !== currentFormSignature
@@ -435,7 +451,8 @@ export function DealAnalyzerPage() {
       const anchor = anchorRef.current
       const range = resolvePeriodRange(period, anchor)
       const slice = filterTransactionsInRange(allTransactions, range)
-      const baseline = aggregateBaselineForDealTiers(slice, form.tiers)
+      const currentAllTiers = form.brands.flatMap((b) => b.tiers)
+      const baseline = aggregateBaselineForDealTiers(slice, currentAllTiers)
 
       if (baseline.transactions === 0) {
         setResults(null)
@@ -523,30 +540,41 @@ export function DealAnalyzerPage() {
     setSaveName("")
   }
 
-  function updateForm<K extends keyof DealAnalyzerFormInput>(
-    key: K,
-    value: DealAnalyzerFormInput[K]
-  ) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
-
-  function patchTier(index: number, patch: Partial<DealPricingTier>) {
+  function patchBrand(brandIndex: number, patch: Partial<DealBrand>) {
     setForm((f) => ({
       ...f,
-      tiers: f.tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)),
+      brands: f.brands.map((b, i) => (i === brandIndex ? { ...b, ...patch } : b)),
+    }))
+  }
+
+  function patchTier(brandIndex: number, tierIndex: number, patch: Partial<DealPricingTier>) {
+    setForm((f) => ({
+      ...f,
+      brands: f.brands.map((b, bi) =>
+        bi === brandIndex
+          ? { ...b, tiers: b.tiers.map((t, ti) => (ti === tierIndex ? { ...t, ...patch } : t)) }
+          : b
+      ),
     }))
   }
 
   function addTier() {
     if (enteringTierIndex !== null) return
+    const bi = activeBrandIndex
     let newIndex = -1
     setForm((f) => {
-      newIndex = f.tiers.length
-      return { ...f, tiers: [...f.tiers, defaultPricingTier()] }
+      newIndex = f.brands[bi]?.tiers.length ?? 0
+      return {
+        ...f,
+        brands: f.brands.map((b, i) =>
+          i === bi ? { ...b, tiers: [...b.tiers, defaultPricingTier()] } : b
+        ),
+      }
     })
     const newTierId = mintTierId()
-    setTierIds((ids) => [...ids, newTierId])
-    // Adding a tier always collapses every other tier and opens the new one.
+    setBrandTierIds((ids) =>
+      ids.map((tierIds, i) => (i === bi ? [...tierIds, newTierId] : tierIds))
+    )
     setExpandedTierIds([newTierId])
     if (newIndex >= 0) {
       setTierAnimEpoch((e) => e + 1)
@@ -554,24 +582,55 @@ export function DealAnalyzerPage() {
     }
   }
 
-  function removeTier(index: number) {
+  function removeTier(tierIndex: number) {
     setEnteringTierIndex(null)
-    const removedId = tierIds[index]
-    const remainingIds = tierIds.filter((_, i) => i !== index)
+    const bi = activeBrandIndex
+    const currentTierIds = brandTierIds[bi] ?? []
+    const removedId = currentTierIds[tierIndex]
+    const remainingIds = currentTierIds.filter((_, i) => i !== tierIndex)
     setForm((f) => ({
       ...f,
-      tiers: f.tiers.filter((_, i) => i !== index),
+      brands: f.brands.map((b, i) =>
+        i === bi ? { ...b, tiers: b.tiers.filter((_, ti) => ti !== tierIndex) } : b
+      ),
     }))
-    setTierIds(remainingIds)
+    setBrandTierIds((ids) =>
+      ids.map((tierIds, i) => (i === bi ? tierIds.filter((_, ti) => ti !== tierIndex) : tierIds))
+    )
     setExpandedTierIds((open) => {
       const filtered = removedId ? open.filter((id) => id !== removedId) : open
-      // Keep at least one tier visible when we still have an accordion
-      // (more than one tier remaining).
       if (filtered.length === 0 && remainingIds.length > 1) {
         return [remainingIds[0]]
       }
       return filtered
     })
+  }
+
+  function addBrand(network: DealFuelNetwork | "") {
+    const newIndex = form.brands.length
+    setForm((f) => ({ ...f, brands: [...f.brands, { ...defaultBrand(), network }] }))
+    const newTierId = mintTierId()
+    setBrandTierIds((ids) => [...ids, [newTierId]])
+    setActiveBrandIndex(newIndex)
+    setExpandedTierIds([])
+    setEnteringTierIndex(null)
+  }
+
+  function removeBrand(brandIndex: number) {
+    if (form.brands.length <= 1) return
+    setForm((f) => ({ ...f, brands: f.brands.filter((_, i) => i !== brandIndex) }))
+    setBrandTierIds((ids) => ids.filter((_, i) => i !== brandIndex))
+    const newActive = brandIndex >= form.brands.length - 1 ? brandIndex - 1 : brandIndex
+    setActiveBrandIndex(newActive)
+    setExpandedTierIds([])
+    setEnteringTierIndex(null)
+  }
+
+  function handleBrandSwitch(newIndex: number) {
+    setActiveBrandIndex(newIndex)
+    setEnteringTierIndex(null)
+    const newTierIds = brandTierIds[newIndex] ?? []
+    setExpandedTierIds(newTierIds.length > 1 ? [newTierIds[0]] : [])
   }
 
   const showMobileResultsPane = showResults && mobileDealStep === "results"
@@ -614,8 +673,42 @@ export function DealAnalyzerPage() {
                       </p>
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    className="min-h-9 min-w-9 shrink-0"
+                    aria-label="Add another brand"
+                    onClick={() => {
+                      setPendingBrandNetwork("")
+                      setAddBrandOpen(true)
+                    }}
+                  >
+                    <Plus className="size-4" aria-hidden />
+                  </Button>
                 </div>
               </header>
+
+              {form.brands.length > 1 ? (
+                <div className="shrink-0 border-b border-border px-4 py-2">
+                  <div className="overflow-x-auto">
+                    <Tabs
+                      value={String(activeBrandIndex)}
+                      onValueChange={(v) => handleBrandSwitch(Number(v))}
+                    >
+                      <TabsList className="h-9">
+                        {form.brands.map((brand, i) => (
+                          <TabsTrigger key={i} value={String(i)} className="text-xs">
+                            {brand.network
+                              ? (NETWORK_LABELS[brand.network as DealFuelNetwork] ?? `Brand ${i + 1}`)
+                              : `Brand ${i + 1}`}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                </div>
+              ) : null}
               <div
                 ref={dealConfigScrollRef}
                 role="region"
@@ -623,58 +716,68 @@ export function DealAnalyzerPage() {
                 className="flex min-h-0 min-w-0 flex-1 flex-col basis-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
               >
                 <div className="flex flex-col gap-4 p-4 pb-8">
-              <div className="flex shrink-0 flex-col gap-2">
-                <Field>
-                  <FieldLabel htmlFor="deal-network">
-                    Which fuel network?
-                  </FieldLabel>
-                  <Select
-                    value={form.network || undefined}
-                    onValueChange={(v) =>
-                      updateForm("network", v as DealFuelNetwork)
-                    }
-                  >
-                    <SelectTrigger
-                      id="deal-network"
-                      className="min-h-11 w-full sm:min-h-9"
+              {(() => {
+                const safeBrandIndex = Math.min(activeBrandIndex, form.brands.length - 1)
+                const activeBrand = form.brands[safeBrandIndex] ?? form.brands[0]
+                const activeTierIds = brandTierIds[safeBrandIndex] ?? []
+                const isMultiBrand = form.brands.length > 1
+                return (
+              <>
+              {!isMultiBrand ? (
+                <>
+                <div className="flex shrink-0 flex-col gap-2">
+                  <Field>
+                    <FieldLabel htmlFor="deal-network">
+                      Which fuel network?
+                    </FieldLabel>
+                    <Select
+                      value={activeBrand.network || undefined}
+                      onValueChange={(v) =>
+                        patchBrand(safeBrandIndex, { network: v as DealFuelNetwork })
+                      }
                     >
-                      <SelectValue placeholder="Select network">
-                        {(v) =>
-                          v && NETWORK_LABELS[v as DealFuelNetwork]
-                            ? NETWORK_LABELS[v as DealFuelNetwork]
-                            : "Select network"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="loves">Love&apos;s</SelectItem>
-                      <SelectItem value="pilot-flying-j">Pilot Flying J</SelectItem>
-                      <SelectItem value="ta-petro">TA/Petro</SelectItem>
-                      <SelectItem value="shell">Shell</SelectItem>
-                      <SelectItem value="chevron">Chevron</SelectItem>
-                      <SelectItem value="ambest">Ambest</SelectItem>
-                      <SelectItem value="roadranger">RoadRanger</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-
-              <Separator className="bg-border/70" aria-hidden />
+                      <SelectTrigger
+                        id="deal-network"
+                        className="min-h-11 w-full sm:min-h-9"
+                      >
+                        <SelectValue placeholder="Select network">
+                          {(v) =>
+                            v && NETWORK_LABELS[v as DealFuelNetwork]
+                              ? NETWORK_LABELS[v as DealFuelNetwork]
+                              : "Select network"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="loves">Love&apos;s</SelectItem>
+                        <SelectItem value="pilot-flying-j">Pilot Flying J</SelectItem>
+                        <SelectItem value="ta-petro">TA/Petro</SelectItem>
+                        <SelectItem value="shell">Shell</SelectItem>
+                        <SelectItem value="chevron">Chevron</SelectItem>
+                        <SelectItem value="ambest">Ambest</SelectItem>
+                        <SelectItem value="roadranger">RoadRanger</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <Separator className="bg-border/70" aria-hidden />
+                </>
+              ) : null}
 
               <div className="flex flex-col gap-3">
-                {form.tiers.length > 1 ? (
+                {activeBrand.tiers.length > 1 ? (
                   <AccordionPrimitive.Root
                     value={expandedTierIds}
                     onValueChange={(v) => setExpandedTierIds(v as string[])}
                     multiple={false}
                     className="flex flex-col gap-3"
                   >
-                    {form.tiers.map((tier, i) => {
+                    {activeBrand.tiers.map((tier, i) => {
                       const motionOk =
                         typeof window === "undefined" ||
                         !window.matchMedia("(prefers-reduced-motion: reduce)").matches
                       const isEntering = enteringTierIndex === i && motionOk
-                      const tierId = tierIds[i] ?? `tier-fallback-${i}`
+                      const tierId = activeTierIds[i] ?? `tier-fallback-${i}`
                       return (
                         <DealAnalyzerTierEnterShell
                           key={tierId}
@@ -728,7 +831,7 @@ export function DealAnalyzerPage() {
                                   tier={tier}
                                   showTierChrome={false}
                                   locationOptions={locationSelectOptions}
-                                  onPatch={(p) => patchTier(i, p)}
+                                  onPatch={(p) => patchTier(safeBrandIndex, i, p)}
                                   canRemove={false}
                                 />
                               </div>
@@ -739,12 +842,12 @@ export function DealAnalyzerPage() {
                     })}
                   </AccordionPrimitive.Root>
                 ) : (
-                  form.tiers.map((tier, i) => {
+                  activeBrand.tiers.map((tier, i) => {
                     const motionOk =
                       typeof window === "undefined" ||
                       !window.matchMedia("(prefers-reduced-motion: reduce)").matches
                     const isEntering = enteringTierIndex === i && motionOk
-                    const tierId = tierIds[i] ?? `tier-fallback-${i}`
+                    const tierId = activeTierIds[i] ?? `tier-fallback-${i}`
                     return (
                       <DealAnalyzerTierEnterShell
                         key={tierId}
@@ -760,7 +863,7 @@ export function DealAnalyzerPage() {
                           tier={tier}
                           showTierChrome={false}
                           locationOptions={locationSelectOptions}
-                          onPatch={(p) => patchTier(i, p)}
+                          onPatch={(p) => patchTier(safeBrandIndex, i, p)}
                           canRemove={false}
                         />
                       </DealAnalyzerTierEnterShell>
@@ -777,8 +880,22 @@ export function DealAnalyzerPage() {
                 >
                   Add another rule
                 </Button>
+                {form.brands.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="min-h-11 w-full text-destructive hover:text-destructive"
+                    onClick={() => removeBrand(safeBrandIndex)}
+                  >
+                    Remove{activeBrand.network
+                      ? ` ${NETWORK_LABELS[activeBrand.network as DealFuelNetwork] ?? "this brand"}`
+                      : " this brand"}
+                  </Button>
+                ) : null}
               </div>
-
+              </>
+                )
+              })()}
                 </div>
               </div>
               <footer
@@ -926,12 +1043,81 @@ export function DealAnalyzerPage() {
           <DealAnalyzerResultsView
             results={results}
             form={form}
-            networkKey={form.network}
+            networkKey={form.brands.find((b) => b.network !== "")?.network ?? ""}
             locationComparisonRows={locationComparisonRows}
             analysisTransactionSlice={analysisTransactionSlice}
           />
         </div>
       </div>
+
+      <Dialog
+        open={addBrandOpen}
+        onOpenChange={(open) => {
+          setAddBrandOpen(open)
+          if (!open) setPendingBrandNetwork("")
+        }}
+      >
+        <DialogContent fullViewportMobile showCloseButton className="gap-0">
+          <DialogHeader>
+            <DialogTitle>Add another brand</DialogTitle>
+            <DialogDescription>
+              Choose the fuel network for this set of rules.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 px-4 pb-4">
+            {(() => {
+              const committedNetworks = new Set(
+                form.brands.map((b) => b.network).filter(Boolean)
+              )
+              return (
+                <Select
+                  value={pendingBrandNetwork || undefined}
+                  onValueChange={(v) => setPendingBrandNetwork(v as DealFuelNetwork)}
+                >
+                  <SelectTrigger className="min-h-11 w-full sm:min-h-9">
+                    <SelectValue placeholder="Select network">
+                      {(v) =>
+                        v && NETWORK_LABELS[v as DealFuelNetwork]
+                          ? NETWORK_LABELS[v as DealFuelNetwork]
+                          : "Select network"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="loves" disabled={committedNetworks.has("loves")}>Love&apos;s</SelectItem>
+                    <SelectItem value="pilot-flying-j" disabled={committedNetworks.has("pilot-flying-j")}>Pilot Flying J</SelectItem>
+                    <SelectItem value="ta-petro" disabled={committedNetworks.has("ta-petro")}>TA/Petro</SelectItem>
+                    <SelectItem value="shell" disabled={committedNetworks.has("shell")}>Shell</SelectItem>
+                    <SelectItem value="chevron" disabled={committedNetworks.has("chevron")}>Chevron</SelectItem>
+                    <SelectItem value="ambest" disabled={committedNetworks.has("ambest")}>Ambest</SelectItem>
+                    <SelectItem value="roadranger" disabled={committedNetworks.has("roadranger")}>RoadRanger</SelectItem>
+                    <SelectItem value="other" disabled={committedNetworks.has("other")}>Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              )
+            })()}
+          </div>
+          <div className="flex justify-end gap-2 border-t px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAddBrandOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={pendingBrandNetwork === ""}
+              onClick={() => {
+                addBrand(pendingBrandNetwork)
+                setAddBrandOpen(false)
+                setPendingBrandNetwork("")
+              }}
+            >
+              Add brand
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent fullViewportMobile showCloseButton className="gap-0">

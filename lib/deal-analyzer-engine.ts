@@ -316,17 +316,17 @@ export function discountDisplayLabelForTier(
 }
 
 function blendedDiscountLabel(form: DealAnalyzerFormInput): string {
-  const { tiers } = form
-  if (tiers.length === 1) {
-    const t0 = tiers[0]
+  const allTiers = form.brands.flatMap((b) => b.tiers)
+  if (allTiers.length === 1) {
+    const t0 = allTiers[0]
     return discountDisplayLabelForTier(t0, t0.programType, t0.defRebatePricingMode)
   }
-  const parts = tiers
+  const parts = allTiers
     .map((t) => discountDisplayLabelForTier(t, t.programType, t.defRebatePricingMode))
     .filter(Boolean)
-  if (parts.length === 0) return `Blended deal (${tiers.length} tiers)`
+  if (parts.length === 0) return `Blended deal (${allTiers.length} tiers)`
   const joined = parts.slice(0, 2).join(" · ")
-  return tiers.length > 2 ? `${joined} · …` : joined
+  return allTiers.length > 2 ? `${joined} · …` : joined
 }
 
 export function adjustedCoverageForTier(
@@ -404,9 +404,9 @@ export function buildInsights(params: {
 }): DealInsight[] {
   const list: DealInsight[] = []
   const types = new Set<DealInsightType>()
-  const { tiers } = params.form
+  const allTiers = params.form.brands.flatMap((b) => b.tiers)
   if (
-    tiers.some(
+    allTiers.some(
       (t) =>
         t.locationCoverage === "specific_states" && t.selectedStates.length > 0
     )
@@ -414,7 +414,7 @@ export function buildInsights(params: {
     types.add("state_restriction")
   }
   if (
-    tiers.some(
+    allTiers.some(
       (t) =>
         t.locationCoverage === "specific_sites" &&
         t.selectedLocationKeys.length > 0
@@ -449,18 +449,34 @@ export function computeDealAnalysis(params: {
   filteredTxnsForOptimization: FuelTransaction[]
 }): DealAnalyzerResults | null {
   const { form, baseline } = params
-  const { tiers } = form
+  const { brands } = form
+
+  // Must have at least one fully-configured brand
+  const configuredBrands = brands.filter((b) => b.network !== "" && b.tiers.length > 0)
+  if (configuredBrands.length === 0) return null
+
+  // Flatten all tiers across brands; track which network each tier belongs to
+  // so we can apply the correct per-brand coverage rate during calculation.
+  const tierNetworkMap = new Map<DealPricingTier, DealFuelNetwork>()
+  const allTiers: DealPricingTier[] = []
+  for (const brand of brands) {
+    if (!brand.network) continue
+    const net = brand.network as DealFuelNetwork
+    for (const tier of brand.tiers) {
+      tierNetworkMap.set(tier, net)
+      allTiers.push(tier)
+    }
+  }
 
   if (
-    !form.network ||
-    tiers.length === 0 ||
+    allTiers.length === 0 ||
     baseline.transactions === 0 ||
     baseline.totalSpend <= 0
   ) {
     return null
   }
 
-  for (const tier of tiers) {
+  for (const tier of allTiers) {
     if (tier.locationCoverage === "") return null
     if (tier.programType === "") return null
     if (
@@ -478,12 +494,9 @@ export function computeDealAnalysis(params: {
     }
   }
 
-  const network = form.network as DealFuelNetwork
-  const baseCov = NETWORK_COVERAGE[network] ?? NETWORK_COVERAGE.other
-
   const txns = filterTransactionsByDealTiers(
     params.filteredTxnsForOptimization,
-    tiers
+    allTiers
   )
   if (txns.length === 0) return null
 
@@ -493,7 +506,10 @@ export function computeDealAnalysis(params: {
   const tierBaselineSpend = new Map<number, number>()
 
   for (const t of txns) {
-    const tier = resolveTierForTransaction(t, tiers)
+    const tier = resolveTierForTransaction(t, allTiers)
+    // Use the coverage rate from the tier's own brand; fall back to "other"
+    const tierNetwork = tier ? (tierNetworkMap.get(tier) ?? "other") : "other"
+    const baseCov = NETWORK_COVERAGE[tierNetwork] ?? NETWORK_COVERAGE.other
     const eff =
       tier == null
         ? 0
@@ -507,9 +523,10 @@ export function computeDealAnalysis(params: {
     projectedSpend += t.totalCost * (1 - eff)
 
     if (tier != null) {
-      const idx = tiers.indexOf(tier)
+      const idx = allTiers.indexOf(tier)
       if (idx >= 0) {
-        sumCoverage += adjustedCoverageForTier(baseCov, tier)
+        const cov = NETWORK_COVERAGE[tierNetwork] ?? NETWORK_COVERAGE.other
+        sumCoverage += adjustedCoverageForTier(cov, tier)
         tierTxnCount.set(idx, (tierTxnCount.get(idx) ?? 0) + 1)
         tierBaselineSpend.set(idx, (tierBaselineSpend.get(idx) ?? 0) + t.totalCost)
       }
@@ -543,7 +560,7 @@ export function computeDealAnalysis(params: {
   const showOptimized = savings > 0 && additionalSavings > 100
 
   const optTx = optimizationStatsFromTransactions(
-    filterTransactionsByDealTiers(params.filteredTxnsForOptimization, tiers)
+    filterTransactionsByDealTiers(params.filteredTxnsForOptimization, allTiers)
   )
 
   let optimized: DealAnalyzerResults["optimized"] = null
@@ -578,8 +595,8 @@ export function computeDealAnalysis(params: {
   })
 
   const tierBreakdown =
-    tiers.length > 0 && baseline.totalSpend > 0
-      ? tiers.map((_, tierIndex) => ({
+    allTiers.length > 0 && baseline.totalSpend > 0
+      ? allTiers.map((_, tierIndex) => ({
           tierIndex,
           transactionCount: tierTxnCount.get(tierIndex) ?? 0,
           spendShare:

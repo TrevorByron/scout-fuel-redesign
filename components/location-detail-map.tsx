@@ -16,6 +16,7 @@ import {
 } from "@/components/actual-vs-optimized-card"
 import { MAP_US_CENTER, MAP_US_ZOOM } from "@/lib/map-us-defaults"
 import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
+import { mapPaint } from "@/lib/map-paint-colors"
 
 export type RepresentativeBetterOption = {
   stationName: string
@@ -162,7 +163,7 @@ export function LocationDetailMap({
         {representativeBetterOption && routeCoords && routeCoords.length >= 2 && (
           <MapRoute
             coordinates={routeCoords}
-            color="#6366f1"
+            color={mapPaint.connector}
             width={3}
             opacity={0.85}
           />

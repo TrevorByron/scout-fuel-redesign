@@ -18,6 +18,26 @@ export type LocationComparison = {
   distanceMiles: number
 }
 
+/** Modeled “fleet optimized” tier for Deal Analyzer map (illustrative); shown as third column. */
+export type IllustrativeOptimizedColumn = {
+  /** Single line, e.g. "TA/Petro · Cheyenne, WY" */
+  headline: string
+  netCpg: number | null
+  distanceMiles: number | null
+  avgDiscountPerGal: number | null
+}
+
+/** Optional copy overrides for the comparison variant (defaults match Location Insights). */
+export type ComparisonCardLabels = {
+  legendPrimary?: string
+  legendSecondary?: string
+  legendTertiary?: string
+  columnLeft?: string
+  columnRight?: string
+  columnTertiary?: string
+  savingsFooter?: string
+}
+
 const MILES_PER_DEGREE_APPROX = 69
 
 /** Planar approximation; matches `lib/trips.ts` stop-distance helper. */
@@ -67,6 +87,13 @@ const positionClasses: Record<Position, string> = {
   bottom: "bottom-3 left-4 right-4 max-w-md",
 }
 
+/** Map filter / pin swatch literals (e.g. from `mapPaint` + `verdictTierToProposedMapColor`). */
+export type ComparisonMapPinAccents = {
+  baseline: string
+  proposed: string
+  optimized: string
+}
+
 type ActualVsOptimizedCardProps =
   | {
       variant: "comparison"
@@ -74,6 +101,14 @@ type ActualVsOptimizedCardProps =
       position?: Position
       /** `embedded` = sheet; `map` = inside Trips map stack (chrome from parent); `floating` = map overlay. */
       layout?: "floating" | "embedded" | "map"
+      labels?: ComparisonCardLabels
+      /** Deal Analyzer: third column with illustrative optimized metrics. */
+      illustrativeOptimized?: IllustrativeOptimizedColumn
+      /**
+       * When set (Deal Analyzer map), legend dots and column left borders match
+       * the same hex values as the map layer filter swatches.
+       */
+      mapPinAccents?: ComparisonMapPinAccents
     }
   | {
       variant: "optimal"
@@ -81,6 +116,24 @@ type ActualVsOptimizedCardProps =
       position?: Position
       layout?: "floating" | "embedded" | "map"
     }
+
+function fmtCpgUsd3(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(n)
+}
+
+function fmtDiscountUsd3(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(n)
+}
 
 export function ActualVsOptimizedCard(
   props: ActualVsOptimizedCardProps
@@ -125,7 +178,20 @@ export function ActualVsOptimizedCard(
     )
   }
 
-  const { comparison } = props
+  const { comparison, labels, illustrativeOptimized, mapPinAccents } = props
+  const legendPrimary = labels?.legendPrimary ?? "Actual"
+  const legendSecondary = labels?.legendSecondary ?? "Optimized"
+  const legendTertiary = labels?.legendTertiary ?? "Optimized"
+  const columnLeft = labels?.columnLeft ?? "Actual"
+  const columnRight = labels?.columnRight ?? "Optimized"
+  const columnTertiary = labels?.columnTertiary ?? "Optimized"
+  const savingsFooter = labels?.savingsFooter ?? "Could have saved"
+  const hasThird = Boolean(illustrativeOptimized)
+
+  const baselineAccent = mapPinAccents?.baseline
+  const proposedAccent = mapPinAccents?.proposed
+  const optimizedAccent = mapPinAccents?.optimized
+
   return (
     <div
       className={cn(
@@ -135,20 +201,66 @@ export function ActualVsOptimizedCard(
     >
       <div className="flex flex-wrap items-center gap-3 pb-2 font-medium text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-destructive" />
-          Actual
+          <span
+            className={cn(
+              "size-2 shrink-0 rounded-full",
+              !baselineAccent && "bg-destructive"
+            )}
+            style={
+              baselineAccent
+                ? { backgroundColor: baselineAccent }
+                : undefined
+            }
+            aria-hidden
+          />
+          {legendPrimary}
         </span>
         <span className="flex items-center gap-1.5">
           <span
-            className="size-2 rounded-full"
-            style={{ backgroundColor: "var(--chart-2)" }}
+            className="size-2 shrink-0 rounded-full"
+            style={
+              proposedAccent
+                ? { backgroundColor: proposedAccent }
+                : { backgroundColor: "var(--chart-2)" }
+            }
+            aria-hidden
           />
-          Optimized
+          {legendSecondary}
         </span>
+        {hasThird ? (
+          <span className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "size-2 shrink-0 rounded-full",
+                !optimizedAccent && "bg-[var(--success)]"
+              )}
+              style={
+                optimizedAccent
+                  ? { backgroundColor: optimizedAccent }
+                  : undefined
+              }
+              aria-hidden
+            />
+            {legendTertiary}
+          </span>
+        ) : null}
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <div className="space-y-0.5 border-l-2 border-l-destructive pl-2">
-          <p className="font-medium text-muted-foreground">Actual</p>
+      <div
+        className={cn(
+          "grid gap-x-3 gap-y-2",
+          hasThird ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"
+        )}
+      >
+        <div
+          className={cn(
+            "space-y-0.5 border-l-2 pl-2",
+            !baselineAccent && "border-l-destructive"
+          )}
+          style={
+            baselineAccent ? { borderLeftColor: baselineAccent } : undefined
+          }
+        >
+          <p className="font-medium text-muted-foreground">{columnLeft}</p>
           <p className="font-medium text-foreground">
             {comparison.actualChain} · {comparison.actualLocation}
           </p>
@@ -159,9 +271,11 @@ export function ActualVsOptimizedCard(
         </div>
         <div
           className="space-y-0.5 border-l-2 pl-2"
-          style={{ borderLeftColor: "var(--chart-2)" }}
+          style={{
+            borderLeftColor: proposedAccent ?? "var(--chart-2)",
+          }}
         >
-          <p className="font-medium text-muted-foreground">Optimized</p>
+          <p className="font-medium text-muted-foreground">{columnRight}</p>
           <p className="font-medium text-foreground">
             {comparison.optimizedChain} · {comparison.optimizedLocation}
           </p>
@@ -173,12 +287,58 @@ export function ActualVsOptimizedCard(
             {comparison.distanceMiles} mi away
           </p>
         </div>
+        {illustrativeOptimized ? (
+          <div
+            className={cn(
+              "space-y-0.5 border-l-2 pl-2",
+              !optimizedAccent && "border-l-[var(--success)]"
+            )}
+            style={
+              optimizedAccent
+                ? { borderLeftColor: optimizedAccent }
+                : undefined
+            }
+          >
+            <p className="font-medium text-muted-foreground">{columnTertiary}</p>
+            <p className="font-medium text-foreground">
+              {illustrativeOptimized.headline}
+            </p>
+            <div className="flex flex-col gap-1 pt-0.5">
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground">Net CPG</span>
+                <span className="tabular-nums font-medium text-foreground">
+                  {illustrativeOptimized.netCpg != null
+                    ? fmtCpgUsd3(illustrativeOptimized.netCpg)
+                    : "—"}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground">Distance</span>
+                <span className="tabular-nums font-medium text-foreground">
+                  {illustrativeOptimized.distanceMiles != null
+                    ? `${illustrativeOptimized.distanceMiles} mi`
+                    : "—"}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-muted-foreground">Avg discount</span>
+                <span className="tabular-nums font-medium text-foreground">
+                  {illustrativeOptimized.avgDiscountPerGal != null
+                    ? fmtDiscountUsd3(illustrativeOptimized.avgDiscountPerGal)
+                    : "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
       <p
         className="mt-2 flex items-center justify-between border-t border-border pt-2 font-medium tabular-nums"
-        style={{ color: "var(--chart-2)" }}
+        style={{
+          color: proposedAccent ?? "var(--chart-2)",
+        }}
       >
-        <span>Could have saved</span>
+        <span>{savingsFooter}</span>
         <span>${comparison.savings.toFixed(2)}</span>
       </p>
     </div>

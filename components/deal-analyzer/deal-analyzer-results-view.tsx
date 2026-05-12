@@ -217,15 +217,21 @@ interface DealAnalyzerResultsViewProps {
 export function DealAnalyzerResultsView({
   results,
   form,
-  networkKey,
+  networkKey: _networkKey,
   locationComparisonRows = [],
   analysisTransactionSlice = [],
   className,
 }: DealAnalyzerResultsViewProps) {
-  const networkLabel =
-    networkKey && NETWORK_LABELS[networkKey as DealFuelNetwork]
-      ? NETWORK_LABELS[networkKey as DealFuelNetwork]
-      : "network"
+  const networkLabel = React.useMemo(() => {
+    const configuredBrands = form.brands.filter((b) => b.network !== "")
+    if (configuredBrands.length === 0) return "network"
+    const labels = configuredBrands.map(
+      (b) => NETWORK_LABELS[b.network as DealFuelNetwork] ?? b.network
+    )
+    if (labels.length === 1) return labels[0]
+    if (labels.length === 2) return `${labels[0]} + ${labels[1]}`
+    return `${labels[0]} + ${labels.length - 1} more`
+  }, [form.brands])
 
   if (!results) {
     return (
@@ -512,7 +518,7 @@ function InsightRow({
 }) {
   if (type === "state_restriction") {
     const allStates = new Set<string>()
-    for (const t of form.tiers) {
+    for (const t of form.brands.flatMap((b) => b.tiers)) {
       if (t.locationCoverage === "specific_states") {
         for (const s of t.selectedStates) {
           allStates.add(s.trim().toUpperCase())
@@ -537,7 +543,7 @@ function InsightRow({
   }
   if (type === "site_restriction") {
     const keys = new Set<string>()
-    for (const t of form.tiers) {
+    for (const t of form.brands.flatMap((b) => b.tiers)) {
       if (t.locationCoverage === "specific_sites") {
         for (const k of t.selectedLocationKeys) keys.add(k)
       }

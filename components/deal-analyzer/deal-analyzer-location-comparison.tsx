@@ -10,7 +10,7 @@ import {
   Map as GeoMap,
   MapClusterLayer,
   MapControls,
-  MapPopup,
+  MapRoute,
   useMap,
 } from "@/components/ui/map"
 import {
@@ -19,13 +19,39 @@ import {
 } from "@/lib/map-us-defaults"
 import {
   buildLocationComparisonMapModel,
+  dealRowToLocationComparison,
+  getDealRowMapPins,
   verdictTierToProposedMapColor,
 } from "@/lib/deal-analyzer-location-map"
-import type { LocationMapPointRole } from "@/lib/deal-analyzer-location-map"
 import { mapPaint } from "@/lib/map-paint-colors"
+import { fetchDrivingRoutes, pickDrivingRoutePolyline } from "@/lib/osrm-route"
 import type { FuelTransaction } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
-import { MapPin } from "lucide-react"
+import { X } from "lucide-react"
+import {
+  ActualVsOptimizedCard,
+  type ComparisonCardLabels,
+} from "@/components/actual-vs-optimized-card"
+
+const DEAL_COMPARISON_LABELS: ComparisonCardLabels = {
+  legendPrimary: "Baseline",
+  legendSecondary: "Proposed",
+  legendTertiary: "Optimized",
+  columnLeft: "Baseline",
+  columnRight: "Proposed",
+  columnTertiary: "Optimized (illustrative)",
+  savingsFooter: "Modeled savings",
+}
+
+/** One line "Brand · City, ST" for the optimized column (matches row subtitle shape). */
+function optimizedColumnHeadline(card: DealLocationMetricCard): string {
+  const title = card.title || "—"
+  const prefix = `${title}, `
+  const loc = card.subtitle.startsWith(prefix)
+    ? card.subtitle.slice(prefix.length)
+    : card.subtitle
+  return `${title} · ${loc}`
+}
 
 type MapLayerFilterId = "baseline" | "proposed" | "optimized"
 
@@ -131,129 +157,13 @@ function MapLayerFilterCard({
   )
 }
 
-function fmtCpg(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(n)
-}
-
-function fmtDiscount(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(n)
-}
-
-function MetricLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-2 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="tabular-nums font-medium text-foreground">{value}</span>
-    </div>
-  )
-}
-
-/** Lower net CPG than baseline = better proposed deal for this cluster. */
-function proposedVersusBaseline(
-  row: DealLocationComparisonRow
-): "better" | "worse" | "unknown" {
-  if (
-    !row.match.hasData ||
-    row.match.netCpg == null ||
-    row.current.netCpg == null
-  ) {
-    return "unknown"
-  }
-  if (row.match.netCpg < row.current.netCpg) return "better"
-  if (row.match.netCpg > row.current.netCpg) return "worse"
-  return "unknown"
-}
-
-function LocationMetricCardView({
-  variant,
-  card,
-  showTotalGallons,
-  matchOutcome,
+function FitLocationMapBounds({
+  points,
+  routeCoordinates,
 }: {
-  variant: "current" | "match" | "optimized"
-  card: DealLocationMetricCard
-  showTotalGallons?: boolean
-  /** Compared to baseline net CPG; only used when `variant` is `match`. */
-  matchOutcome?: "better" | "worse" | "unknown"
+  points: GeoJSON.FeatureCollection
+  routeCoordinates?: [number, number][] | null
 }) {
-  const shell =
-    variant === "current"
-      ? "border-border bg-muted/35"
-      : variant === "optimized"
-        ? "border-[var(--success)]/45 bg-[var(--success)]/10"
-        : matchOutcome === "better"
-          ? "border-[var(--success)]/45 bg-[var(--success)]/10"
-          : matchOutcome === "worse"
-            ? "border-destructive/35 bg-destructive/10"
-            : "border-border bg-muted/35"
-
-  const empty = Boolean(card.emptyReason)
-
-  return (
-    <div
-      className={cn(
-        "relative rounded-lg border p-3 pt-3.5",
-        shell,
-        empty && "border-dashed border-border bg-muted/20"
-      )}
-    >
-      <MapPin
-        className="absolute top-2.5 right-2.5 size-3.5 text-muted-foreground/70"
-        aria-hidden
-      />
-      <div className="pr-6">
-        <p className="text-sm font-semibold leading-tight">{card.title || "—"}</p>
-        <p className="text-muted-foreground mt-0.5 text-[11px] leading-snug">
-          {card.subtitle || "\u00a0"}
-        </p>
-      </div>
-      {showTotalGallons && card.totalGallons != null ? (
-        <p className="mt-2 text-right text-xs font-medium tabular-nums text-foreground">
-          Total gallons: {card.totalGallons.toLocaleString("en-US")}
-        </p>
-      ) : null}
-
-      {empty ? (
-        <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-          {card.emptyReason}
-        </p>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          <MetricLine
-            label="Net CPG"
-            value={card.netCpg != null ? fmtCpg(card.netCpg) : "—"}
-          />
-          <MetricLine
-            label="Distance"
-            value={
-              card.distanceMiles != null ? `${card.distanceMiles} mi` : "—"
-            }
-          />
-          <MetricLine
-            label="Avg discount"
-            value={
-              card.avgDiscountPerGal != null
-                ? fmtDiscount(card.avgDiscountPerGal)
-                : "—"
-            }
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FitLocationMapBounds({ points }: { points: GeoJSON.FeatureCollection }) {
   const { map, isLoaded } = useMap()
 
   React.useEffect(() => {
@@ -267,37 +177,45 @@ function FitLocationMapBounds({ points }: { points: GeoJSON.FeatureCollection })
         lats.push(lat)
       }
     }
+    if (routeCoordinates?.length) {
+      for (const [lng, lat] of routeCoordinates) {
+        lngs.push(lng)
+        lats.push(lat)
+      }
+    }
     if (lngs.length === 0) return
+    const padding =
+      routeCoordinates && routeCoordinates.length >= 2 ? 80 : 52
     map.fitBounds(
       [
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ],
-      { padding: 52, maxZoom: 11 }
+      { padding, maxZoom: 11 }
     )
-  }, [map, isLoaded, points])
+  }, [map, isLoaded, points, routeCoordinates])
 
   return null
 }
 
-type PopupSelection = {
-  longitude: number
-  latitude: number
-  locationKey: string
-  role: LocationMapPointRole
-}
-
-function rolePopupTitle(role: LocationMapPointRole): string {
-  switch (role) {
-    case "baseline":
-      return "Where you fueled (baseline)"
-    case "proposed":
-      return "Modeled proposed deal"
-    case "optimized":
-      return "Optimized stop (illustrative)"
-    default:
-      return ""
+/** Join consecutive driving polylines, dropping duplicate junction vertices. */
+function mergeRoutePolylines(
+  segments: [number, number][][]
+): [number, number][] {
+  if (segments.length === 0) return []
+  const first = segments[0]
+  if (!first?.length) return []
+  const out: [number, number][] = [...first]
+  for (let s = 1; s < segments.length; s++) {
+    const next = segments[s]
+    if (!next?.length) continue
+    const last = out[out.length - 1]
+    const head = next[0]
+    const skipFirst =
+      last[0] === head[0] && last[1] === head[1]
+    out.push(...(skipFirst ? next.slice(1) : next))
   }
+  return out
 }
 
 export function DealAnalyzerLocationComparisonSection({
@@ -312,9 +230,11 @@ export function DealAnalyzerLocationComparisonSection({
   showOptimizedColumn: boolean
 }) {
   const [mounted, setMounted] = React.useState(false)
-  const [popup, setPopup] = React.useState<PopupSelection | null>(null)
   const [focusedLocationKey, setFocusedLocationKey] = React.useState<
     string | null
+  >(null)
+  const [routeCoords, setRouteCoords] = React.useState<
+    [number, number][] | null
   >(null)
   const [layerFilters, setLayerFilters] =
     React.useState<Record<MapLayerFilterId, boolean>>(DEFAULT_MAP_LAYER_FILTERS)
@@ -345,6 +265,15 @@ export function DealAnalyzerLocationComparisonSection({
 
   const proposedFilterSwatchColor = verdictTierToProposedMapColor(verdictTier)
 
+  const dealMapPinAccents = React.useMemo(
+    () => ({
+      baseline: mapPaint.laneBaseline,
+      proposed: proposedFilterSwatchColor,
+      optimized: mapPaint.success,
+    }),
+    [proposedFilterSwatchColor]
+  )
+
   const filteredPoints = React.useMemo(
     () =>
       filterPointsByLayers(
@@ -359,8 +288,9 @@ export function DealAnalyzerLocationComparisonSection({
   )
 
   /**
-   * Filters apply to other clusters only; the focused cluster always shows every
-   * related pin (baseline + proposed + optimized) so comparisons stay readable.
+   * Overview: layer-filtered pins for all clusters. When a stop is focused, the
+   * map shows only that cluster’s pins (baseline / proposed / optimized) so the
+   * route and markers stay uncluttered.
    */
   const mapDisplayPoints = React.useMemo(() => {
     const pts = points as GeoJSON.FeatureCollection<
@@ -369,17 +299,13 @@ export function DealAnalyzerLocationComparisonSection({
     >
     if (!focusedLocationKey) return filteredPoints
 
-    const focusedAll = pts.features.filter(
-      (f) => f.properties?.locationKey === focusedLocationKey
-    )
-    const othersFiltered = filteredPoints.features.filter(
-      (f) => f.properties?.locationKey !== focusedLocationKey
-    )
     return {
       ...pts,
-      features: [...othersFiltered, ...focusedAll],
+      features: pts.features.filter(
+        (f) => f.properties?.locationKey === focusedLocationKey
+      ),
     }
-  }, [points, filteredPoints, focusedLocationKey])
+  }, [points, focusedLocationKey])
 
   /** Overview: filtered pins. Selected cluster: full trio for bounds / zoom. */
   const fitBoundsPoints = React.useMemo(() => {
@@ -394,17 +320,92 @@ export function DealAnalyzerLocationComparisonSection({
         (f) => f.properties?.locationKey === focusedLocationKey
       ),
     }
-  }, [points, filteredPoints, focusedLocationKey])
-
-  function toggleLayer(id: MapLayerFilterId, checked: boolean) {
-    setLayerFilters((prev) => ({ ...prev, [id]: checked }))
-  }
+  }, [points, focusedLocationKey, filteredPoints])
 
   const rowByKey = React.useMemo(() => {
     const m = new Map<string, DealLocationComparisonRow>()
     for (const r of rows) m.set(r.locationKey, r)
     return m
   }, [rows])
+
+  const focusedRow = focusedLocationKey
+    ? rowByKey.get(focusedLocationKey)
+    : undefined
+
+  const clearMapSelection = React.useCallback(() => {
+    setFocusedLocationKey(null)
+    setRouteCoords(null)
+  }, [])
+
+  React.useEffect(() => {
+    if (!focusedLocationKey || !focusedRow) {
+      setRouteCoords(null)
+      return
+    }
+    const pins = getDealRowMapPins(
+      transactionSlice,
+      focusedRow,
+      showOptimizedColumn
+    )
+    if (!pins) {
+      setRouteCoords(null)
+      return
+    }
+
+    const chain: [number, number][] = [pins.baseline]
+    if (pins.proposed) chain.push(pins.proposed)
+    if (pins.optimized) chain.push(pins.optimized)
+    if (chain.length < 2) {
+      setRouteCoords(null)
+      return
+    }
+
+    const ac = new AbortController()
+    setRouteCoords(chain)
+
+    ;(async () => {
+      try {
+        const segments: [number, number][][] = []
+        for (let i = 0; i < chain.length - 1; i++) {
+          const routes = await fetchDrivingRoutes(chain[i], chain[i + 1], {
+            signal: ac.signal,
+          })
+          const poly = pickDrivingRoutePolyline(routes) as
+            | [number, number][]
+            | null
+          if (poly?.length) segments.push(poly)
+          else segments.push([chain[i], chain[i + 1]])
+        }
+        if (ac.signal.aborted) return
+        setRouteCoords(mergeRoutePolylines(segments))
+      } catch {
+        /* keep straight-line chain */
+      }
+    })()
+
+    return () => ac.abort()
+  }, [
+    focusedLocationKey,
+    focusedRow,
+    transactionSlice,
+    showOptimizedColumn,
+  ])
+
+  React.useEffect(() => {
+    if (!focusedLocationKey) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") clearMapSelection()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [focusedLocationKey, clearMapSelection])
+
+  function toggleLayer(id: MapLayerFilterId, checked: boolean) {
+    setLayerFilters((prev) => ({ ...prev, [id]: checked }))
+  }
+
+  const focusedComparison =
+    focusedRow != null ? dealRowToLocationComparison(focusedRow) : null
 
   if (!mounted) {
     return (
@@ -444,54 +445,91 @@ export function DealAnalyzerLocationComparisonSection({
           className="h-[min(52vh,420px)] w-full min-h-[260px]"
           center={MAP_US_CENTER}
           zoom={MAP_US_ZOOM_NARROW_VIEWPORT}
-          popupPortalToBody
         >
-          <FitLocationMapBounds points={fitBoundsPoints} />
+          <FitLocationMapBounds
+            points={fitBoundsPoints}
+            routeCoordinates={routeCoords}
+          />
           <MapControls showCompass showZoom position="top-right" />
+          {routeCoords && routeCoords.length >= 2 ? (
+            <MapRoute
+              coordinates={routeCoords}
+              color={mapPaint.connector}
+              width={3}
+              opacity={0.85}
+            />
+          ) : null}
           <MapClusterLayer
             data={mapDisplayPoints}
             cluster={false}
             pointColorProperty="color"
-            onPointClick={(feature, coordinates) => {
+            onPointClick={(feature) => {
               const p = feature.properties
-              if (
-                !p ||
-                typeof p.locationKey !== "string" ||
-                typeof p.role !== "string"
-              ) {
-                return
-              }
-              const role = p.role as LocationMapPointRole
+              if (!p || typeof p.locationKey !== "string") return
               setFocusedLocationKey(p.locationKey)
-              setPopup({
-                longitude: coordinates[0],
-                latitude: coordinates[1],
-                locationKey: p.locationKey,
-                role,
-              })
             }}
           />
-          {popup ? (
-            <MapPopup
-              key={`${popup.locationKey}-${popup.role}`}
-              longitude={popup.longitude}
-              latitude={popup.latitude}
-              closeButton
-              onClose={() => {
-                setPopup(null)
-                setFocusedLocationKey(null)
-              }}
-              className="max-w-[min(100vw-2rem,20rem)] p-0"
-            >
-              <DetailsPopup
-                row={rowByKey.get(popup.locationKey)}
-                role={popup.role}
-                showOptimizedColumn={showOptimizedColumn}
-              />
-            </MapPopup>
-          ) : null}
         </GeoMap>
       </div>
+
+      {focusedLocationKey && focusedRow ? (
+        <div
+          className="flex flex-col gap-2 overflow-visible"
+          aria-label="Selected stop comparison"
+        >
+          <div className="relative mx-auto w-full max-w-2xl space-y-2">
+            {focusedComparison ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={clearMapSelection}
+                  className="absolute -top-1 right-0 z-20 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground outline-none ring-offset-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  aria-label="Close comparison"
+                >
+                  <X className="size-4" />
+                </button>
+                <ActualVsOptimizedCard
+                  variant="comparison"
+                  comparison={focusedComparison}
+                  layout="embedded"
+                  labels={DEAL_COMPARISON_LABELS}
+                  mapPinAccents={dealMapPinAccents}
+                  illustrativeOptimized={
+                    showOptimizedColumn && focusedRow.optimized
+                      ? {
+                          headline: optimizedColumnHeadline(
+                            focusedRow.optimized
+                          ),
+                          netCpg: focusedRow.optimized.netCpg,
+                          distanceMiles: focusedRow.optimized.distanceMiles,
+                          avgDiscountPerGal:
+                            focusedRow.optimized.avgDiscountPerGal,
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+            ) : (
+              <div className="relative rounded-lg border border-border bg-card p-3 text-xs shadow-sm">
+                <button
+                  type="button"
+                  onClick={clearMapSelection}
+                  className="absolute top-1 right-1 z-20 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground outline-none ring-offset-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  aria-label="Close comparison"
+                >
+                  <X className="size-4" />
+                </button>
+                <p className="pr-10 font-medium text-foreground">
+                  No modeled alternate
+                </p>
+                <p className="text-muted-foreground mt-1 leading-snug">
+                  This stop does not have a modeled path between stops for routing.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <p className="text-xs font-medium text-foreground">Map filters</p>
@@ -526,83 +564,5 @@ export function DealAnalyzerLocationComparisonSection({
         </div>
       </div>
     </section>
-  )
-}
-
-function clusterPopupHint(role: LocationMapPointRole): string {
-  switch (role) {
-    case "baseline":
-      return "Baseline reflects actual stops. Proposed pins share the deal verdict color; per-location cards still compare net CPG vs baseline."
-    case "proposed":
-      return "Map color follows overall deal verdict; detail cards show green or red vs baseline net CPG per stop."
-    case "optimized":
-      return "Optimized pin stays bright green (illustrative offset). Proposed layer color matches deal verdict."
-    default:
-      return ""
-  }
-}
-
-function DetailsPopup({
-  row,
-  role,
-  showOptimizedColumn,
-}: {
-  row: DealLocationComparisonRow | undefined
-  role: LocationMapPointRole
-  showOptimizedColumn: boolean
-}) {
-  if (!row) {
-    return (
-      <div className="p-3 text-xs text-muted-foreground">
-        Location data unavailable.
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex max-h-[min(70vh,360px)] flex-col gap-2 overflow-y-auto p-3">
-      <p className="text-xs font-semibold text-foreground">
-        {rolePopupTitle(role)}
-      </p>
-      <p className="text-muted-foreground text-[11px] leading-snug">
-        {clusterPopupHint(role)}
-      </p>
-      <div className="flex flex-col gap-3 pt-1">
-        <div className="flex flex-col gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Baseline (actual transaction location)
-          </p>
-          <LocationMetricCardView
-            variant="current"
-            card={row.current}
-            showTotalGallons
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Proposed deal
-          </p>
-          <LocationMetricCardView
-            variant="match"
-            card={row.match}
-            matchOutcome={proposedVersusBaseline(row)}
-          />
-        </div>
-        {showOptimizedColumn ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Optimized
-            </p>
-            {row.optimized ? (
-              <LocationMetricCardView variant="optimized" card={row.optimized} />
-            ) : (
-              <p className="text-muted-foreground text-xs">
-                No optimized stop for this run.
-              </p>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </div>
   )
 }

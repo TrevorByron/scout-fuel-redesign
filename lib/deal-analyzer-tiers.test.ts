@@ -106,14 +106,16 @@ describe("computeDealAnalysis (blended)", () => {
     const tx = txn({ location: "Dallas, TX", totalCost: 100, gallons: 20 })
     const form: DealAnalyzerFormInput = {
       dealName: "",
-      network: "loves",
-      tiers: [
-        tier("all_locations", { discountAmountCentsPerGal: "0" }),
-        tier("specific_states", {
-          selectedStates: ["TX"],
-          discountAmountCentsPerGal: "100",
-        }),
-      ],
+      brands: [{
+        network: "loves",
+        tiers: [
+          tier("all_locations", { discountAmountCentsPerGal: "0" }),
+          tier("specific_states", {
+            selectedStates: ["TX"],
+            discountAmountCentsPerGal: "100",
+          }),
+        ],
+      }],
     }
     const baseline = {
       transactions: 1,
@@ -148,10 +150,12 @@ describe("migrateDealConfigToCurrentShape", () => {
       selectedStates: ["TX"],
       selectedLocationKeys: [],
     } as unknown as DealAnalyzerFormInput)
-    expect(migrated.tiers).toHaveLength(1)
-    expect(migrated.tiers[0].locationCoverage).toBe("specific_states")
-    expect(migrated.tiers[0].selectedStates).toEqual(["TX"])
-    expect(migrated.tiers[0].discountAmountCentsPerGal).toBe("12")
-    expect(migrated.tiers[0].programType).toBe("discount")
+    expect(migrated.brands).toHaveLength(1)
+    expect(migrated.brands[0].network).toBe("loves")
+    expect(migrated.brands[0].tiers).toHaveLength(1)
+    expect(migrated.brands[0].tiers[0].locationCoverage).toBe("specific_states")
+    expect(migrated.brands[0].tiers[0].selectedStates).toEqual(["TX"])
+    expect(migrated.brands[0].tiers[0].discountAmountCentsPerGal).toBe("12")
+    expect(migrated.brands[0].tiers[0].programType).toBe("discount")
   })
 })

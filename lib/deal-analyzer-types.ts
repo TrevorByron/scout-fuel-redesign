@@ -28,7 +28,7 @@ export type DealFuelNetwork =
   | "roadranger"
   | "other"
 
-/** One geographic + pricing slice of a multi-tier chain offer (no network — uses root `network`). */
+/** One geographic + pricing slice of a multi-tier chain offer (no network — uses parent brand's `network`). */
 export interface DealPricingTier {
   /** Per tier: discount, rebate, or DEF-only rebate. */
   programType: DealProgramType | ""
@@ -44,11 +44,17 @@ export interface DealPricingTier {
   selectedLocationKeys: string[]
 }
 
-export interface DealAnalyzerFormInput {
-  dealName: string
+/** One brand/network entry in a multi-brand deal, with its own ordered tiers. */
+export interface DealBrand {
   network: DealFuelNetwork | ""
   /** Ordered tiers; most specific matching coverage wins per transaction. */
   tiers: DealPricingTier[]
+}
+
+export interface DealAnalyzerFormInput {
+  dealName: string
+  /** One or more brands, each with their own network and tiers. */
+  brands: DealBrand[]
 }
 
 export interface DealBaselineStats {

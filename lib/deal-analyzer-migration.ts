@@ -1,5 +1,7 @@
 import type {
   DealAnalyzerFormInput,
+  DealBrand,
+  DealFuelNetwork,
   DealLocationCoverage,
   DealPricingTier,
   DealProgramType,
@@ -9,7 +11,7 @@ import type {
 /** Legacy flat deal config from localStorage before `tiers[]`. */
 export type LegacyFlatDealFields = {
   dealName?: string
-  network?: DealAnalyzerFormInput["network"]
+  network?: DealFuelNetwork | ""
   /** Legacy root field; merged onto tiers when migrating. */
   programType?: DealProgramType | ""
   defRebatePricingMode?: DefRebatePricingMode | ""
@@ -22,6 +24,7 @@ export type LegacyFlatDealFields = {
   selectedStates?: string[]
   selectedLocationKeys?: string[]
   tiers?: unknown
+  brands?: unknown
   stateRestriction?: string
   locationRestriction?: string
   specificLocationKey?: string
@@ -42,11 +45,17 @@ export function defaultPricingTier(): DealPricingTier {
   }
 }
 
+export function defaultBrand(): DealBrand {
+  return {
+    network: "",
+    tiers: [defaultPricingTier()],
+  }
+}
+
 export function defaultDealAnalyzerForm(): DealAnalyzerFormInput {
   return {
     dealName: "",
-    network: "",
-    tiers: [defaultPricingTier()],
+    brands: [defaultBrand()],
   }
 }
 
@@ -139,24 +148,59 @@ function normalizeTierPartial(raw: unknown): DealPricingTier {
   return t
 }
 
+function normalizeBrandPartial(raw: unknown): DealBrand {
+  const b = defaultBrand()
+  if (raw == null || typeof raw !== "object") return b
+  const o = raw as Record<string, unknown>
+  const net = o.network
+  if (
+    net === "loves" || net === "pilot-flying-j" || net === "ta-petro" ||
+    net === "shell" || net === "chevron" || net === "ambest" ||
+    net === "roadranger" || net === "other" || net === ""
+  ) {
+    b.network = net as DealBrand["network"]
+  }
+  if (Array.isArray(o.tiers) && o.tiers.length > 0) {
+    b.tiers = o.tiers.map((t) => normalizeTierPartial(t))
+  }
+  return b
+}
+
 /**
- * Load any saved or in-memory deal config into the current `tiers[]` shape.
+ * Load any saved or in-memory deal config into the current `brands[]` shape.
+ * Handles three historical shapes:
+ *   1. New: `{ brands: [{ network, tiers }] }`
+ *   2. Old: `{ network, tiers: [...] }` (before multi-brand)
+ *   3. Oldest: flat root fields (before tiers array)
  */
 export function migrateDealConfigToCurrentShape(
   raw: DealAnalyzerFormInput | LegacyFlatDealFields
 ): DealAnalyzerFormInput {
   const x = raw as LegacyFlatDealFields
+  const name = typeof x.dealName === "string" ? x.dealName : ""
 
+  // Shape 1: already has brands array
+  if (Array.isArray(x.brands) && x.brands.length > 0) {
+    return {
+      dealName: name,
+      brands: x.brands.map((b) => normalizeBrandPartial(b)),
+    }
+  }
+
+  // Shape 2: old single-network root + tiers array
   if (Array.isArray(x.tiers) && x.tiers.length > 0) {
     let tiers = x.tiers.map((tier) => normalizeTierPartial(tier))
     tiers = mergeLegacyRootProgramOntoTiers(tiers, x.programType, x.defRebatePricingMode)
     return {
-      dealName: typeof x.dealName === "string" ? x.dealName : "",
-      network: (x.network ?? "") as DealAnalyzerFormInput["network"],
-      tiers: tiers.length > 0 ? tiers : [defaultPricingTier()],
+      dealName: name,
+      brands: [{
+        network: (x.network ?? "") as DealBrand["network"],
+        tiers: tiers.length > 0 ? tiers : [defaultPricingTier()],
+      }],
     }
   }
 
+  // Shape 3: oldest flat root fields (no tiers array)
   const cov = deriveCoverageFromLegacyFlat(x)
   const tier: DealPricingTier = {
     ...defaultPricingTier(),
@@ -171,9 +215,11 @@ export function migrateDealConfigToCurrentShape(
   }
 
   return {
-    dealName: typeof x.dealName === "string" ? x.dealName : "",
-    network: (x.network ?? "") as DealAnalyzerFormInput["network"],
-    tiers: [tier],
+    dealName: name,
+    brands: [{
+      network: (x.network ?? "") as DealBrand["network"],
+      tiers: [tier],
+    }],
   }
 }
 
@@ -203,15 +249,18 @@ export function normalizeDefRebateModeOnLoad(
 ): DealAnalyzerFormInput {
   return {
     ...form,
-    tiers: form.tiers.map((t) => {
-      if (
-        t.programType === "def_rebate" &&
-        t.defRebatePricingMode !== "flat" &&
-        t.defRebatePricingMode !== "retail_minus"
-      ) {
-        return { ...t, defRebatePricingMode: "flat" as const }
-      }
-      return t
-    }),
+    brands: form.brands.map((brand) => ({
+      ...brand,
+      tiers: brand.tiers.map((t) => {
+        if (
+          t.programType === "def_rebate" &&
+          t.defRebatePricingMode !== "flat" &&
+          t.defRebatePricingMode !== "retail_minus"
+        ) {
+          return { ...t, defRebatePricingMode: "flat" as const }
+        }
+        return t
+      }),
+    })),
   }
 }

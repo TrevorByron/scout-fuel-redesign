@@ -2,6 +2,7 @@
  * GeoJSON + route polyline for Deal Analyzer “top locations” map (MapLibre literals via mapPaint).
  */
 
+import type { LocationComparison } from "@/components/actual-vs-optimized-card"
 import { representativeTxnWithBetterOption } from "@/lib/deal-analyzer-engine"
 import type {
   DealLocationComparisonRow,
@@ -171,5 +172,93 @@ export function buildLocationComparisonMapModel(
 
   return {
     points: { type: "FeatureCollection", features },
+  }
+}
+
+/** [lng, lat] pairs aligned with `buildLocationComparisonMapModel` for routing and bounds. */
+export type DealRowMapPins = {
+  baseline: [number, number]
+  proposed: [number, number] | null
+  optimized: [number, number] | null
+}
+
+/**
+ * Baseline centroid, proposed better-option coordinates, and optional illustrative
+ * optimized pin — same rules as `buildLocationComparisonMapModel`.
+ */
+export function getDealRowMapPins(
+  slice: FuelTransaction[],
+  row: DealLocationComparisonRow,
+  showOptimizedColumn: boolean
+): DealRowMapPins | null {
+  const groups = groupTransactionsByLocationKey(slice)
+  const txs = groups.get(row.locationKey)
+  if (!txs?.length) return null
+
+  const baseline = centroidLngLat(txs)
+  if (!baseline) return null
+
+  const [blLng, blLat] = baseline
+
+  const rep = representativeTxnWithBetterOption(txs)
+  const proposed: [number, number] | null =
+    rowHasProposedMapPin(row) && rep?.betterOption
+      ? [rep.betterOption.lng, rep.betterOption.lat]
+      : null
+
+  let optimized: [number, number] | null = null
+  if (showOptimizedColumn && row.optimized) {
+    const anchorLng = rep?.betterOption ? rep.betterOption.lng : blLng
+    const anchorLat = rep?.betterOption ? rep.betterOption.lat : blLat
+    const [oLng, oLat] = offsetOptimized(row.locationKey, anchorLng, anchorLat)
+    optimized = [oLng, oLat]
+  }
+
+  return { baseline: [blLng, blLat], proposed, optimized }
+}
+
+function roundMoney2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+function matchSubtitleToLocation(title: string, subtitle: string): string {
+  const prefix = `${title}, `
+  return subtitle.startsWith(prefix) ? subtitle.slice(prefix.length) : subtitle
+}
+
+/**
+ * Maps a location comparison row to the same shape as Location Insights for
+ * `ActualVsOptimizedCard` (gallons-weighted totals from net CPG).
+ */
+export function dealRowToLocationComparison(
+  row: DealLocationComparisonRow
+): LocationComparison | null {
+  if (
+    !row.match.hasData ||
+    row.match.netCpg == null ||
+    row.current.netCpg == null
+  ) {
+    return null
+  }
+  const gallons = row.current.totalGallons
+  if (gallons == null || gallons <= 0) return null
+
+  const actualTotal = roundMoney2(gallons * row.current.netCpg)
+  const optimizedTotal = roundMoney2(gallons * row.match.netCpg)
+  const rawSavings = roundMoney2(actualTotal - optimizedTotal)
+  const savings = Math.max(0, rawSavings)
+  const distanceMiles = row.match.distanceMiles ?? 0
+
+  return {
+    actualChain: row.stationBrand,
+    actualLocation: row.location,
+    actualCpg: row.current.netCpg,
+    actualTotal,
+    optimizedChain: row.match.title,
+    optimizedLocation: matchSubtitleToLocation(row.match.title, row.match.subtitle),
+    optimizedCpg: row.match.netCpg,
+    optimizedTotal,
+    savings,
+    distanceMiles,
   }
 }
