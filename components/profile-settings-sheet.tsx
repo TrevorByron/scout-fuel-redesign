@@ -23,6 +23,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { type UserProfile } from "@/lib/profile-store"
 import { cn } from "@/lib/utils"
 
@@ -304,25 +305,32 @@ export function ProfileSettingsSheet({
                               </Button>
                             </div>
                             {avatar ? (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                aria-label="Remove avatar"
-                                className={cn(
-                                  "absolute right-0 top-0 z-10 size-10 min-h-10 min-w-10 -translate-y-1/3 translate-x-1/4 rounded-full bg-white p-0 transition-opacity duration-150 hover:bg-neutral-100 dark:bg-background dark:hover:bg-muted/80",
-                                  "opacity-100 pointer-events-auto",
-                                  "sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-focus-within:pointer-events-auto"
-                                )}
-                                onClick={() => {
-                                  setAvatar("")
-                                  if (contactErrors.avatar) {
-                                    setContactErrors((prev) => ({ ...prev, avatar: undefined }))
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      aria-label="Remove avatar"
+                                      className={cn(
+                                        "absolute right-0 top-0 z-10 size-10 min-h-10 min-w-10 -translate-y-1/3 translate-x-1/4 rounded-full bg-white p-0 transition-opacity duration-150 hover:bg-neutral-100 dark:bg-background dark:hover:bg-muted/80",
+                                        "opacity-100 pointer-events-auto",
+                                        "sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-focus-within:pointer-events-auto"
+                                      )}
+                                      onClick={() => {
+                                        setAvatar("")
+                                        if (contactErrors.avatar) {
+                                          setContactErrors((prev) => ({ ...prev, avatar: undefined }))
+                                        }
+                                      }}
+                                    >
+                                      <X className="size-4 shrink-0" aria-hidden />
+                                    </Button>
                                   }
-                                }}
-                              >
-                                <X className="size-4 shrink-0" aria-hidden />
-                              </Button>
+                                />
+                                <TooltipContent side="bottom">Remove avatar</TooltipContent>
+                              </Tooltip>
                             ) : null}
                           </div>
                           <input

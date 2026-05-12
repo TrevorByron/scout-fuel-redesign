@@ -92,6 +92,11 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { DragDropVerticalIcon, CheckmarkCircle01Icon, Loading03Icon, MoreVerticalCircle01Icon, LeftToRightListBulletIcon, ArrowDown01Icon, Add01Icon, ArrowLeftDoubleIcon, ArrowLeft01Icon, ArrowRight01Icon, ArrowRightDoubleIcon, ChartUpIcon } from "@hugeicons/core-free-icons"
 
@@ -111,16 +116,24 @@ function DragHandle({ id }: { id: number }) {
     id,
   })
   return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
-    >
-      <HugeiconsIcon icon={DragDropVerticalIcon} strokeWidth={2} className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            {...attributes}
+            {...listeners}
+            variant="ghost"
+            size="icon"
+            aria-label="Drag to reorder"
+            className="text-muted-foreground size-7 hover:bg-transparent"
+          >
+            <HugeiconsIcon icon={DragDropVerticalIcon} strokeWidth={2} className="text-muted-foreground size-3" />
+            <span className="sr-only">Drag to reorder</span>
+          </Button>
+        }
+      />
+      <TooltipContent side="right">Drag to reorder</TooltipContent>
+    </Tooltip>
   )
 }
 const columns: ColumnDef<z.infer<typeof schema>>[] = [
@@ -282,10 +295,20 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     id: "actions",
     cell: () => (
       <DropdownMenu>
-        <DropdownMenuTrigger className="data-open:bg-muted text-muted-foreground flex size-8 hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium focus-visible:ring-2 focus-visible:border-ring focus-visible:ring-ring/30 inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 outline-none">
-          <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
-          <span className="sr-only">Open menu</span>
-        </DropdownMenuTrigger>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <DropdownMenuTrigger
+                aria-label="Open row menu"
+                className="data-open:bg-muted text-muted-foreground flex size-8 hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium focus-visible:ring-2 focus-visible:border-ring focus-visible:ring-ring/30 inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 outline-none"
+              >
+                <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+                <span className="sr-only">Open menu</span>
+              </DropdownMenuTrigger>
+            }
+          />
+          <TooltipContent side="left">Open menu</TooltipContent>
+        </Tooltip>
         <DropdownMenuContent align="end" className="w-32">
           <DropdownMenuItem>Edit</DropdownMenuItem>
           <DropdownMenuItem>Make a copy</DropdownMenuItem>
@@ -572,45 +595,77 @@ export function DataTable({
               {table.getPageCount()}
             </div>
             <div className="ml-auto flex items-center gap-2 lg:ml-0">
-              <Button
-                variant="outline"
-                className="hidden h-8 w-8 p-0 lg:flex"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to first page</span>
-                <HugeiconsIcon icon={ArrowLeftDoubleIcon} strokeWidth={2} />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
-                size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to previous page</span>
-                <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
-                size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to next page</span>
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-              </Button>
-              <Button
-                variant="outline"
-                className="hidden size-8 lg:flex"
-                size="icon"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to last page</span>
-                <HugeiconsIcon icon={ArrowRightDoubleIcon} strokeWidth={2} />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      aria-label="Go to first page"
+                      className="hidden h-8 w-8 p-0 lg:flex"
+                      onClick={() => table.setPageIndex(0)}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      <span className="sr-only">Go to first page</span>
+                      <HugeiconsIcon icon={ArrowLeftDoubleIcon} strokeWidth={2} />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="top">Go to first page</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="size-8"
+                      size="icon"
+                      aria-label="Go to previous page"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      <span className="sr-only">Go to previous page</span>
+                      <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="top">Previous page</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="size-8"
+                      size="icon"
+                      aria-label="Go to next page"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <span className="sr-only">Go to next page</span>
+                      <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="top">Next page</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="hidden size-8 lg:flex"
+                      size="icon"
+                      aria-label="Go to last page"
+                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <span className="sr-only">Go to last page</span>
+                      <HugeiconsIcon icon={ArrowRightDoubleIcon} strokeWidth={2} />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="top">Go to last page</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>

@@ -1,0 +1,81 @@
+---
+description: Every icon-only button MUST be wrapped in a Tooltip describing its action.
+globs: components/**/*.tsx, app/**/*.tsx
+alwaysApply: true
+---
+
+# Icon-only buttons must have a Tooltip
+
+If a button (or button-like control) renders **only an icon** (no visible text label), it **must** be wrapped in a `Tooltip` from `@/components/ui/tooltip` so the action is discoverable on hover and focus. This applies to both pointer and keyboard users.
+
+An `aria-label` and/or `sr-only` text is **necessary but not sufficient** — sighted users without a screen reader cannot read those. The tooltip is what makes the action visible.
+
+## What counts as "icon-only"
+
+- `<Button size="icon" | "icon-sm" | "icon-xs" | "icon-lg" />` with no visible text children.
+- A native `<button>` whose only visual child is an icon (`<HugeiconsIcon>`, `<svg>`, a Lucide icon, etc.).
+- A `DropdownMenuTrigger`, `PopoverTrigger`, `SelectTrigger`, etc. that renders an icon-only button.
+- `SidebarTrigger` and any other icon-only primitive composed in product code.
+
+## The canonical pattern
+
+Use Base UI's `render` prop to merge the trigger onto the button. See `components/theme-toggle.tsx` for the reference implementation.
+
+```tsx
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+
+<Tooltip>
+  <TooltipTrigger
+    render={
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Upload transactions"
+        onClick={handleUpload}
+      >
+        <Upload className="size-4" aria-hidden />
+      </Button>
+    }
+  />
+  <TooltipContent side="bottom">Upload transactions</TooltipContent>
+</Tooltip>
+```
+
+## When the button also opens a menu/popover/dialog
+
+Nest the menu/popover trigger inside the tooltip trigger via `render`:
+
+```tsx
+<DropdownMenu>
+  <Tooltip>
+    <TooltipTrigger
+      render={
+        <DropdownMenuTrigger
+          aria-label="More actions"
+          render={<Button variant="ghost" size="icon" />}
+        >
+          <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+        </DropdownMenuTrigger>
+      }
+    />
+    <TooltipContent side="left">More actions</TooltipContent>
+  </Tooltip>
+  <DropdownMenuContent>{/* … */}</DropdownMenuContent>
+</DropdownMenu>
+```
+
+## Authoring rules
+
+- **Always set `aria-label`** on the button with the same action verb phrase as the tooltip text.
+- **Tooltip text is concise and action-oriented** ("Remove invoice", "Open menu", "Close comparison"). Avoid full sentences and trailing punctuation.
+- **Match the user's perspective**: describe what the click does, not what the icon is. ("Delete saved analysis", not "Trash icon".)
+- **Pick a sensible `side`**: default `"bottom"` for top-bar/header controls, `"left"` for trailing-cell actions, `"right"` for leading actions, `"top"` for footer pagination.
+- **Do not** rely on `title` attributes — they are inconsistent across browsers and screen readers. Always use `Tooltip` + `TooltipContent`.
+- **Do not** wrap buttons that already have a visible text label in a tooltip — tooltips are for icon-only buttons (or truncated labels).
+- The app is already wrapped in `TooltipProvider` (see `app/layout.tsx`); do not add another provider.
+
+## When in doubt
+
+If you find yourself adding `aria-label` to a `<Button size="icon*">` or to a button whose only child is an icon, you **must** also wrap it in a `Tooltip` with matching `TooltipContent`.

@@ -29,6 +29,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { PricingStationListRow } from "@/components/pricing-station-list-row"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { MapSheetLayout } from "@/components/map-sheet-layout"
 
@@ -336,18 +337,27 @@ export function PricingSummaryUber() {
                   Lowest
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-11 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:size-9"
-                onClick={searchMode === "route" ? clearRoute : clearArea}
-                aria-label={
-                  searchMode === "route" ? "Clear route" : "Clear location search"
-                }
-              >
-                <X className="size-4" aria-hidden />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-11 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:size-9"
+                      onClick={searchMode === "route" ? clearRoute : clearArea}
+                      aria-label={
+                        searchMode === "route" ? "Clear route" : "Clear location search"
+                      }
+                    >
+                      <X className="size-4" aria-hidden />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom">
+                  {searchMode === "route" ? "Clear route" : "Clear location search"}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         ) : null

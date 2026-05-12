@@ -19,7 +19,7 @@ import {
 } from "@/lib/map-us-defaults"
 import {
   buildLocationComparisonMapModel,
-  dealRowToLocationComparison,
+  dealRowForMapComparisonCard,
   getDealRowMapPins,
   verdictTierToProposedMapColor,
 } from "@/lib/deal-analyzer-location-map"
@@ -32,6 +32,7 @@ import {
   ActualVsOptimizedCard,
   type ComparisonCardLabels,
 } from "@/components/actual-vs-optimized-card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const DEAL_COMPARISON_LABELS: ComparisonCardLabels = {
   legendPrimary: "Baseline",
@@ -43,7 +44,7 @@ const DEAL_COMPARISON_LABELS: ComparisonCardLabels = {
   savingsFooter: "Modeled savings",
 }
 
-/** One line "Brand · City, ST" for the optimized column (matches row subtitle shape). */
+/** One line "Chain · City, ST" for the optimized column (matches row subtitle shape). */
 function optimizedColumnHeadline(card: DealLocationMetricCard): string {
   const title = card.title || "—"
   const prefix = `${title}, `
@@ -218,6 +219,21 @@ function mergeRoutePolylines(
   return out
 }
 
+/** Pin order for routing; only includes coordinates whose layer is turned on. */
+function buildVisiblePinChainForRow(
+  pins: NonNullable<ReturnType<typeof getDealRowMapPins>>,
+  layerFilters: Record<MapLayerFilterId, boolean>,
+  showOptimizedLayer: boolean
+): [number, number][] {
+  const chain: [number, number][] = []
+  if (layerFilters.baseline) chain.push(pins.baseline)
+  if (layerFilters.proposed && pins.proposed) chain.push(pins.proposed)
+  if (showOptimizedLayer && layerFilters.optimized && pins.optimized) {
+    chain.push(pins.optimized)
+  }
+  return chain
+}
+
 export function DealAnalyzerLocationComparisonSection({
   rows,
   transactionSlice,
@@ -288,39 +304,38 @@ export function DealAnalyzerLocationComparisonSection({
   )
 
   /**
-   * Overview: layer-filtered pins for all clusters. When a stop is focused, the
-   * map shows only that cluster’s pins (baseline / proposed / optimized) so the
-   * route and markers stay uncluttered.
+   * Map pins always respect layer filters. Overview: all clusters. Focused: one
+   * cluster’s pins that remain visible under the current filter toggles.
    */
   const mapDisplayPoints = React.useMemo(() => {
-    const pts = points as GeoJSON.FeatureCollection<
+    const base = filteredPoints as GeoJSON.FeatureCollection<
       GeoJSON.Point,
       Record<string, unknown>
     >
-    if (!focusedLocationKey) return filteredPoints
+    if (!focusedLocationKey) return base
 
     return {
-      ...pts,
-      features: pts.features.filter(
+      ...base,
+      features: base.features.filter(
         (f) => f.properties?.locationKey === focusedLocationKey
       ),
     }
-  }, [points, focusedLocationKey])
+  }, [filteredPoints, focusedLocationKey])
 
-  /** Overview: filtered pins. Selected cluster: full trio for bounds / zoom. */
+  /** Same source as map pins so bounds match visible markers. */
   const fitBoundsPoints = React.useMemo(() => {
-    const pts = points as GeoJSON.FeatureCollection<
+    if (!focusedLocationKey) return filteredPoints
+    const base = filteredPoints as GeoJSON.FeatureCollection<
       GeoJSON.Point,
       Record<string, unknown>
     >
-    if (!focusedLocationKey) return filteredPoints
     return {
-      ...pts,
-      features: pts.features.filter(
+      ...base,
+      features: base.features.filter(
         (f) => f.properties?.locationKey === focusedLocationKey
       ),
     }
-  }, [points, focusedLocationKey, filteredPoints])
+  }, [filteredPoints, focusedLocationKey])
 
   const rowByKey = React.useMemo(() => {
     const m = new Map<string, DealLocationComparisonRow>()
@@ -352,9 +367,11 @@ export function DealAnalyzerLocationComparisonSection({
       return
     }
 
-    const chain: [number, number][] = [pins.baseline]
-    if (pins.proposed) chain.push(pins.proposed)
-    if (pins.optimized) chain.push(pins.optimized)
+    const chain = buildVisiblePinChainForRow(
+      pins,
+      layerFilters,
+      showOptimizedColumn
+    )
     if (chain.length < 2) {
       setRouteCoords(null)
       return
@@ -389,6 +406,7 @@ export function DealAnalyzerLocationComparisonSection({
     focusedRow,
     transactionSlice,
     showOptimizedColumn,
+    layerFilters,
   ])
 
   React.useEffect(() => {
@@ -400,12 +418,31 @@ export function DealAnalyzerLocationComparisonSection({
     return () => window.removeEventListener("keydown", onKey)
   }, [focusedLocationKey, clearMapSelection])
 
+  const focusedDealCard = React.useMemo(() => {
+    if (!focusedRow) return null
+    return dealRowForMapComparisonCard(focusedRow)
+  }, [focusedRow])
+
+  const dealColumnGaps = React.useMemo(() => {
+    if (!focusedRow || !focusedDealCard) return undefined
+    const proposed = focusedDealCard.proposedMissing
+      ? (focusedDealCard.proposedMissingReason ??
+          "No modeled alternate for this stop.")
+      : undefined
+    let optimized: string | undefined
+    if (showOptimizedColumn && focusedRow.optimized) {
+      optimized = undefined
+    } else if (!showOptimizedColumn) {
+      optimized = "Optimized tier is not included in this analysis."
+    } else {
+      optimized = "No illustrative optimized stop for this cluster."
+    }
+    return { proposed, optimized }
+  }, [focusedRow, focusedDealCard, showOptimizedColumn])
+
   function toggleLayer(id: MapLayerFilterId, checked: boolean) {
     setLayerFilters((prev) => ({ ...prev, [id]: checked }))
   }
-
-  const focusedComparison =
-    focusedRow != null ? dealRowToLocationComparison(focusedRow) : null
 
   if (!mounted) {
     return (
@@ -478,22 +515,30 @@ export function DealAnalyzerLocationComparisonSection({
           aria-label="Selected stop comparison"
         >
           <div className="relative mx-auto w-full max-w-2xl space-y-2">
-            {focusedComparison ? (
+            {focusedDealCard ? (
               <div className="relative">
-                <button
-                  type="button"
-                  onClick={clearMapSelection}
-                  className="absolute -top-1 right-0 z-20 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground outline-none ring-offset-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label="Close comparison"
-                >
-                  <X className="size-4" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        onClick={clearMapSelection}
+                        className="absolute -top-1 right-0 z-20 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground outline-none ring-offset-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        aria-label="Close comparison"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    }
+                  />
+                  <TooltipContent side="left">Close comparison</TooltipContent>
+                </Tooltip>
                 <ActualVsOptimizedCard
                   variant="comparison"
-                  comparison={focusedComparison}
+                  comparison={focusedDealCard.comparison}
                   layout="embedded"
                   labels={DEAL_COMPARISON_LABELS}
                   mapPinAccents={dealMapPinAccents}
+                  dealColumnGaps={dealColumnGaps}
                   illustrativeOptimized={
                     showOptimizedColumn && focusedRow.optimized
                       ? {
@@ -509,24 +554,7 @@ export function DealAnalyzerLocationComparisonSection({
                   }
                 />
               </div>
-            ) : (
-              <div className="relative rounded-lg border border-border bg-card p-3 text-xs shadow-sm">
-                <button
-                  type="button"
-                  onClick={clearMapSelection}
-                  className="absolute top-1 right-1 z-20 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground outline-none ring-offset-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label="Close comparison"
-                >
-                  <X className="size-4" />
-                </button>
-                <p className="pr-10 font-medium text-foreground">
-                  No modeled alternate
-                </p>
-                <p className="text-muted-foreground mt-1 leading-snug">
-                  This stop does not have a modeled path between stops for routing.
-                </p>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       ) : null}

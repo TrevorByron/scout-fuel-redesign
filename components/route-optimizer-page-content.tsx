@@ -25,6 +25,7 @@ import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -570,16 +571,23 @@ export function RouteOptimizerPageContent() {
                             }}
                             className="min-h-11 pl-9 pr-12 sm:min-h-9"
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 size-11 min-h-11 min-w-11 text-muted-foreground hover:text-destructive sm:size-9 sm:min-h-9 sm:min-w-9"
-                            onClick={() => removeWaypoint(i)}
-                            aria-label={`Remove waypoint ${i + 1}`}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-1 top-1/2 -translate-y-1/2 size-11 min-h-11 min-w-11 text-muted-foreground hover:text-destructive sm:size-9 sm:min-h-9 sm:min-w-9"
+                                  onClick={() => removeWaypoint(i)}
+                                  aria-label={`Remove waypoint ${i + 1}`}
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent side="left">Remove waypoint</TooltipContent>
+                          </Tooltip>
                         </div>
                       </Field>
                     ))}

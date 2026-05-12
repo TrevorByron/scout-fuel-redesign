@@ -224,7 +224,7 @@ export function DealAnalyzerResultsView({
 }: DealAnalyzerResultsViewProps) {
   const networkLabel = React.useMemo(() => {
     const configuredBrands = form.brands.filter((b) => b.network !== "")
-    if (configuredBrands.length === 0) return "network"
+    if (configuredBrands.length === 0) return "chain"
     const labels = configuredBrands.map(
       (b) => NETWORK_LABELS[b.network as DealFuelNetwork] ?? b.network
     )
@@ -364,40 +364,6 @@ export function DealAnalyzerResultsView({
               />
             </div>
           </section>
-
-          {proposed.tierBreakdown &&
-          proposed.tierBreakdown.some((b) => b.transactionCount > 0) ? (
-            <>
-              <Separator />
-              <section className="rounded-lg border border-border bg-muted/20 p-4">
-                <h4 className="text-sm font-semibold">Rule resolution</h4>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Baseline transactions mapped to the most specific matching rule (blended
-                  model).
-                </p>
-                <ul className="mt-3 space-y-2 text-xs">
-                  {proposed.tierBreakdown
-                    .filter((b) => b.transactionCount > 0)
-                    .map((b) => {
-                      return (
-                        <li
-                          key={b.tierIndex}
-                          className="flex min-h-9 items-center justify-between gap-2"
-                        >
-                          <span className="min-w-0 truncate font-medium text-foreground">
-                            Rule {b.tierIndex + 1}
-                          </span>
-                          <span className="shrink-0 tabular-nums text-muted-foreground">
-                            {b.transactionCount.toLocaleString()} txns ·{" "}
-                            {fmtPct(b.spendShare * 100)} spend
-                          </span>
-                        </li>
-                      )
-                    })}
-                </ul>
-              </section>
-            </>
-          ) : null}
 
           {optimized && optNorm && optimizedTone ? (
             <>

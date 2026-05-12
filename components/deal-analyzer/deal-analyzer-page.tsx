@@ -70,6 +70,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowDown01Icon, BalanceScaleIcon } from "@hugeicons/core-free-icons"
 import { DateRangePresetTabs } from "@/components/date-range-preset-tabs"
@@ -673,19 +674,26 @@ export function DealAnalyzerPage() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    className="min-h-9 min-w-9 shrink-0"
-                    aria-label="Add another brand"
-                    onClick={() => {
-                      setPendingBrandNetwork("")
-                      setAddBrandOpen(true)
-                    }}
-                  >
-                    <Plus className="size-4" aria-hidden />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          className="min-h-9 min-w-9 shrink-0"
+                          aria-label="Add another chain"
+                          onClick={() => {
+                            setPendingBrandNetwork("")
+                            setAddBrandOpen(true)
+                          }}
+                        >
+                          <Plus className="size-4" aria-hidden />
+                        </Button>
+                      }
+                    />
+                    <TooltipContent side="bottom">Add another chain</TooltipContent>
+                  </Tooltip>
                 </div>
               </header>
 
@@ -700,8 +708,8 @@ export function DealAnalyzerPage() {
                         {form.brands.map((brand, i) => (
                           <TabsTrigger key={i} value={String(i)} className="text-xs">
                             {brand.network
-                              ? (NETWORK_LABELS[brand.network as DealFuelNetwork] ?? `Brand ${i + 1}`)
-                              : `Brand ${i + 1}`}
+                              ? (NETWORK_LABELS[brand.network as DealFuelNetwork] ?? `Chain ${i + 1}`)
+                              : `Chain ${i + 1}`}
                           </TabsTrigger>
                         ))}
                       </TabsList>
@@ -727,8 +735,8 @@ export function DealAnalyzerPage() {
                 <>
                 <div className="flex shrink-0 flex-col gap-2">
                   <Field>
-                    <FieldLabel htmlFor="deal-network">
-                      Which fuel network?
+                    <FieldLabel htmlFor="deal-chain">
+                      Which fuel chain?
                     </FieldLabel>
                     <Select
                       value={activeBrand.network || undefined}
@@ -737,14 +745,14 @@ export function DealAnalyzerPage() {
                       }
                     >
                       <SelectTrigger
-                        id="deal-network"
+                        id="deal-chain"
                         className="min-h-11 w-full sm:min-h-9"
                       >
-                        <SelectValue placeholder="Select network">
+                        <SelectValue placeholder="Select chain">
                           {(v) =>
                             v && NETWORK_LABELS[v as DealFuelNetwork]
                               ? NETWORK_LABELS[v as DealFuelNetwork]
-                              : "Select network"}
+                              : "Select chain"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -888,8 +896,8 @@ export function DealAnalyzerPage() {
                     onClick={() => removeBrand(safeBrandIndex)}
                   >
                     Remove{activeBrand.network
-                      ? ` ${NETWORK_LABELS[activeBrand.network as DealFuelNetwork] ?? "this brand"}`
-                      : " this brand"}
+                      ? ` ${NETWORK_LABELS[activeBrand.network as DealFuelNetwork] ?? "this chain"}`
+                      : " this chain"}
                   </Button>
                 ) : null}
               </div>
@@ -961,16 +969,23 @@ export function DealAnalyzerPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-start gap-1.5 sm:gap-2">
                   {showMobileResultsPane ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="lg:hidden min-h-11 min-w-11 shrink-0 self-start sm:min-h-9 sm:min-w-9"
-                      aria-label="Back to deal details"
-                      onClick={() => setMobileDealStep("details")}
-                    >
-                      <ChevronLeft className="size-5 shrink-0" aria-hidden />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="lg:hidden size-9 max-sm:size-11 min-h-9 max-sm:min-h-11 shrink-0 self-start"
+                            aria-label="Back to deal details"
+                            onClick={() => setMobileDealStep("details")}
+                          >
+                            <ChevronLeft className="size-5 shrink-0" aria-hidden />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent side="bottom">Back to deal details</TooltipContent>
+                    </Tooltip>
                   ) : null}
                   <div className="min-w-0 flex-1 space-y-1">
                     <h2 className="text-lg font-semibold tracking-tight lg:text-xl">
@@ -986,26 +1001,33 @@ export function DealAnalyzerPage() {
                     type="button"
                     variant="destructive"
                     size="sm"
-                    className="min-h-11 shrink-0 sm:min-h-9"
+                    className="h-9 min-h-9 max-sm:h-11 max-sm:min-h-11 shrink-0"
                     onClick={() => setDeleteSavedOpen(true)}
                   >
                     Delete saved
                   </Button>
                 ) : (
                   <div className="flex flex-wrap justify-end gap-2">
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            className="size-9 max-sm:size-11 min-h-9 max-sm:min-h-11 shrink-0"
+                            aria-label="Upload transactions"
+                            onClick={() => setUploadOpen(true)}
+                          >
+                            <Upload className="size-4" aria-hidden />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent side="bottom">Upload transactions</TooltipContent>
+                    </Tooltip>
                     <Button
                       type="button"
-                      variant="outline"
-                      size="icon-sm"
-                      className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
-                      aria-label="Upload transactions"
-                      onClick={() => setUploadOpen(true)}
-                    >
-                      <Upload className="size-4" aria-hidden />
-                    </Button>
-                    <Button
-                      type="button"
-                      className="min-h-11 shrink-0 sm:min-h-9"
+                      className="h-9 min-h-9 max-sm:h-11 max-sm:min-h-11 shrink-0"
                       disabled={!results || !lockedPeriod}
                       onClick={() => {
                         setSaveName("")
@@ -1059,9 +1081,9 @@ export function DealAnalyzerPage() {
       >
         <DialogContent fullViewportMobile showCloseButton className="gap-0">
           <DialogHeader>
-            <DialogTitle>Add another brand</DialogTitle>
+            <DialogTitle>Add another chain</DialogTitle>
             <DialogDescription>
-              Choose the fuel network for this set of rules.
+              Choose the fuel chain for this set of rules.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 px-4 pb-4">
@@ -1075,11 +1097,11 @@ export function DealAnalyzerPage() {
                   onValueChange={(v) => setPendingBrandNetwork(v as DealFuelNetwork)}
                 >
                   <SelectTrigger className="min-h-11 w-full sm:min-h-9">
-                    <SelectValue placeholder="Select network">
+                    <SelectValue placeholder="Select chain">
                       {(v) =>
                         v && NETWORK_LABELS[v as DealFuelNetwork]
                           ? NETWORK_LABELS[v as DealFuelNetwork]
-                          : "Select network"}
+                          : "Select chain"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -1113,7 +1135,7 @@ export function DealAnalyzerPage() {
                 setPendingBrandNetwork("")
               }}
             >
-              Add brand
+              Add chain
             </Button>
           </div>
         </DialogContent>

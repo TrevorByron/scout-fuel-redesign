@@ -16,6 +16,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { MoreHorizontalCircle01Icon, FolderIcon, ArrowRightIcon, Delete02Icon } from "@hugeicons/core-free-icons"
 
@@ -40,17 +45,25 @@ export function NavProjects({
               <span>{item.name}</span>
             </SidebarMenuButton>
             <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <SidebarMenuAction
-                    showOnHover
-                    className="aria-expanded:bg-muted"
-                  />
-                }
-              >
-                <HugeiconsIcon icon={MoreHorizontalCircle01Icon} strokeWidth={2} />
-                <span className="sr-only">More</span>
-              </DropdownMenuTrigger>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <DropdownMenuTrigger
+                      aria-label={`More actions for ${item.name}`}
+                      render={
+                        <SidebarMenuAction
+                          showOnHover
+                          className="aria-expanded:bg-muted"
+                        />
+                      }
+                    >
+                      <HugeiconsIcon icon={MoreHorizontalCircle01Icon} strokeWidth={2} />
+                      <span className="sr-only">More</span>
+                    </DropdownMenuTrigger>
+                  }
+                />
+                <TooltipContent side="right">More actions</TooltipContent>
+              </Tooltip>
               <DropdownMenuContent
                 className="w-48 rounded-lg"
                 side={isMobile ? "bottom" : "right"}

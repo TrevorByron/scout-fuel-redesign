@@ -480,11 +480,7 @@
   box-shadow: none;
 }
 
-/* Style 4: same chunky form controls as Style 1 (min-height 40px) */
-:root [data-slot="button"] {
-  min-height: 40px;
-}
-
+/* Style 4: chunky form controls (40px min) — text buttons: min-h-10 in components/ui/button.tsx; avoids forcing data-slot=tooltip-trigger icons taller than size-* */
 :root [data-slot="input"] {
   min-height: 40px;
 }

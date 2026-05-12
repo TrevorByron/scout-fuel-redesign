@@ -94,6 +94,12 @@ export type ComparisonMapPinAccents = {
   optimized: string
 }
 
+/** When set, proposed and/or optimized column show this copy instead of metrics. */
+export type DealComparisonColumnGaps = {
+  proposed?: string
+  optimized?: string
+}
+
 type ActualVsOptimizedCardProps =
   | {
       variant: "comparison"
@@ -109,6 +115,8 @@ type ActualVsOptimizedCardProps =
        * the same hex values as the map layer filter swatches.
        */
       mapPinAccents?: ComparisonMapPinAccents
+      /** Deal map: show empty-state copy in proposed/optimized columns when data is missing. */
+      dealColumnGaps?: DealComparisonColumnGaps
     }
   | {
       variant: "optimal"
@@ -178,7 +186,13 @@ export function ActualVsOptimizedCard(
     )
   }
 
-  const { comparison, labels, illustrativeOptimized, mapPinAccents } = props
+  const {
+    comparison,
+    labels,
+    illustrativeOptimized,
+    mapPinAccents,
+    dealColumnGaps,
+  } = props
   const legendPrimary = labels?.legendPrimary ?? "Actual"
   const legendSecondary = labels?.legendSecondary ?? "Optimized"
   const legendTertiary = labels?.legendTertiary ?? "Optimized"
@@ -186,7 +200,11 @@ export function ActualVsOptimizedCard(
   const columnRight = labels?.columnRight ?? "Optimized"
   const columnTertiary = labels?.columnTertiary ?? "Optimized"
   const savingsFooter = labels?.savingsFooter ?? "Could have saved"
-  const hasThird = Boolean(illustrativeOptimized)
+
+  const isDealMap = Boolean(mapPinAccents)
+  const hasThirdColumn = isDealMap || Boolean(illustrativeOptimized)
+  const proposedGap = dealColumnGaps?.proposed
+  const optimizedGap = dealColumnGaps?.optimized
 
   const baselineAccent = mapPinAccents?.baseline
   const proposedAccent = mapPinAccents?.proposed
@@ -227,7 +245,7 @@ export function ActualVsOptimizedCard(
           />
           {legendSecondary}
         </span>
-        {hasThird ? (
+        {hasThirdColumn ? (
           <span className="flex items-center gap-1.5">
             <span
               className={cn(
@@ -248,7 +266,7 @@ export function ActualVsOptimizedCard(
       <div
         className={cn(
           "grid gap-x-3 gap-y-2",
-          hasThird ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"
+          hasThirdColumn ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"
         )}
       >
         <div
@@ -276,71 +294,107 @@ export function ActualVsOptimizedCard(
           }}
         >
           <p className="font-medium text-muted-foreground">{columnRight}</p>
-          <p className="font-medium text-foreground">
-            {comparison.optimizedChain} · {comparison.optimizedLocation}
-          </p>
-          <p className="tabular-nums text-foreground">
-            ${comparison.optimizedCpg.toFixed(2)}/gal → $
-            {comparison.optimizedTotal.toFixed(2)}
-          </p>
-          <p className="text-muted-foreground">
-            {comparison.distanceMiles} mi away
-          </p>
+          {proposedGap ? (
+            <p className="text-muted-foreground leading-snug">{proposedGap}</p>
+          ) : (
+            <>
+              <p className="font-medium text-foreground">
+                {comparison.optimizedChain} · {comparison.optimizedLocation}
+              </p>
+              <p className="tabular-nums text-foreground">
+                ${comparison.optimizedCpg.toFixed(2)}/gal → $
+                {comparison.optimizedTotal.toFixed(2)}
+              </p>
+              <p className="text-muted-foreground">
+                {comparison.distanceMiles} mi away
+              </p>
+            </>
+          )}
         </div>
-        {illustrativeOptimized ? (
-          <div
-            className={cn(
-              "space-y-0.5 border-l-2 pl-2",
-              !optimizedAccent && "border-l-[var(--success)]"
-            )}
-            style={
-              optimizedAccent
-                ? { borderLeftColor: optimizedAccent }
-                : undefined
-            }
-          >
-            <p className="font-medium text-muted-foreground">{columnTertiary}</p>
-            <p className="font-medium text-foreground">
-              {illustrativeOptimized.headline}
-            </p>
-            <div className="flex flex-col gap-1 pt-0.5">
-              <div className="flex items-baseline justify-between gap-1">
-                <span className="text-muted-foreground">Net CPG</span>
-                <span className="tabular-nums font-medium text-foreground">
-                  {illustrativeOptimized.netCpg != null
-                    ? fmtCpgUsd3(illustrativeOptimized.netCpg)
-                    : "—"}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between gap-1">
-                <span className="text-muted-foreground">Distance</span>
-                <span className="tabular-nums font-medium text-foreground">
-                  {illustrativeOptimized.distanceMiles != null
-                    ? `${illustrativeOptimized.distanceMiles} mi`
-                    : "—"}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between gap-1">
-                <span className="text-muted-foreground">Avg discount</span>
-                <span className="tabular-nums font-medium text-foreground">
-                  {illustrativeOptimized.avgDiscountPerGal != null
-                    ? fmtDiscountUsd3(illustrativeOptimized.avgDiscountPerGal)
-                    : "—"}
-                </span>
+        {hasThirdColumn ? (
+          illustrativeOptimized ? (
+            <div
+              className={cn(
+                "space-y-0.5 border-l-2 pl-2",
+                !optimizedAccent && "border-l-[var(--success)]"
+              )}
+              style={
+                optimizedAccent
+                  ? { borderLeftColor: optimizedAccent }
+                  : undefined
+              }
+            >
+              <p className="font-medium text-muted-foreground">
+                {columnTertiary}
+              </p>
+              <p className="font-medium text-foreground">
+                {illustrativeOptimized.headline}
+              </p>
+              <div className="flex flex-col gap-1 pt-0.5">
+                <div className="flex items-baseline justify-between gap-1">
+                  <span className="text-muted-foreground">Net CPG</span>
+                  <span className="tabular-nums font-medium text-foreground">
+                    {illustrativeOptimized.netCpg != null
+                      ? fmtCpgUsd3(illustrativeOptimized.netCpg)
+                      : "—"}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-1">
+                  <span className="text-muted-foreground">Distance</span>
+                  <span className="tabular-nums font-medium text-foreground">
+                    {illustrativeOptimized.distanceMiles != null
+                      ? `${illustrativeOptimized.distanceMiles} mi`
+                      : "—"}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-1">
+                  <span className="text-muted-foreground">Avg discount</span>
+                  <span className="tabular-nums font-medium text-foreground">
+                    {illustrativeOptimized.avgDiscountPerGal != null
+                      ? fmtDiscountUsd3(illustrativeOptimized.avgDiscountPerGal)
+                      : "—"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div
+              className={cn(
+                "space-y-0.5 border-l-2 pl-2",
+                !optimizedAccent && "border-l-[var(--success)]"
+              )}
+              style={
+                optimizedAccent
+                  ? { borderLeftColor: optimizedAccent }
+                  : undefined
+              }
+            >
+              <p className="font-medium text-muted-foreground">
+                {columnTertiary}
+              </p>
+              <p className="text-muted-foreground leading-snug">
+                {optimizedGap ??
+                  "Optimized details are not available for this view."}
+              </p>
+            </div>
+          )
         ) : null}
       </div>
-      <p
-        className="mt-2 flex items-center justify-between border-t border-border pt-2 font-medium tabular-nums"
-        style={{
-          color: proposedAccent ?? "var(--chart-2)",
-        }}
-      >
-        <span>{savingsFooter}</span>
-        <span>${comparison.savings.toFixed(2)}</span>
-      </p>
+      {proposedGap ? (
+        <p className="mt-2 border-t border-border pt-2 text-[11px] leading-snug text-muted-foreground">
+          Modeled savings apply once a proposed stop exists for this location.
+        </p>
+      ) : (
+        <p
+          className="mt-2 flex items-center justify-between border-t border-border pt-2 font-medium tabular-nums"
+          style={{
+            color: proposedAccent ?? "var(--chart-2)",
+          }}
+        >
+          <span>{savingsFooter}</span>
+          <span>${comparison.savings.toFixed(2)}</span>
+        </p>
+      )}
     </div>
   )
 }

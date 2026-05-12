@@ -60,6 +60,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TEAM_ROLES, type TeamRole, TeamRoleLabel } from "@/components/team-role"
 import { inviteEmailPreviewShellStyle } from "@/lib/email/team-invite-html"
 import { useOptionalWorkspaceSettings } from "@/lib/workspace-settings-context"
@@ -599,16 +600,23 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
                           className="inline-flex h-8 max-w-full shrink-0 items-center gap-0.5 rounded-full border border-border bg-muted/50 pl-2.5 text-xs text-foreground"
                         >
                           <span className="min-w-0 truncate leading-none">{email}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-                            aria-label={`Remove ${email}`}
-                            onClick={() => removeInviteEmailTag(index)}
-                          >
-                            <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" strokeWidth={2} aria-hidden />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                                  aria-label={`Remove ${email}`}
+                                  onClick={() => removeInviteEmailTag(index)}
+                                >
+                                  <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" strokeWidth={2} aria-hidden />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent side="top">Remove email</TooltipContent>
+                          </Tooltip>
                         </span>
                       ))}
                       <Input
@@ -799,19 +807,26 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
                   </TableCell>
                   <TableCell className="p-2 text-right align-middle">
                     <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="min-h-11 min-w-11 text-muted-foreground shrink-0"
-                            aria-label={`More actions for ${member.name}`}
-                          />
-                        }
-                      >
-                        <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
-                      </DropdownMenuTrigger>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="min-h-11 min-w-11 text-muted-foreground shrink-0"
+                                  aria-label={`More actions for ${member.name}`}
+                                />
+                              }
+                            >
+                              <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+                            </DropdownMenuTrigger>
+                          }
+                        />
+                        <TooltipContent side="left">More actions</TooltipContent>
+                      </Tooltip>
                       <DropdownMenuContent align="end" side="bottom" className="w-44">
                         <DropdownMenuItem
                           variant="destructive"

@@ -30,6 +30,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import type { BillingPayment } from "@/lib/billing-store"
 import { saveBilling } from "@/lib/billing-store"
@@ -438,15 +439,22 @@ export function BillingSettingsPanel({
                           <span className="text-sm font-semibold tabular-nums text-foreground">
                             {inv.amount}
                           </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="size-11 min-h-11 min-w-11 shrink-0 rounded-md p-0"
-                            aria-label={`Download ${inv.label}`}
-                            onClick={() => handleInvoiceDownload(inv.id)}
-                          >
-                            <Download className="size-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="size-11 min-h-11 min-w-11 shrink-0 rounded-md p-0"
+                                  aria-label={`Download ${inv.label}`}
+                                  onClick={() => handleInvoiceDownload(inv.id)}
+                                >
+                                  <Download className="size-4" />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent side="left">Download invoice</TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     </li>

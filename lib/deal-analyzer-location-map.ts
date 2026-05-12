@@ -262,3 +262,48 @@ export function dealRowToLocationComparison(
     distanceMiles,
   }
 }
+
+export type DealMapComparisonCardPayload = {
+  comparison: LocationComparison
+  proposedMissing: boolean
+  proposedMissingReason?: string
+}
+
+/**
+ * Data for the deal map comparison card: full LocationComparison when proposed
+ * is modeled; otherwise baseline-only totals plus placeholders so the UI can
+ * show empty proposed column copy.
+ */
+export function dealRowForMapComparisonCard(
+  row: DealLocationComparisonRow
+): DealMapComparisonCardPayload {
+  const full = dealRowToLocationComparison(row)
+  if (full) {
+    return { comparison: full, proposedMissing: false }
+  }
+
+  const gallons = row.current.totalGallons
+  const net = row.current.netCpg
+  const safeGallons = gallons != null && gallons > 0 ? gallons : 0
+  const safeNet = net != null ? net : 0
+  const actualTotal =
+    safeGallons > 0 && net != null ? roundMoney2(safeGallons * safeNet) : 0
+
+  return {
+    comparison: {
+      actualChain: row.stationBrand,
+      actualLocation: row.location,
+      actualCpg: safeNet,
+      actualTotal,
+      optimizedChain: "",
+      optimizedLocation: "",
+      optimizedCpg: 0,
+      optimizedTotal: 0,
+      savings: 0,
+      distanceMiles: 0,
+    },
+    proposedMissing: true,
+    proposedMissingReason:
+      row.match.emptyReason ?? "No modeled alternate for this stop.",
+  }
+}

@@ -22,6 +22,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Sidebar,
   SidebarContent,
@@ -265,24 +266,31 @@ export function AppSettingsDialog({
                             />
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            className={cn(
-                              "flex aspect-square shrink-0 items-center justify-center overflow-hidden",
-                              "size-24 rounded-xl sm:size-28",
-                              "border border-dashed border-muted-foreground/40 bg-muted/30 ring-1 ring-border/60",
-                              "cursor-pointer outline-none transition-colors hover:bg-muted/45",
-                              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                            )}
-                            aria-label="No company logo — upload an image"
-                            onClick={() => workspaceLogoInputRef.current?.click()}
-                          >
-                            <ImagePlus
-                              className="pointer-events-none size-10 text-muted-foreground sm:size-12"
-                              strokeWidth={1.25}
-                              aria-hidden
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "flex aspect-square shrink-0 items-center justify-center overflow-hidden",
+                                    "size-24 rounded-xl sm:size-28",
+                                    "border border-dashed border-muted-foreground/40 bg-muted/30 ring-1 ring-border/60",
+                                    "cursor-pointer outline-none transition-colors hover:bg-muted/45",
+                                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                  )}
+                                  aria-label="No company logo — upload an image"
+                                  onClick={() => workspaceLogoInputRef.current?.click()}
+                                >
+                                  <ImagePlus
+                                    className="pointer-events-none size-10 text-muted-foreground sm:size-12"
+                                    strokeWidth={1.25}
+                                    aria-hidden
+                                  />
+                                </button>
+                              }
                             />
-                          </button>
+                            <TooltipContent side="bottom">Upload company logo</TooltipContent>
+                          </Tooltip>
                         )}
                         <Button
                           type="button"
@@ -298,23 +306,30 @@ export function AppSettingsDialog({
                         </Button>
                       </div>
                       {hasCustomLogo ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          aria-label="Remove logo"
-                          className={cn(
-                            "absolute right-0 top-0 z-10 size-10 min-h-10 min-w-10 -translate-y-1/3 translate-x-1/4 rounded-full bg-white p-0 transition-opacity duration-150 hover:bg-neutral-100 dark:bg-background dark:hover:bg-muted/80",
-                            "opacity-100 pointer-events-auto",
-                            "sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-focus-within:pointer-events-auto"
-                          )}
-                          onClick={() => {
-                            updateOrg(activeOrgId, { logoDataUrl: null })
-                            setLogoError(undefined)
-                          }}
-                        >
-                          <X className="size-4 shrink-0" aria-hidden />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                aria-label="Remove logo"
+                                className={cn(
+                                  "absolute right-0 top-0 z-10 size-10 min-h-10 min-w-10 -translate-y-1/3 translate-x-1/4 rounded-full bg-white p-0 transition-opacity duration-150 hover:bg-neutral-100 dark:bg-background dark:hover:bg-muted/80",
+                                  "opacity-100 pointer-events-auto",
+                                  "sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-focus-within:pointer-events-auto"
+                                )}
+                                onClick={() => {
+                                  updateOrg(activeOrgId, { logoDataUrl: null })
+                                  setLogoError(undefined)
+                                }}
+                              >
+                                <X className="size-4 shrink-0" aria-hidden />
+                              </Button>
+                            }
+                          />
+                          <TooltipContent side="bottom">Remove logo</TooltipContent>
+                        </Tooltip>
                       ) : null}
                     </div>
                     <input
@@ -525,21 +540,28 @@ export function AppSettingsDialog({
             {mobilePhase === "detail" ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <header className="sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-1 border-b border-border/60 bg-app-settings-main px-4 pr-14 text-app-settings-main-foreground">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-lg"
-                    className="size-8 shrink-0 -ml-1 max-sm:size-11"
-                    onClick={mobileBack}
-                    aria-label={mobileBackAriaLabel()}
-                  >
-                    <ChevronLeft
-                      className="size-4 shrink-0 max-sm:size-5"
-                      strokeWidth={2}
-                      aria-hidden
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-lg"
+                          className="size-8 shrink-0 -ml-1 max-sm:size-11"
+                          onClick={mobileBack}
+                          aria-label={mobileBackAriaLabel()}
+                        >
+                          <ChevronLeft
+                            className="size-4 shrink-0 max-sm:size-5"
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                          <span className="sr-only">Back</span>
+                        </Button>
+                      }
                     />
-                    <span className="sr-only">Back</span>
-                  </Button>
+                    <TooltipContent side="bottom">Back</TooltipContent>
+                  </Tooltip>
                   <Separator
                     orientation="vertical"
                     className="mx-2 h-4 data-vertical:self-auto"

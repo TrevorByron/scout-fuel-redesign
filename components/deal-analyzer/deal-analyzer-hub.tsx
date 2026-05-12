@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { BalanceScaleIcon } from "@hugeicons/core-free-icons"
 
@@ -100,16 +101,23 @@ export function DealAnalyzerHub() {
                         {format(new Date(item.date), "MMM d, yyyy · h:mm a")}
                       </span>
                     </Link>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-lg"
-                      className="min-h-11 min-w-11 shrink-0 text-muted-foreground hover:text-destructive"
-                      aria-label={`Delete saved analysis, ${item.name}`}
-                      onClick={() => setDeleteTarget(item)}
-                    >
-                      <Trash2 className="size-4" aria-hidden />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-lg"
+                            className="min-h-11 min-w-11 shrink-0 text-muted-foreground hover:text-destructive"
+                            aria-label={`Delete saved analysis, ${item.name}`}
+                            onClick={() => setDeleteTarget(item)}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent side="left">Delete saved analysis</TooltipContent>
+                    </Tooltip>
                   </li>
                 ))}
               </ul>

@@ -257,28 +257,38 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, state, isMobile, openMobile } = useSidebar()
+  const isOpen = isMobile ? openMobile : state === "expanded"
+  const label = isOpen ? "Close sidebar" : "Open sidebar"
 
   return (
-    <Button
-      data-sidebar="trigger"
-      data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon-lg"
-      className={cn("max-sm:size-11 max-sm:rounded-lg", className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      <HugeiconsIcon
-        icon={SidebarLeftIcon}
-        strokeWidth={2}
-        className="size-4 max-sm:size-5"
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            data-sidebar="trigger"
+            data-slot="sidebar-trigger"
+            variant="ghost"
+            size="icon-lg"
+            className={cn("max-sm:size-11 max-sm:rounded-lg", className)}
+            aria-label={label}
+            onClick={(event) => {
+              onClick?.(event)
+              toggleSidebar()
+            }}
+            {...props}
+          >
+            <HugeiconsIcon
+              icon={SidebarLeftIcon}
+              strokeWidth={2}
+              className="size-4 max-sm:size-5"
+            />
+            <span className="sr-only">{label}</span>
+          </Button>
+        }
       />
-      <span className="sr-only">Toggle Sidebar</span>
-    </Button>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 

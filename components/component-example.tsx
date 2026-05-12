@@ -65,6 +65,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PlusSignIcon, BluetoothIcon, MoreVerticalCircle01Icon, FileIcon, FolderIcon, FolderOpenIcon, CodeIcon, MoreHorizontalCircle01Icon, SearchIcon, FloppyDiskIcon, DownloadIcon, EyeIcon, LayoutIcon, PaintBoardIcon, SunIcon, MoonIcon, ComputerIcon, UserIcon, CreditCardIcon, SettingsIcon, KeyboardIcon, LanguageCircleIcon, NotificationIcon, MailIcon, ShieldIcon, HelpCircleIcon, File01Icon, LogoutIcon } from "@hugeicons/core-free-icons"
 
@@ -159,12 +160,20 @@ function FormExample() {
           <CardDescription>Please fill in your details below</CardDescription>
           <CardAction>
             <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<Button variant="ghost" size="icon" />}
-              >
-                <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
-                <span className="sr-only">More options</span>
-              </DropdownMenuTrigger>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <DropdownMenuTrigger
+                      aria-label="More options"
+                      render={<Button variant="ghost" size="icon" />}
+                    >
+                      <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+                      <span className="sr-only">More options</span>
+                    </DropdownMenuTrigger>
+                  }
+                />
+                <TooltipContent side="left">More options</TooltipContent>
+              </Tooltip>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>File</DropdownMenuLabel>
