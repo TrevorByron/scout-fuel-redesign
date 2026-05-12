@@ -603,7 +603,7 @@ export function DealAnalyzerPage() {
                   disabled={enteringTierIndex !== null}
                   onClick={addTier}
                 >
-                  {form.tiers.length > 1 ? "Add deal tier" : "Add another coverage rule"}
+                  {form.tiers.length > 1 ? "Add deal tier" : "Add another rule"}
                 </Button>
               </div>
 

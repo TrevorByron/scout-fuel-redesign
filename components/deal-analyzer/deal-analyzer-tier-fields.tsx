@@ -44,7 +44,7 @@ function RadioChoiceCard({
     <label
       htmlFor={id}
       className={cn(
-        "flex min-h-11 cursor-pointer rounded-lg border border-input px-3 py-3 transition-colors hover:bg-muted/40",
+        "flex min-h-11 cursor-pointer rounded-lg border border-border px-3 py-3 transition-colors hover:bg-muted/40",
         selected && "border-primary bg-accent",
         layout === "inline" ? "items-center" : ""
       )}
