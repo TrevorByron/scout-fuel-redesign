@@ -37,6 +37,15 @@ export const postInvitesAcceptBodySchema = z
     password: z.string().min(8, "Use at least 8 characters"),
     confirm: z.string().min(1, "Confirm your password"),
     terms: z.boolean(),
+    phone: z.preprocess(
+      (v) => {
+        if (v == null || v === "") return undefined
+        if (typeof v !== "string") return v
+        const t = v.trim()
+        return t === "" ? undefined : t
+      },
+      z.string().max(30, "Phone number is too long").optional()
+    ),
   })
   .refine((d) => d.password === d.confirm, {
     message: "Passwords don't match",

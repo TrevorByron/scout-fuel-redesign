@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppSettingsProvider } from "@/components/app-settings-provider"
+import { DealAnalyzerHeaderNavProvider } from "@/components/deal-analyzer/deal-analyzer-header-nav"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TripsProvider } from "@/lib/trips-context"
@@ -22,15 +23,17 @@ export default function DashboardLayout({
           }
         >
           <AppSettingsProvider>
-            <AppSidebar variant="inset" />
-            <SidebarInset>
-              <SiteHeader />
-              <div className="flex min-h-0 flex-1 flex-col">
-                <div className="@container/main flex min-h-0 flex-1 flex-col gap-2">
-                  {children}
+            <DealAnalyzerHeaderNavProvider>
+              <AppSidebar variant="inset" />
+              <SidebarInset>
+                <SiteHeader />
+                <div className="flex min-h-0 flex-1 flex-col">
+                  <div className="@container/main flex min-h-0 flex-1 flex-col gap-2">
+                    {children}
+                  </div>
                 </div>
-              </div>
-            </SidebarInset>
+              </SidebarInset>
+            </DealAnalyzerHeaderNavProvider>
           </AppSettingsProvider>
         </SidebarProvider>
       </WorkspaceSettingsProvider>

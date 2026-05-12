@@ -30,6 +30,7 @@ const inviteSignupSchema = z
   .object({
     firstName: z.string().trim().min(1, "Enter your first name").max(60),
     lastName: z.string().trim().min(1, "Enter your last name").max(60),
+    phone: z.string().trim().max(30, "Phone number is too long").optional(),
     password: z.string().min(8, "Use at least 8 characters"),
     confirm: z.string().min(1, "Confirm your password"),
     terms: z.boolean(),
@@ -50,6 +51,7 @@ const inviteSignupSchema = z
 type FieldKey =
   | "firstName"
   | "lastName"
+  | "phone"
   | "password"
   | "confirm"
   | "terms"
@@ -78,6 +80,7 @@ export function InviteSignupForm({
 }: InviteSignupFormProps) {
   const [firstName, setFirstName] = React.useState("")
   const [lastName, setLastName] = React.useState("")
+  const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [confirm, setConfirm] = React.useState("")
   const [terms, setTerms] = React.useState(false)
@@ -101,6 +104,7 @@ export function InviteSignupForm({
             if (
               key === "firstName" ||
               key === "lastName" ||
+              key === "phone" ||
               key === "password" ||
               key === "confirm" ||
               key === "terms"
@@ -114,6 +118,7 @@ export function InviteSignupForm({
         const parsed = inviteSignupSchema.safeParse({
           firstName,
           lastName,
+          phone: phone.trim() === "" ? undefined : phone.trim(),
           password,
           confirm,
           terms,
@@ -142,6 +147,7 @@ export function InviteSignupForm({
                   displayName: resolvedDisplayName,
                   username: derivedUsername,
                   role,
+                  ...(parsed.data.phone ? { phone: parsed.data.phone } : {}),
                 })
               )
             } catch {
@@ -171,6 +177,7 @@ export function InviteSignupForm({
               password: parsed.data.password,
               confirm: parsed.data.confirm,
               terms: parsed.data.terms,
+              ...(parsed.data.phone ? { phone: parsed.data.phone } : {}),
             }),
           })
           const data: unknown = await res.json().catch(() => null)
@@ -195,6 +202,7 @@ export function InviteSignupForm({
                   displayName: p.displayName,
                   username: p.username,
                   role: p.role,
+                  ...(typeof p.phone === "string" && p.phone ? { phone: p.phone } : {}),
                 })
               )
             } catch {
@@ -262,6 +270,26 @@ export function InviteSignupForm({
             {errors.lastName ? <FieldError>{errors.lastName}</FieldError> : null}
           </Field>
         </div>
+
+        <Field data-invalid={!!errors.phone}>
+          <FieldLabel htmlFor="invite-phone">Phone number</FieldLabel>
+          <Input
+            id="invite-phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="(555) 555-0100"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value)
+              if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }))
+            }}
+            aria-invalid={!!errors.phone}
+            className="min-h-11"
+          />
+          {errors.phone ? <FieldError>{errors.phone}</FieldError> : null}
+        </Field>
 
         {errors.root ? (
           <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

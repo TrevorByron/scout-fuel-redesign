@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronRight } from "lucide-react"
+import { useDealAnalyzerHeaderNavPayload } from "@/components/deal-analyzer/deal-analyzer-header-nav"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -47,15 +48,53 @@ function usePageTitle(): string {
 }
 
 function DealAnalyzerAnalyzeHeaderCrumb() {
+  const nav = useDealAnalyzerHeaderNavPayload()
+  const crumbLinkClass =
+    "inline-flex min-h-11 max-w-full items-center truncate rounded-md px-1 text-xs font-normal transition-colors hover:text-foreground sm:min-h-9 sm:text-sm"
+  const crumbCurrentClass =
+    "inline-flex min-h-11 max-w-full items-center truncate rounded-md px-1 text-xs font-medium text-foreground sm:min-h-9 sm:text-sm"
+
+  if (!nav?.compact) {
+    return (
+      <>
+        <h1 className="sr-only">Analyze deal</h1>
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList className="gap-1 text-muted-foreground sm:gap-1.5">
+            <BreadcrumbItem className="max-sm:max-w-[42vw]">
+              <BreadcrumbLink
+                render={<Link href="/deal-analyzer" />}
+                className={crumbLinkClass}
+              >
+                Deal Analyzer
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">
+              <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+            </BreadcrumbSeparator>
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbPage className={crumbCurrentClass}>
+                Analyze deal
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </>
+    )
+  }
+
+  const { step, setStep } = nav
+
   return (
     <>
-      <h1 className="sr-only">Analyze deal</h1>
+      <h1 className="sr-only">
+        {step === "results" ? "Results" : "Deal details"}
+      </h1>
       <Breadcrumb className="min-w-0">
         <BreadcrumbList className="gap-1 text-muted-foreground sm:gap-1.5">
-          <BreadcrumbItem className="max-sm:max-w-[42vw]">
+          <BreadcrumbItem className="min-w-0 max-sm:max-w-[28vw]">
             <BreadcrumbLink
               render={<Link href="/deal-analyzer" />}
-              className="inline-flex min-h-11 max-w-full items-center truncate rounded-md px-1 text-xs font-normal sm:min-h-9 sm:text-sm"
+              className={crumbLinkClass}
             >
               Deal Analyzer
             </BreadcrumbLink>
@@ -63,11 +102,32 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
           <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">
             <ChevronRight className="size-3.5 shrink-0" aria-hidden />
           </BreadcrumbSeparator>
-          <BreadcrumbItem className="min-w-0">
-            <BreadcrumbPage className="inline-flex min-h-11 max-w-full items-center truncate text-xs font-medium text-foreground sm:min-h-9 sm:text-sm">
-              Analyze deal
-            </BreadcrumbPage>
+          <BreadcrumbItem className="min-w-0 max-sm:max-w-[34vw]">
+            {step === "details" ? (
+              <BreadcrumbPage className={crumbCurrentClass}>
+                Deal Details
+              </BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink
+                render={<button type="button" />}
+                className={crumbLinkClass}
+                aria-label="Go to deal details"
+                onClick={() => setStep("details")}
+              >
+                Deal Details
+              </BreadcrumbLink>
+            )}
           </BreadcrumbItem>
+          {step === "results" ? (
+            <>
+              <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">
+                <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+              </BreadcrumbSeparator>
+              <BreadcrumbItem className="min-w-0 max-sm:max-w-[28vw]">
+                <BreadcrumbPage className={crumbCurrentClass}>Results</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ) : null}
         </BreadcrumbList>
       </Breadcrumb>
     </>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Upload, Zap } from "lucide-react"
+import { ChevronLeft, LineChart, Upload, Zap } from "lucide-react"
 import { getFuelTransactions } from "@/lib/mock-data"
 import { getAllLocationKeys } from "@/lib/location-utils"
 import type {
@@ -28,6 +28,7 @@ import {
   migrateDealConfigToCurrentShape,
   normalizeDefRebateModeOnLoad,
 } from "@/lib/deal-analyzer-migration"
+import { useDealAnalyzerHeaderNavSetter } from "@/components/deal-analyzer/deal-analyzer-header-nav"
 import { DealAnalyzerTierFields } from "@/components/deal-analyzer/deal-analyzer-tier-fields"
 import {
   deleteDealAnalysis,
@@ -68,7 +69,10 @@ import { Separator } from "@/components/ui/separator"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { BalanceScaleIcon } from "@hugeicons/core-free-icons"
 import { DateRangePresetTabs } from "@/components/date-range-preset-tabs"
+import { useDealAnalyzerCompactLayout } from "@/hooks/use-deal-analyzer-compact-layout"
 import { cn } from "@/lib/utils"
+
+type MobileDealStep = "details" | "results"
 
 function normalizeDealAnalyzerPeriod(p: unknown): DealAnalyzerPeriod {
   if (p === "6months") return "year"
@@ -100,6 +104,63 @@ function defaultForm(): DealAnalyzerFormInput {
   return defaultDealAnalyzerForm()
 }
 
+/** Wraps each tier so enter animation can replay after remove/add (CSS won't re-fire otherwise). */
+function DealAnalyzerTierEnterShell({
+  children,
+  shellRef,
+  isEntering,
+  motionOk,
+  animEpoch,
+}: {
+  children: React.ReactNode
+  shellRef: (el: HTMLDivElement | null) => void
+  isEntering: boolean
+  motionOk: boolean
+  animEpoch: number
+}) {
+  const innerRef = React.useRef<HTMLDivElement | null>(null)
+
+  const setRefs = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      innerRef.current = el
+      shellRef(el)
+    },
+    [shellRef]
+  )
+
+  React.useLayoutEffect(() => {
+    if (!isEntering || !motionOk) return
+    const el = innerRef.current
+    if (!el) return
+    el.classList.remove(
+      "animate-in",
+      "fade-in-0",
+      "slide-in-from-bottom-4",
+      "duration-300"
+    )
+    void el.getBoundingClientRect()
+    el.classList.add(
+      "animate-in",
+      "fade-in-0",
+      "slide-in-from-bottom-4",
+      "duration-300"
+    )
+  }, [isEntering, motionOk, animEpoch])
+
+  return (
+    <div
+      ref={setRefs}
+      className={cn(
+        isEntering &&
+          motionOk &&
+          "animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
 export function DealAnalyzerPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -112,6 +173,7 @@ export function DealAnalyzerPage() {
   )
 
   const locationSelectOptions = React.useMemo(() => getAllLocationKeys(), [])
+  const isCompactLayout = useDealAnalyzerCompactLayout()
 
   const [form, setForm] = React.useState<DealAnalyzerFormInput>(defaultForm)
   const [selectedPeriod, setSelectedPeriod] =
@@ -131,8 +193,27 @@ export function DealAnalyzerPage() {
   const [saveName, setSaveName] = React.useState("")
 
   const resultsRef = React.useRef<HTMLDivElement>(null)
+  const dealConfigScrollRef = React.useRef<HTMLDivElement>(null)
   const tierCardRefs = React.useRef<(HTMLDivElement | null)[]>([])
   const [enteringTierIndex, setEnteringTierIndex] = React.useState<number | null>(null)
+  const [tierAnimEpoch, setTierAnimEpoch] = React.useState(0)
+  const [mobileDealStep, setMobileDealStep] =
+    React.useState<MobileDealStep>("details")
+  const prevIsMobileRef = React.useRef<boolean | undefined>(undefined)
+  const setHeaderNav = useDealAnalyzerHeaderNavSetter()
+
+  React.useLayoutEffect(() => {
+    if (!setHeaderNav) return
+    setHeaderNav({
+      compact: isCompactLayout,
+      showResults,
+      step: mobileDealStep,
+      setStep: setMobileDealStep,
+    })
+    return () => {
+      setHeaderNav(null)
+    }
+  }, [setHeaderNav, isCompactLayout, showResults, mobileDealStep])
 
   React.useEffect(() => {
     if (!savedId) return
@@ -149,29 +230,67 @@ export function DealAnalyzerPage() {
     setLastCalculatedFormSignature(JSON.stringify(normalizedForm))
   }, [savedId])
 
+  React.useEffect(() => {
+    if (!savedId || !isCompactLayout) return
+    setMobileDealStep("results")
+  }, [savedId, isCompactLayout])
+
+  React.useEffect(() => {
+    const prev = prevIsMobileRef.current
+    prevIsMobileRef.current = isCompactLayout
+    if (prev === undefined) return
+    // Crossing from wide to compact: keep results step if we have a run, else details.
+    if (isCompactLayout && prev === false) {
+      setMobileDealStep(showResults ? "results" : "details")
+    }
+  }, [isCompactLayout, showResults])
+
   const currentFormSignature = React.useMemo(() => JSON.stringify(form), [form])
+
+  React.useLayoutEffect(() => {
+    tierCardRefs.current.splice(form.tiers.length)
+  }, [form.tiers.length])
 
   React.useLayoutEffect(() => {
     if (enteringTierIndex === null) return
     const idx = enteringTierIndex
-    const el = tierCardRefs.current[idx]
     const prefersReduced =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const behavior: ScrollBehavior = prefersReduced ? "auto" : "smooth"
 
-    if (el) {
-      el.scrollIntoView({
-        block: "nearest",
-        behavior: prefersReduced ? "auto" : "smooth",
-      })
+    const scrollNewTierIntoConfigRegion = () => {
+      const el = tierCardRefs.current[idx]
+      const region = dealConfigScrollRef.current
+      if (!el) return
+      if (region && region.contains(el)) {
+        const rr = region.getBoundingClientRect()
+        const er = el.getBoundingClientRect()
+        const offset = er.top - rr.top - 12
+        region.scrollTo({
+          top: region.scrollTop + offset,
+          behavior,
+        })
+        return
+      }
+      el.scrollIntoView({ block: "start", behavior })
     }
+
+    let innerRaf = 0
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(scrollNewTierIntoConfigRegion)
+    })
 
     const clearMs = prefersReduced ? 0 : 320
     const t = window.setTimeout(() => {
       setEnteringTierIndex(null)
     }, clearMs)
 
-    return () => window.clearTimeout(t)
+    return () => {
+      cancelAnimationFrame(outerRaf)
+      cancelAnimationFrame(innerRaf)
+      window.clearTimeout(t)
+    }
   }, [enteringTierIndex])
 
   const periodSnapshots = React.useMemo(() => {
@@ -228,6 +347,9 @@ export function DealAnalyzerPage() {
     lastCalculatedFormSignature === null ||
     lastCalculatedFormSignature !== currentFormSignature
 
+  const showResultsCta =
+    canCalculate && showResults && !hasUncalculatedChanges
+
   const runAnalysis = React.useCallback(
     (periodOverride?: DealAnalyzerPeriod) => {
       const period = periodOverride ?? selectedPeriod
@@ -240,6 +362,7 @@ export function DealAnalyzerPage() {
       if (baseline.transactions === 0) {
         setResults(null)
         setShowResults(false)
+        setMobileDealStep("details")
         setAnalysisError(
           "No purchases in this period match your tier program types. Pick another window or adjust tiers."
         )
@@ -255,6 +378,7 @@ export function DealAnalyzerPage() {
       if (!computed) {
         setResults(null)
         setShowResults(false)
+        setMobileDealStep("details")
         setAnalysisError("Could not compute this scenario. Check inputs.")
         return
       }
@@ -263,8 +387,11 @@ export function DealAnalyzerPage() {
       setLockedPeriod(period)
       setShowResults(true)
       setLastCalculatedFormSignature(currentFormSignature)
+      if (isCompactLayout) {
+        setMobileDealStep("results")
+      }
 
-      if (periodOverride === undefined) {
+      if (periodOverride === undefined && !isCompactLayout) {
         const prefersReduced =
           typeof window !== "undefined" &&
           window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -276,8 +403,24 @@ export function DealAnalyzerPage() {
         })
       }
     },
-    [allTransactions, currentFormSignature, form, selectedPeriod]
+    [allTransactions, currentFormSignature, form, isCompactLayout, selectedPeriod]
   )
+
+  const goToResultsPane = React.useCallback(() => {
+    if (isCompactLayout) {
+      setMobileDealStep("results")
+      return
+    }
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    requestAnimationFrame(() => {
+      resultsRef.current?.scrollIntoView({
+        behavior: prefersReduced ? "auto" : "smooth",
+        block: "start",
+      })
+    })
+  }, [isCompactLayout])
 
   const handleDeleteSaved = () => {
     if (!savedId) return
@@ -323,7 +466,10 @@ export function DealAnalyzerPage() {
       newIndex = f.tiers.length
       return { ...f, tiers: [...f.tiers, defaultPricingTier()] }
     })
-    if (newIndex >= 0) setEnteringTierIndex(newIndex)
+    if (newIndex >= 0) {
+      setTierAnimEpoch((e) => e + 1)
+      setEnteringTierIndex(newIndex)
+    }
   }
 
   function removeTier(index: number) {
@@ -334,29 +480,28 @@ export function DealAnalyzerPage() {
     }))
   }
 
+  const showMobileResultsPane = showResults && mobileDealStep === "results"
+
   return (
     <>
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col gap-4 overflow-visible px-4 py-4",
-          "md:min-h-0 md:flex-row md:items-stretch md:gap-0 md:overflow-hidden md:p-0"
+          "lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0"
         )}
         style={DEAL_ANALYZER_SHELL_STYLE}
       >
         <aside
           className={cn(
             "flex min-h-0 min-w-0 w-full flex-col",
-            "md:max-w-xl md:min-h-0 md:h-full md:min-w-[23.75rem] md:w-[43%] md:shrink-0 md:self-stretch md:p-4"
+            "max-lg:min-h-0 max-lg:flex-1",
+            "lg:max-w-xl lg:min-h-0 lg:h-full lg:min-w-[23.75rem] lg:w-[43%] lg:shrink-0 lg:self-stretch lg:p-4",
+            showMobileResultsPane && "max-lg:hidden"
           )}
           aria-label="Deal details"
         >
-          <Card className="gap-0 py-0 flex min-h-0 flex-1 flex-col overflow-hidden md:h-full md:max-h-none">
-            <div
-              className={cn(
-                "flex min-h-0 flex-1 flex-col rounded-lg",
-                "md:overflow-hidden"
-              )}
-            >
+          <Card className="gap-0 py-0 flex min-h-0 flex-1 flex-col overflow-hidden lg:h-full lg:max-h-none lg:min-h-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-lg">
               <header className="shrink-0 border-b border-border p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -367,7 +512,7 @@ export function DealAnalyzerPage() {
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1">
-                      <h2 className="text-lg font-semibold tracking-tight md:text-xl">
+                      <h2 className="text-lg font-semibold tracking-tight lg:text-xl">
                         Deal details
                       </h2>
                       <p className="text-muted-foreground mt-0.5 text-xs">
@@ -378,12 +523,10 @@ export function DealAnalyzerPage() {
                 </div>
               </header>
               <div
+                ref={dealConfigScrollRef}
                 role="region"
                 aria-label="Deal configuration"
-                className={cn(
-                  "flex flex-col overflow-visible",
-                  "md:min-h-0 md:flex-1 md:basis-0 md:overflow-y-auto md:overscroll-y-contain md:[-webkit-overflow-scrolling:touch]"
-                )}
+                className="flex min-h-0 min-w-0 flex-1 flex-col basis-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
               >
                 <div className="flex flex-col gap-4 p-4 pb-8">
               <div className="flex shrink-0 flex-col gap-2">
@@ -431,15 +574,14 @@ export function DealAnalyzerPage() {
                     !window.matchMedia("(prefers-reduced-motion: reduce)").matches
                   const isEntering = enteringTierIndex === i && motionOk
                   return (
-                    <div
+                    <DealAnalyzerTierEnterShell
                       key={`tier-${i}`}
-                      ref={(el) => {
+                      shellRef={(el) => {
                         tierCardRefs.current[i] = el
                       }}
-                      className={cn(
-                        isEntering &&
-                          "animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
-                      )}
+                      isEntering={isEntering}
+                      motionOk={motionOk}
+                      animEpoch={tierAnimEpoch}
                     >
                       <DealAnalyzerTierFields
                         tierIndex={i}
@@ -450,7 +592,7 @@ export function DealAnalyzerPage() {
                         onRemove={form.tiers.length > 1 ? () => removeTier(i) : undefined}
                         canRemove={form.tiers.length > 1}
                       />
-                    </div>
+                    </DealAnalyzerTierEnterShell>
                   )
                 })}
                 <Separator className="bg-border/70" aria-hidden />
@@ -470,19 +612,36 @@ export function DealAnalyzerPage() {
               <footer
                 className={cn(
                   "shrink-0 border-t border-border bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm",
-                  "max-md:sticky max-md:bottom-0 max-md:z-10",
-                  "md:relative md:z-auto md:bg-background/20 md:pb-4"
+                  "max-lg:sticky max-lg:bottom-0 max-lg:z-10",
+                  "lg:relative lg:z-auto lg:bg-background/20 lg:pb-4"
                 )}
               >
                 <div className="flex flex-col gap-2">
                   <Button
                     type="button"
                     className="min-h-11 w-full gap-2 sm:min-h-10"
-                    disabled={!canCalculate || !hasUncalculatedChanges}
-                    onClick={() => runAnalysis()}
+                    disabled={
+                      showResultsCta ? false : !canCalculate || !hasUncalculatedChanges
+                    }
+                    aria-label={
+                      showResultsCta
+                        ? "Show analysis results"
+                        : "Calculate deal from your inputs"
+                    }
+                    onClick={() => {
+                      if (showResultsCta) {
+                        goToResultsPane()
+                      } else {
+                        runAnalysis()
+                      }
+                    }}
                   >
-                    <Zap className="size-4" aria-hidden />
-                    Calculate Deal
+                    {showResultsCta ? (
+                      <LineChart className="size-4" aria-hidden />
+                    ) : (
+                      <Zap className="size-4" aria-hidden />
+                    )}
+                    {showResultsCta ? "Show results" : "Calculate Deal"}
                   </Button>
                   {analysisError ? (
                     <p
@@ -502,19 +661,36 @@ export function DealAnalyzerPage() {
           ref={resultsRef}
           className={cn(
             "flex min-h-0 min-w-0 w-full flex-1 flex-col gap-4",
-            "md:min-h-0 md:h-full md:overflow-y-auto md:overscroll-y-contain md:[-webkit-overflow-scrolling:touch] md:p-4 md:pb-8"
+            "lg:min-h-0 lg:h-full lg:overflow-y-auto lg:overscroll-y-contain lg:[-webkit-overflow-scrolling:touch] lg:p-4 lg:pb-8",
+            (!showResults || mobileDealStep === "details") && "max-lg:hidden",
+            showMobileResultsPane &&
+              "max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:overflow-y-auto max-lg:overscroll-y-contain max-lg:[-webkit-overflow-scrolling:touch]"
           )}
         >
           {showResults ? (
             <section className="flex flex-col gap-3 overflow-visible border-b border-border pb-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <h2 className="text-lg font-semibold tracking-tight md:text-xl">
-                    Comparison range
-                  </h2>
-                  <p className="text-muted-foreground text-xs">
-                    Compare deal to your past transactions.
-                  </p>
+                <div className="flex min-w-0 flex-1 items-start gap-1.5 sm:gap-2">
+                  {showMobileResultsPane ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="lg:hidden min-h-11 min-w-11 shrink-0 self-start sm:min-h-9 sm:min-w-9"
+                      aria-label="Back to deal details"
+                      onClick={() => setMobileDealStep("details")}
+                    >
+                      <ChevronLeft className="size-5 shrink-0" aria-hidden />
+                    </Button>
+                  ) : null}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <h2 className="text-lg font-semibold tracking-tight lg:text-xl">
+                      Comparison range
+                    </h2>
+                    <p className="text-muted-foreground text-xs">
+                      Compare deal to your past transactions.
+                    </p>
+                  </div>
                 </div>
                 {savedId ? (
                   <Button
@@ -531,12 +707,12 @@ export function DealAnalyzerPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
-                      className="min-h-11 shrink-0 gap-2 sm:min-h-9"
+                      size="icon-sm"
+                      className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
+                      aria-label="Upload transactions"
                       onClick={() => setUploadOpen(true)}
                     >
                       <Upload className="size-4" aria-hidden />
-                      Upload Transactions
                     </Button>
                     <Button
                       type="button"

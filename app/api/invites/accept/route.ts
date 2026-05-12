@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       displayName,
       username: usernameFromDisplayName(displayName),
       role: invite.payload.role,
+      ...(data.phone ? { phone: data.phone } : {}),
       /** Hint for client localStorage (server does not persist passwords). */
       localStorageKey: PROTOTYPE_PROFILE_STORAGE_KEY,
     },
