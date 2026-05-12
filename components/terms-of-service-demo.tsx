@@ -11,7 +11,9 @@ import {
 export function TermsOfServiceDemoPageHeader() {
   return (
     <div className="mb-4 shrink-0 space-y-1">
-      <h2 className="text-lg font-semibold text-foreground">Terms and Conditions</h2>
+      <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">
+        Terms and Conditions
+      </h2>
       <p className="text-sm text-muted-foreground">
         Use this sample for demos and app store review, and replace it with your legal agreements
         before launch.

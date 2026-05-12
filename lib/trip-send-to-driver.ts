@@ -1,4 +1,6 @@
 import { toast } from "sonner"
+import { driverDisplayName, loadDriverContacts } from "@/lib/driver-contact-store"
+import { drivers } from "@/lib/mock-data"
 import type { TripPlan } from "@/lib/trips"
 
 export type UpdateTripPlanFn = (
@@ -31,7 +33,16 @@ export function sendTripToDriver(
     toast.success(options.successMessage)
     return true
   }
-  const who = trip.driverName?.trim()
+  const id = trip.driverId?.trim()
+  let who: string | undefined
+  if (id) {
+    const fleet = drivers.find((d) => d.driverId === id)
+    if (fleet) {
+      const contacts = loadDriverContacts(drivers)
+      who = driverDisplayName(fleet.driverName, contacts[id]).trim() || undefined
+    }
+  }
+  who = who ?? trip.driverName?.trim()
   toast.success(who ? `Trip sent to ${who}.` : "Trip sent to driver.")
   return true
 }

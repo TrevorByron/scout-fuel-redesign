@@ -4,26 +4,31 @@ import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Upload, Zap } from "lucide-react"
 import { getFuelTransactions } from "@/lib/mock-data"
+import { getAllLocationKeys } from "@/lib/location-utils"
 import type {
   DealAnalyzerFormInput,
   DealAnalyzerPeriod,
   DealAnalyzerResults,
-  DealDiscountStructure,
-  DefRebatePricingMode,
   DealFuelNetwork,
-  DealProgramType,
-  DealStateRestriction,
+  DealPricingTier,
 } from "@/lib/deal-analyzer-types"
 import {
   buildLocationComparisonRows,
   computeDealAnalysis,
-  filterTransactionsByDealProgram,
+  filterTransactionsByDealTiers,
   filterTransactionsInRange,
-  aggregateBaseline,
+  aggregateBaselineForDealTiers,
   NETWORK_LABELS,
   resolvePeriodRange,
   summarizePeriod,
 } from "@/lib/deal-analyzer-engine"
+import {
+  defaultDealAnalyzerForm,
+  defaultPricingTier,
+  migrateDealConfigToCurrentShape,
+  normalizeDefRebateModeOnLoad,
+} from "@/lib/deal-analyzer-migration"
+import { DealAnalyzerTierFields } from "@/components/deal-analyzer/deal-analyzer-tier-fields"
 import {
   deleteDealAnalysis,
   getSavedDealAnalysis,
@@ -49,8 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldLabel, FieldLegend } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -60,20 +64,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { BalanceScaleIcon } from "@hugeicons/core-free-icons"
 import { DateRangePresetTabs } from "@/components/date-range-preset-tabs"
 import { cn } from "@/lib/utils"
-
-const US_STATES = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
-] as const
 
 function normalizeDealAnalyzerPeriod(p: unknown): DealAnalyzerPeriod {
   if (p === "6months") return "year"
@@ -91,89 +86,18 @@ const DEAL_ANALYZER_PERIOD_PRESETS: {
   { value: "year", label: "Last Year" },
 ]
 
-function RadioChoiceCard({
-  id,
-  value,
-  selected,
-  layout = "stack",
-  children,
-}: {
-  id: string
-  value: string
-  selected: boolean
-  layout?: "inline" | "stack"
-  children: React.ReactNode
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className={cn(
-        "flex min-h-11 cursor-pointer rounded-lg border border-input px-3 py-3 transition-colors hover:bg-muted/40",
-        selected && "border-primary bg-accent",
-        layout === "inline" ? "items-center" : ""
-      )}
-    >
-      <div
-        className={cn(
-          "flex w-full gap-3",
-          layout === "inline" ? "items-center" : "items-start"
-        )}
-      >
-        <RadioGroupItem
-          value={value}
-          id={id}
-          className={cn(layout === "stack" && "mt-0.5")}
-        />
-        <div
-          className={cn(
-            "min-w-0 flex-1",
-            layout === "stack" && "flex flex-col gap-0.5"
-          )}
-        >
-          {children}
-        </div>
-      </div>
-    </label>
-  )
-}
-
 /** Viewport height below header — same contract as `MapSheetLayout` aside shell. */
 const DEAL_ANALYZER_SHELL_STYLE: React.CSSProperties = {
   height: "100%",
   maxHeight: "calc(100dvh - var(--header-height, 3rem))",
 }
 
-/** Align fieldset legends with `FieldLabel` / base `Label` typography. */
-const DEAL_FORM_LEGEND_CLASS =
-  "mb-0 flex w-fit items-center gap-2 text-foreground leading-snug select-none"
-
-/** Older saved runs omitted `defRebatePricingMode`; keep them on the flat path. */
 function normalizeLoadedDealConfig(c: DealAnalyzerFormInput): DealAnalyzerFormInput {
-  const next = { ...c }
-  if (
-    next.programType === "def_rebate" &&
-    next.defRebatePricingMode !== "flat" &&
-    next.defRebatePricingMode !== "retail_minus"
-  ) {
-    next.defRebatePricingMode = "flat"
-  }
-  return next
+  return normalizeDefRebateModeOnLoad(migrateDealConfigToCurrentShape(c))
 }
 
 function defaultForm(): DealAnalyzerFormInput {
-  return {
-    dealName: "",
-    network: "",
-    programType: "",
-    discountStructure: "",
-    discountAmountCentsPerGal: "",
-    costPlusAmountPerGal: "",
-    rebateAmountCentsPerGal: "",
-    defRebateAmountCentsPerGal: "",
-    defRebatePricingMode: "",
-    stateRestriction: "",
-    selectedStates: [],
-  }
+  return defaultDealAnalyzerForm()
 }
 
 export function DealAnalyzerPage() {
@@ -186,6 +110,8 @@ export function DealAnalyzerPage() {
     () => getFuelTransactions(anchorRef.current),
     []
   )
+
+  const locationSelectOptions = React.useMemo(() => getAllLocationKeys(), [])
 
   const [form, setForm] = React.useState<DealAnalyzerFormInput>(defaultForm)
   const [selectedPeriod, setSelectedPeriod] =
@@ -205,6 +131,8 @@ export function DealAnalyzerPage() {
   const [saveName, setSaveName] = React.useState("")
 
   const resultsRef = React.useRef<HTMLDivElement>(null)
+  const tierCardRefs = React.useRef<(HTMLDivElement | null)[]>([])
+  const [enteringTierIndex, setEnteringTierIndex] = React.useState<number | null>(null)
 
   React.useEffect(() => {
     if (!savedId) return
@@ -223,19 +151,37 @@ export function DealAnalyzerPage() {
 
   const currentFormSignature = React.useMemo(() => JSON.stringify(form), [form])
 
+  React.useLayoutEffect(() => {
+    if (enteringTierIndex === null) return
+    const idx = enteringTierIndex
+    const el = tierCardRefs.current[idx]
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    if (el) {
+      el.scrollIntoView({
+        block: "nearest",
+        behavior: prefersReduced ? "auto" : "smooth",
+      })
+    }
+
+    const clearMs = prefersReduced ? 0 : 320
+    const t = window.setTimeout(() => {
+      setEnteringTierIndex(null)
+    }, clearMs)
+
+    return () => window.clearTimeout(t)
+  }, [enteringTierIndex])
+
   const periodSnapshots = React.useMemo(() => {
     const anchor = anchorRef.current
     return DEAL_ANALYZER_PERIOD_PRESETS.map((p) => ({
       id: p.value,
       label: p.label,
-      stats: summarizePeriod(
-        allTransactions,
-        p.value,
-        form.programType,
-        anchor
-      ),
+      stats: summarizePeriod(allTransactions, p.value, form.tiers, anchor),
     }))
-  }, [allTransactions, form.programType])
+  }, [allTransactions, form.tiers])
 
   const selectedPeriodSnapshot = React.useMemo(
     () => periodSnapshots.find((s) => s.id === selectedPeriod),
@@ -246,8 +192,8 @@ export function DealAnalyzerPage() {
     if (!results || !lockedPeriod) return []
     const range = resolvePeriodRange(lockedPeriod, anchorRef.current)
     const inRange = filterTransactionsInRange(allTransactions, range)
-    return filterTransactionsByDealProgram(inRange, form.programType)
-  }, [allTransactions, results, lockedPeriod, form.programType])
+    return filterTransactionsByDealTiers(inRange, form.tiers)
+  }, [allTransactions, results, lockedPeriod, form.tiers])
 
   const locationComparisonRows = React.useMemo(() => {
     if (!results || analysisTransactionSlice.length === 0) return []
@@ -258,29 +204,29 @@ export function DealAnalyzerPage() {
     )
   }, [analysisTransactionSlice, form, results])
 
-  const canCalculate =
-    form.network !== "" &&
-    form.programType !== "" &&
-    form.stateRestriction !== "" &&
-    (form.programType === "discount" || form.programType === "rebate"
-      ? form.discountStructure !== ""
-      : true) &&
-    (form.programType === "def_rebate"
-      ? form.defRebatePricingMode === "flat" ||
-        form.defRebatePricingMode === "retail_minus"
-      : true)
+  const tiersComplete =
+    form.tiers.length > 0 &&
+    form.tiers.every((tier) => {
+      if (tier.locationCoverage === "") return false
+      if (tier.programType === "") return false
+      if (tier.programType === "discount" || tier.programType === "rebate") {
+        if (tier.discountStructure === "") return false
+      }
+      if (tier.programType === "def_rebate") {
+        if (
+          tier.defRebatePricingMode !== "flat" &&
+          tier.defRebatePricingMode !== "retail_minus"
+        ) {
+          return false
+        }
+      }
+      return true
+    })
+
+  const canCalculate = form.network !== "" && tiersComplete
   const hasUncalculatedChanges =
     lastCalculatedFormSignature === null ||
     lastCalculatedFormSignature !== currentFormSignature
-
-  const strategyProgram =
-    form.programType === "discount" || form.programType === "rebate"
-  const rebateLike = form.programType === "rebate"
-  const defRebateModeSelected =
-    form.defRebatePricingMode === "flat" ||
-    form.defRebatePricingMode === "retail_minus"
-      ? form.defRebatePricingMode
-      : ""
 
   const runAnalysis = React.useCallback(
     (periodOverride?: DealAnalyzerPeriod) => {
@@ -289,15 +235,13 @@ export function DealAnalyzerPage() {
       const anchor = anchorRef.current
       const range = resolvePeriodRange(period, anchor)
       const slice = filterTransactionsInRange(allTransactions, range)
-      const baseline = aggregateBaseline(slice, form.programType)
+      const baseline = aggregateBaselineForDealTiers(slice, form.tiers)
 
       if (baseline.transactions === 0) {
         setResults(null)
         setShowResults(false)
         setAnalysisError(
-          form.programType === "def_rebate"
-            ? "No DEF purchases in this period. Pick another window or program type."
-            : "No fuel purchases in this period. Pick another time window."
+          "No purchases in this period match your tier program types. Pick another window or adjust tiers."
         )
         return
       }
@@ -365,13 +309,29 @@ export function DealAnalyzerPage() {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  function toggleState(st: string, checked: boolean) {
+  function patchTier(index: number, patch: Partial<DealPricingTier>) {
+    setForm((f) => ({
+      ...f,
+      tiers: f.tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)),
+    }))
+  }
+
+  function addTier() {
+    if (enteringTierIndex !== null) return
+    let newIndex = -1
     setForm((f) => {
-      const next = new Set(f.selectedStates)
-      if (checked) next.add(st)
-      else next.delete(st)
-      return { ...f, selectedStates: [...next].sort() }
+      newIndex = f.tiers.length
+      return { ...f, tiers: [...f.tiers, defaultPricingTier()] }
     })
+    if (newIndex >= 0) setEnteringTierIndex(newIndex)
+  }
+
+  function removeTier(index: number) {
+    setEnteringTierIndex(null)
+    setForm((f) => ({
+      ...f,
+      tiers: f.tiers.filter((_, i) => i !== index),
+    }))
   }
 
   return (
@@ -462,339 +422,48 @@ export function DealAnalyzerPage() {
                 </Field>
               </div>
 
-              <fieldset className="m-0 min-w-0 space-y-2 border-0 p-0">
-                <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
-                  Program type
-                </FieldLegend>
-                <RadioGroup
-                  value={form.programType}
-                  onValueChange={(v) =>
-                    updateForm("programType", v as DealProgramType)
-                  }
-                  aria-label="Program type"
-                  className="grid w-full grid-cols-1 gap-2"
-                >
-                  <RadioChoiceCard
-                    id="deal-prog-discount"
-                    value="discount"
-                    selected={form.programType === "discount"}
-                  >
-                    <span className="font-medium">Discount</span>
-                    <span className="text-muted-foreground text-xs font-normal">
-                      ¢/gal off
-                    </span>
-                  </RadioChoiceCard>
-                  <RadioChoiceCard
-                    id="deal-prog-rebate"
-                    value="rebate"
-                    selected={form.programType === "rebate"}
-                  >
-                    <span className="font-medium">Rebate</span>
-                    <span className="text-muted-foreground text-xs font-normal">
-                      Paid later
-                    </span>
-                  </RadioChoiceCard>
-                  <RadioChoiceCard
-                    id="deal-prog-def"
-                    value="def_rebate"
-                    selected={form.programType === "def_rebate"}
-                  >
-                    <span className="font-medium">DEF rebate</span>
-                    <span className="text-muted-foreground text-xs font-normal">
-                      DEF only
-                    </span>
-                  </RadioChoiceCard>
-                </RadioGroup>
-              </fieldset>
-
-              {strategyProgram ? (
-                <>
-                  <fieldset className="m-0 min-w-0 space-y-2 border-0 p-0">
-                    <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
-                      Strategy
-                    </FieldLegend>
-                    <RadioGroup
-                      value={form.discountStructure}
-                      onValueChange={(v) =>
-                        updateForm("discountStructure", v as DealDiscountStructure)
-                      }
-                      aria-label="Pricing strategy"
-                      className="grid w-full grid-cols-1 gap-2"
-                    >
-                      <RadioChoiceCard
-                        id="deal-better-retail"
-                        value="retail_minus"
-                        selected={form.discountStructure === "retail_minus"}
-                        layout="inline"
-                      >
-                        <span className="font-medium">Retail minus</span>
-                      </RadioChoiceCard>
-                      <RadioChoiceCard
-                        id="deal-better-cost"
-                        value="cost_plus"
-                        selected={form.discountStructure === "cost_plus"}
-                        layout="inline"
-                      >
-                        <span className="font-medium">Cost plus</span>
-                      </RadioChoiceCard>
-                      <RadioChoiceCard
-                        id="deal-better-best"
-                        value="best_of"
-                        selected={form.discountStructure === "best_of"}
-                        layout="stack"
-                      >
-                        <span className="font-medium">Best of</span>
-                        <span className="text-muted-foreground text-xs font-normal">
-                          Retail &amp; cost
-                        </span>
-                      </RadioChoiceCard>
-                    </RadioGroup>
-                  </fieldset>
-                  {form.discountStructure === "retail_minus" ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="discount-amt">
-                        {rebateLike
-                          ? "Rebate amount (¢ per gallon)"
-                          : "Discount amount (¢ per gallon)"}
-                      </Label>
-                      <Input
-                        id="discount-amt"
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        className="min-h-11"
-                        value={form.discountAmountCentsPerGal}
-                        onChange={(e) =>
-                          updateForm("discountAmountCentsPerGal", e.target.value)
-                        }
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        {rebateLike ? (
-                          <>
-                            Rebate paid: $
-                            {(Number.parseFloat(form.discountAmountCentsPerGal || "0") / 100).toFixed(2)}
-                            /gal
-                          </>
-                        ) : (
-                          <>
-                            Retail price minus $
-                            {(Number.parseFloat(form.discountAmountCentsPerGal || "0") / 100).toFixed(2)}
-                            /gal
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  ) : form.discountStructure === "cost_plus" ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="cost-plus">Cost plus amount ($ per gallon)</Label>
-                      <Input
-                        id="cost-plus"
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        className="min-h-11"
-                        value={form.costPlusAmountPerGal}
-                        onChange={(e) =>
-                          updateForm("costPlusAmountPerGal", e.target.value)
-                        }
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        Rack price plus $
-                        {Number.parseFloat(form.costPlusAmountPerGal || "0").toFixed(2)}
-                        /gal
-                      </p>
-                    </div>
-                  ) : form.discountStructure === "best_of" ? (
-                    <div className="flex flex-col gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="discount-amt-best">
-                          {rebateLike
-                            ? "Rebate amount (¢ per gallon)"
-                            : "Discount amount (¢ per gallon)"}
-                        </Label>
-                        <Input
-                          id="discount-amt-best"
-                          type="number"
-                          step="0.01"
-                          inputMode="decimal"
-                          className="min-h-11"
-                          value={form.discountAmountCentsPerGal}
-                          onChange={(e) =>
-                            updateForm("discountAmountCentsPerGal", e.target.value)
-                          }
-                        />
-                        <p className="text-muted-foreground text-xs">
-                          {rebateLike ? (
-                            <>
-                              Rebate paid: $
-                              {(Number.parseFloat(form.discountAmountCentsPerGal || "0") / 100).toFixed(2)}
-                              /gal
-                            </>
-                          ) : (
-                            <>
-                              Retail price minus $
-                              {(Number.parseFloat(form.discountAmountCentsPerGal || "0") / 100).toFixed(2)}
-                              /gal
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cost-plus-best">Cost plus amount ($ per gallon)</Label>
-                        <Input
-                          id="cost-plus-best"
-                          type="number"
-                          step="0.01"
-                          inputMode="decimal"
-                          className="min-h-11"
-                          value={form.costPlusAmountPerGal}
-                          onChange={(e) =>
-                            updateForm("costPlusAmountPerGal", e.target.value)
-                          }
-                        />
-                        <p className="text-muted-foreground text-xs">
-                          Rack price plus $
-                          {Number.parseFloat(form.costPlusAmountPerGal || "0").toFixed(2)}
-                          /gal
-                        </p>
-                      </div>
-                      <p className="text-muted-foreground text-xs">
-                        Analysis uses whichever structure yields the better price for your baseline
-                        average.
-                      </p>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-
-              {form.programType === "def_rebate" ? (
-                <>
-                  <fieldset className="m-0 min-w-0 space-y-2 border-0 p-0">
-                    <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
-                      DEF rebate structure
-                    </FieldLegend>
-                    <RadioGroup
-                      value={defRebateModeSelected}
-                      onValueChange={(v) =>
-                        updateForm("defRebatePricingMode", v as DefRebatePricingMode)
-                      }
-                      aria-label="DEF rebate structure"
-                      className="grid w-full grid-cols-1 gap-2"
-                    >
-                      <RadioChoiceCard
-                        id="deal-def-flat"
-                        value="flat"
-                        selected={defRebateModeSelected === "flat"}
-                        layout="inline"
-                      >
-                        <span className="font-medium">Flat rebate</span>
-                      </RadioChoiceCard>
-                      <RadioChoiceCard
-                        id="deal-def-retail-minus"
-                        value="retail_minus"
-                        selected={defRebateModeSelected === "retail_minus"}
-                        layout="inline"
-                      >
-                        <span className="font-medium">Retail minus</span>
-                      </RadioChoiceCard>
-                    </RadioGroup>
-                  </fieldset>
-                  {defRebateModeSelected !== "" ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="def-rebate">
-                        {defRebateModeSelected === "retail_minus"
-                          ? "Retail minus (¢ per gallon)"
-                          : "DEF rebate amount (¢ per gallon)"}
-                      </Label>
-                      <Input
-                        id="def-rebate"
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        className="min-h-11"
-                        value={form.defRebateAmountCentsPerGal}
-                        onChange={(e) =>
-                          updateForm("defRebateAmountCentsPerGal", e.target.value)
-                        }
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        {defRebateModeSelected === "retail_minus" ? (
-                          <>
-                            DEF pump retail minus $
-                            {(Number.parseFloat(form.defRebateAmountCentsPerGal || "0") / 100).toFixed(2)}
-                            /gal
-                          </>
-                        ) : (
-                          <>
-                            DEF rebate: $
-                            {(Number.parseFloat(form.defRebateAmountCentsPerGal || "0") / 100).toFixed(2)}
-                            /gal
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-
               <Separator className="bg-border/70" aria-hidden />
 
-              <fieldset className="m-0 min-w-0 space-y-3 border-0 p-0">
-                <FieldLegend variant="label" className={DEAL_FORM_LEGEND_CLASS}>
-                  State coverage
-                </FieldLegend>
-                <RadioGroup
-                  value={form.stateRestriction}
-                  onValueChange={(v) =>
-                    updateForm("stateRestriction", v as DealStateRestriction)
-                  }
-                  aria-label="State coverage"
-                  className="grid w-full grid-cols-1 gap-2"
-                >
-                  <RadioChoiceCard
-                    id="deal-states-all"
-                    value="all"
-                    selected={form.stateRestriction === "all"}
-                    layout="inline"
-                  >
-                    <span className="font-medium">All states</span>
-                  </RadioChoiceCard>
-                  <RadioChoiceCard
-                    id="deal-states-specific"
-                    value="specific"
-                    selected={form.stateRestriction === "specific"}
-                    layout="inline"
-                  >
-                    <span className="font-medium">Specific states</span>
-                  </RadioChoiceCard>
-                </RadioGroup>
-
-                {form.stateRestriction === "specific" ? (
-                  <div className="space-y-2">
-                    <p className="text-muted-foreground text-xs">
-                      {form.selectedStates.length} states selected
-                    </p>
-                    <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-background p-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        {US_STATES.map((code) => (
-                          <label
-                            key={code}
-                            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-xs hover:bg-muted/60"
-                          >
-                            <Checkbox
-                              checked={form.selectedStates.includes(code)}
-                              onCheckedChange={(c) =>
-                                toggleState(code, c === true)
-                              }
-                            />
-                            <span>{code}</span>
-                          </label>
-                        ))}
-                      </div>
+              <div className="flex flex-col gap-3">
+                {form.tiers.map((tier, i) => {
+                  const motionOk =
+                    typeof window === "undefined" ||
+                    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                  const isEntering = enteringTierIndex === i && motionOk
+                  return (
+                    <div
+                      key={`tier-${i}`}
+                      ref={(el) => {
+                        tierCardRefs.current[i] = el
+                      }}
+                      className={cn(
+                        isEntering &&
+                          "animate-in fade-in-0 slide-in-from-bottom-4 duration-300"
+                      )}
+                    >
+                      <DealAnalyzerTierFields
+                        tierIndex={i}
+                        tier={tier}
+                        showTierChrome={form.tiers.length > 1}
+                        locationOptions={locationSelectOptions}
+                        onPatch={(p) => patchTier(i, p)}
+                        onRemove={form.tiers.length > 1 ? () => removeTier(i) : undefined}
+                        canRemove={form.tiers.length > 1}
+                      />
                     </div>
-                  </div>
-                ) : null}
-              </fieldset>
+                  )
+                })}
+                <Separator className="bg-border/70" aria-hidden />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full"
+                  disabled={enteringTierIndex !== null}
+                  onClick={addTier}
+                >
+                  {form.tiers.length > 1 ? "Add deal tier" : "Add another coverage rule"}
+                </Button>
+              </div>
 
                 </div>
               </div>
@@ -813,7 +482,7 @@ export function DealAnalyzerPage() {
                     onClick={() => runAnalysis()}
                   >
                     <Zap className="size-4" aria-hidden />
-                    Calculate impact
+                    Calculate Deal
                   </Button>
                   {analysisError ? (
                     <p

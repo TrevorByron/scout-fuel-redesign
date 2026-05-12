@@ -233,7 +233,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-6">
             {showPageIntro ? (
               <div className="mb-8 shrink-0 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Company Settings</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">Company Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Update your workspace name and company logo.
                 </p>
@@ -354,7 +354,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Team Settings</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">Team Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Invite people and set their roles.
                 </p>
@@ -371,9 +371,10 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Drivers Settings</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">Drivers Settings</h2>
                 <p className="text-sm text-muted-foreground">
-                  Add phone numbers and emails for fleet drivers.
+                  Driver names on the card come from your fuel card feed. Optionally add a first and
+                  last name for what you use in the app, plus phone and email.
                 </p>
               </div>
             ) : null}
@@ -390,7 +391,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Trucks Settings</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">Trucks Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Set truck numbers and fuel capacity in gallons for each unit.
                 </p>
@@ -407,7 +408,7 @@ export function AppSettingsDialog({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-6">
             {showPageIntro ? (
               <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">Billing Settings</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">Billing Settings</h2>
                 <p className="text-sm text-muted-foreground">
                   Payment method and invoices. Card details are stored locally for demo only.
                 </p>
@@ -552,7 +553,7 @@ export function AppSettingsDialog({
                   </h2>
                 </header>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-app-settings-main text-app-settings-main-foreground">
-                  <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[800px] flex-1 flex-col overflow-hidden">
+                  <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[900px] flex-1 flex-col overflow-hidden">
                     {renderSectionBody({ showPageIntro: false })}
                   </div>
                 </div>
@@ -602,7 +603,7 @@ export function AppSettingsDialog({
             </Sidebar>
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-app-settings-main text-app-settings-main-foreground">
-              <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[800px] flex-1 flex-col overflow-hidden">
+              <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[900px] flex-1 flex-col overflow-hidden">
                 {renderSectionBody({ showPageIntro: true })}
               </div>
             </div>

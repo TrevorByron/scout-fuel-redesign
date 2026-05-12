@@ -4,6 +4,7 @@ import * as React from "react"
 import { format } from "date-fns"
 import type { TripPlan } from "@/lib/trips"
 import type { TripProgressResult } from "@/lib/trips"
+import { driverDisplayName, loadDriverContacts } from "@/lib/driver-contact-store"
 import { drivers, trucks } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,12 +41,18 @@ export function TripDetailContentUber({
   hideBackButton,
 }: TripDetailContentUberProps) {
   const detailStatus = getTripStatus(trip)
-  const driverDisplay =
-    trip.driverName ??
-    (trip.driverId
-      ? drivers.find((d) => d.driverId === trip.driverId)?.driverName
-      : undefined) ??
-    trucks.find((t) => t.id === trip.truckId)?.driverName
+  const driverContacts = React.useMemo(() => loadDriverContacts(drivers), [])
+  const driverDisplay = React.useMemo(() => {
+    const assignId = trip.driverId?.trim() ?? ""
+    const fleetDriver = assignId ? drivers.find((d) => d.driverId === assignId) : undefined
+    if (fleetDriver && assignId) {
+      return driverDisplayName(fleetDriver.driverName, driverContacts[assignId])
+    }
+    return (
+      trip.driverName ??
+      trucks.find((t) => t.id === trip.truckId)?.driverName
+    )
+  }, [trip.driverId, trip.driverName, trip.truckId, driverContacts])
 
   const allStopsMatched =
     progress.totalStops > 0 && progress.followedCount === progress.totalStops

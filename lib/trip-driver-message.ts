@@ -18,9 +18,11 @@ export function buildDefaultEmailSubject(trip: TripPlan): string {
 /**
  * Plain-text body for SMS or email: route summary, dates, and ordered fuel stops
  * with explicit instruction to stop at each planned stop.
+ *
+ * @param driverSalutation — When set (e.g. from driver settings), used for “Hi …”; otherwise `trip.driverName`.
  */
-export function buildDefaultDriverTripMessage(trip: TripPlan): string {
-  const driver = trip.driverName?.trim() || "there"
+export function buildDefaultDriverTripMessage(trip: TripPlan, driverSalutation?: string): string {
+  const driver = driverSalutation?.trim() || trip.driverName?.trim() || "there"
   const start = format(new Date(trip.tripStart), DATE_RANGE_FMT)
   const end = format(new Date(trip.tripEnd), DATE_RANGE_FMT)
   const title = routeTitle(trip)

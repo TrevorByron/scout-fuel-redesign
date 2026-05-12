@@ -11,6 +11,7 @@ import type {
   DealVerdict,
 } from "@/lib/deal-analyzer-types"
 import { NETWORK_LABELS } from "@/lib/deal-analyzer-engine"
+import { getAllLocationKeys } from "@/lib/location-utils"
 import { DealAnalyzerLocationComparisonSection } from "@/components/deal-analyzer/deal-analyzer-location-comparison"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -358,6 +359,40 @@ export function DealAnalyzerResultsView({
             </div>
           </section>
 
+          {proposed.tierBreakdown &&
+          proposed.tierBreakdown.some((b) => b.transactionCount > 0) ? (
+            <>
+              <Separator />
+              <section className="rounded-lg border border-border bg-muted/20 p-4">
+                <h4 className="text-sm font-semibold">Tier resolution</h4>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Baseline transactions mapped to the most specific matching tier (blended
+                  model).
+                </p>
+                <ul className="mt-3 space-y-2 text-xs">
+                  {proposed.tierBreakdown
+                    .filter((b) => b.transactionCount > 0)
+                    .map((b) => {
+                      return (
+                        <li
+                          key={b.tierIndex}
+                          className="flex min-h-9 items-center justify-between gap-2"
+                        >
+                          <span className="min-w-0 truncate font-medium text-foreground">
+                            Tier {b.tierIndex + 1}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">
+                            {b.transactionCount.toLocaleString()} txns ·{" "}
+                            {fmtPct(b.spendShare * 100)} spend
+                          </span>
+                        </li>
+                      )
+                    })}
+                </ul>
+              </section>
+            </>
+          ) : null}
+
           {optimized && optNorm && optimizedTone ? (
             <>
               <Separator />
@@ -476,17 +511,54 @@ function InsightRow({
   optimized: DealAnalyzerResults["optimized"]
 }) {
   if (type === "state_restriction") {
+    const allStates = new Set<string>()
+    for (const t of form.tiers) {
+      if (t.locationCoverage === "specific_states") {
+        for (const s of t.selectedStates) {
+          allStates.add(s.trim().toUpperCase())
+        }
+      }
+    }
+    const sorted = [...allStates].sort()
     const states =
-      form.selectedStates.length > 0
-        ? [...form.selectedStates].sort().slice(0, 12).join(", ") +
-          (form.selectedStates.length > 12 ? "…" : "")
+      sorted.length > 0
+        ? sorted.slice(0, 12).join(", ") + (sorted.length > 12 ? "…" : "")
         : ""
     return (
       <Alert className="border-primary/30 bg-primary/5">
         <AlertTitle>State restriction</AlertTitle>
         <AlertDescription>
-          This deal only applies in {form.selectedStates.length} states
+          This deal includes state-specific tiers covering {sorted.length} state
+          {sorted.length === 1 ? "" : "s"}
           {states ? `: ${states}` : ""}.
+        </AlertDescription>
+      </Alert>
+    )
+  }
+  if (type === "site_restriction") {
+    const keys = new Set<string>()
+    for (const t of form.tiers) {
+      if (t.locationCoverage === "specific_sites") {
+        for (const k of t.selectedLocationKeys) keys.add(k)
+      }
+    }
+    const keyArr = [...keys]
+    const catalog = getAllLocationKeys()
+    const labels =
+      keyArr.length > 0
+        ? keyArr
+            .map((k) => catalog.find((e) => e.key === k)?.display ?? k)
+            .sort()
+            .slice(0, 8)
+            .join(", ") + (keyArr.length > 8 ? "…" : "")
+        : ""
+    return (
+      <Alert className="border-primary/30 bg-primary/5">
+        <AlertTitle>Specific locations</AlertTitle>
+        <AlertDescription>
+          This deal includes location-specific tiers at {keyArr.length} site
+          {keyArr.length === 1 ? "" : "s"}
+          {labels ? `: ${labels}` : "."}
         </AlertDescription>
       </Alert>
     )

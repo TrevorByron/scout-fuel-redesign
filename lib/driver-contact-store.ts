@@ -3,6 +3,10 @@
 export type DriverContactRow = {
   phone: string
   email: string
+  /** Optional app-facing first name; does not replace the fuel card feed name. */
+  firstName: string
+  /** Optional app-facing last name; does not replace the fuel card feed name. */
+  lastName: string
 }
 
 export type DriverContactsState = Record<string, DriverContactRow>
@@ -39,6 +43,8 @@ function buildMockDriverContactsForFleet(fleet: DriverContactFleetSource): Drive
     out[d.driverId] = {
       phone: mockPhoneForDriver(d.driverId),
       email: mockEmailForDriver(d.driverName),
+      firstName: "",
+      lastName: "",
     }
   }
   return out
@@ -56,9 +62,25 @@ export function mergeDriverContactsWithDefaults(
     out[d.driverId] = {
       phone: row !== undefined ? row.phone : def.phone,
       email: row !== undefined ? row.email : def.email,
+      firstName:
+        row !== undefined && typeof row.firstName === "string" ? row.firstName : def.firstName,
+      lastName: row !== undefined && typeof row.lastName === "string" ? row.lastName : def.lastName,
     }
   }
   return out
+}
+
+/**
+ * Preferred name for in-app use when first or last is set; otherwise the fuel card / fleet feed name.
+ */
+export function driverDisplayName(
+  fuelCardDriverName: string,
+  row: DriverContactRow | undefined
+): string {
+  const f = row?.firstName?.trim() ?? ""
+  const l = row?.lastName?.trim() ?? ""
+  const custom = `${f} ${l}`.trim()
+  return custom.length > 0 ? custom : fuelCardDriverName
 }
 
 function isDriverContactRow(value: unknown): value is DriverContactRow {

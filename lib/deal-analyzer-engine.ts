@@ -2,6 +2,7 @@ import {
   getFuelTransactionLocationKey,
   type FuelTransaction,
 } from "@/lib/mock-data"
+import { getCityStateFromLocation } from "@/lib/location-utils"
 import type {
   DealAnalyzerFormInput,
   DealAnalyzerPeriod,
@@ -13,6 +14,8 @@ import type {
   DealInsightType,
   DealLocationMetricCard,
   DealProgramType,
+  DealPricingTier,
+  DefRebatePricingMode,
   DealVerdict,
 } from "@/lib/deal-analyzer-types"
 
@@ -100,7 +103,31 @@ export function filterTransactionsByDealProgram(
   if (programType === "def_rebate") {
     return txns.filter((t) => t.fuelType === "DEF")
   }
-  return txns
+  return txns.filter((t) => t.fuelType !== "DEF")
+}
+
+/** Whether a transaction can be priced under this program type (per-tier). */
+export function transactionMatchesDealProgram(
+  txn: FuelTransaction,
+  programType: DealProgramType | ""
+): boolean {
+  if (programType === "") return false
+  if (programType === "def_rebate") return txn.fuelType === "DEF"
+  return txn.fuelType !== "DEF"
+}
+
+/** Union of transactions matching at least one tier’s program type. */
+export function filterTransactionsByDealTiers(
+  txns: FuelTransaction[],
+  tiers: DealPricingTier[]
+): FuelTransaction[] {
+  return txns.filter((t) =>
+    tiers.some(
+      (tier) =>
+        tier.programType !== "" &&
+        transactionMatchesDealProgram(t, tier.programType)
+    )
+  )
 }
 
 export function aggregateBaseline(
@@ -128,74 +155,157 @@ export function aggregateBaseline(
   }
 }
 
+export function aggregateBaselineForDealTiers(
+  txns: FuelTransaction[],
+  tiers: DealPricingTier[]
+): DealBaselineStats {
+  const list = filterTransactionsByDealTiers(txns, tiers)
+  let totalSpend = 0
+  let totalGallons = 0
+  const trucks = new Set<string>()
+  for (const t of list) {
+    totalSpend += t.totalCost
+    totalGallons += t.gallons
+    trucks.add(t.truckId)
+  }
+  const transactions = list.length
+  const avgPricePerGallon =
+    totalGallons > 0 ? Math.round((totalSpend / totalGallons) * 10000) / 10000 : 0
+  return {
+    transactions,
+    totalSpend: Math.round(totalSpend * 100) / 100,
+    totalGallons: Math.round(totalGallons * 100) / 100,
+    avgPricePerGallon,
+    uniqueTrucks: trucks.size,
+  }
+}
+
+/** Specificity for tier resolution: higher wins; ties keep first matching tier in array order. */
+export function tierSpecificity(tier: DealPricingTier): number {
+  if (tier.locationCoverage === "specific_sites") return 3
+  if (tier.locationCoverage === "specific_states") return 2
+  if (tier.locationCoverage === "all_locations") return 1
+  return 0
+}
+
+function tierMatchesTransaction(tier: DealPricingTier, txn: FuelTransaction): boolean {
+  if (tier.locationCoverage === "specific_sites") {
+    if (tier.selectedLocationKeys.length === 0) return false
+    const key = getFuelTransactionLocationKey(txn.stationBrand, txn.location)
+    return tier.selectedLocationKeys.includes(key)
+  }
+  if (tier.locationCoverage === "specific_states") {
+    if (tier.selectedStates.length === 0) return false
+    const raw = getCityStateFromLocation(txn.location).state.trim().toUpperCase()
+    const code = raw.length <= 2 ? raw : raw.slice(0, 2)
+    return tier.selectedStates.some((s) => s.trim().toUpperCase() === code)
+  }
+  if (tier.locationCoverage === "all_locations") return true
+  return false
+}
+
+/**
+ * Pick the applicable pricing tier for a transaction (most specific match; first in list on tie).
+ */
+export function resolveTierForTransaction(
+  txn: FuelTransaction,
+  tiers: DealPricingTier[]
+): DealPricingTier | null {
+  let best: DealPricingTier | null = null
+  let bestScore = -1
+  for (const tier of tiers) {
+    if (
+      tier.programType === "" ||
+      !transactionMatchesDealProgram(txn, tier.programType)
+    ) {
+      continue
+    }
+    if (!tierMatchesTransaction(tier, txn)) continue
+    const s = tierSpecificity(tier)
+    if (s > bestScore) {
+      bestScore = s
+      best = tier
+    }
+  }
+  return best
+}
+
 function parseAmount(s: string): number {
   const n = Number.parseFloat(s.replace(/,/g, ""))
   return Number.isFinite(n) ? n : 0
 }
 
-/** Retail-minus cents/gal: primary field or legacy rebate-only saves. */
-function retailMinusCentsFromForm(form: DealAnalyzerFormInput): number {
-  let cents = parseAmount(form.discountAmountCentsPerGal)
-  if (form.programType === "rebate" && cents <= 0) {
-    cents = parseAmount(form.rebateAmountCentsPerGal)
+function retailMinusCentsFromTier(
+  tier: DealPricingTier,
+  programType: DealProgramType | ""
+): number {
+  let cents = parseAmount(tier.discountAmountCentsPerGal)
+  if (programType === "rebate" && cents <= 0) {
+    cents = parseAmount(tier.rebateAmountCentsPerGal)
   }
   return cents
 }
 
 /** Fractional price reduction (0–1 scale) before coverage weighting. */
-function fractionalDiscountFromForm(
-  form: DealAnalyzerFormInput,
+export function fractionalDiscountFromTier(
+  tier: DealPricingTier,
+  programType: DealProgramType | "",
+  defRebatePricingMode: DefRebatePricingMode | "" | undefined,
   baselineAvgPrice: number
 ): number {
   if (baselineAvgPrice <= 0) return 0
-  if (form.programType === "discount" || form.programType === "rebate") {
-    if (form.discountStructure === "") return 0
-    if (form.discountStructure === "retail_minus") {
-      const cents = retailMinusCentsFromForm(form)
+  if (programType === "discount" || programType === "rebate") {
+    if (tier.discountStructure === "") return 0
+    if (tier.discountStructure === "retail_minus") {
+      const cents = retailMinusCentsFromTier(tier, programType)
       return cents / 100 / baselineAvgPrice
     }
-    if (form.discountStructure === "cost_plus") {
-      const dollarsPlus = parseAmount(form.costPlusAmountPerGal)
+    if (tier.discountStructure === "cost_plus") {
+      const dollarsPlus = parseAmount(tier.costPlusAmountPerGal)
       return dollarsPlus / baselineAvgPrice
     }
-    if (form.discountStructure === "best_of") {
-      const cents = retailMinusCentsFromForm(form)
-      const dollarsPlus = parseAmount(form.costPlusAmountPerGal)
+    if (tier.discountStructure === "best_of") {
+      const cents = retailMinusCentsFromTier(tier, programType)
+      const dollarsPlus = parseAmount(tier.costPlusAmountPerGal)
       const retailFrac = cents / 100 / baselineAvgPrice
       const costFrac = dollarsPlus / baselineAvgPrice
       return Math.max(retailFrac, costFrac)
     }
     return 0
   }
-  if (form.programType !== "def_rebate") return 0
-  const mode = form.defRebatePricingMode
+  if (programType !== "def_rebate") return 0
+  const mode = defRebatePricingMode
   if (mode !== "flat" && mode !== "retail_minus") return 0
-  const cents = parseAmount(form.defRebateAmountCentsPerGal)
+  const cents = parseAmount(tier.defRebateAmountCentsPerGal)
   return cents / 100 / baselineAvgPrice
 }
 
-function discountDisplayLabel(form: DealAnalyzerFormInput): string {
-  if (form.programType === "discount" || form.programType === "rebate") {
-    const isRebate = form.programType === "rebate"
+export function discountDisplayLabelForTier(
+  tier: DealPricingTier,
+  programType: DealProgramType | "",
+  defRebatePricingMode: DefRebatePricingMode | "" | undefined
+): string {
+  if (programType === "discount" || programType === "rebate") {
+    const isRebate = programType === "rebate"
     const lead = isRebate ? "Rebate (paid later): " : ""
-    if (form.discountStructure === "retail_minus") {
-      const cents = retailMinusCentsFromForm(form)
+    if (tier.discountStructure === "retail_minus") {
+      const cents = retailMinusCentsFromTier(tier, programType)
       return `${lead}Retail minus $${(cents / 100).toFixed(2)}/gal`
     }
-    if (form.discountStructure === "cost_plus") {
-      const d = parseAmount(form.costPlusAmountPerGal)
+    if (tier.discountStructure === "cost_plus") {
+      const d = parseAmount(tier.costPlusAmountPerGal)
       return `${lead}Cost plus $${d.toFixed(2)}/gal`
     }
-    if (form.discountStructure === "best_of") {
-      const cents = retailMinusCentsFromForm(form)
-      const d = parseAmount(form.costPlusAmountPerGal)
+    if (tier.discountStructure === "best_of") {
+      const cents = retailMinusCentsFromTier(tier, programType)
+      const d = parseAmount(tier.costPlusAmountPerGal)
       return `${lead}Best of retail minus $${(cents / 100).toFixed(2)}/gal vs cost plus $${d.toFixed(2)}/gal`
     }
     return ""
   }
-  if (form.programType === "def_rebate") {
-    const cents = parseAmount(form.defRebateAmountCentsPerGal)
-    const mode = form.defRebatePricingMode
+  if (programType === "def_rebate") {
+    const cents = parseAmount(tier.defRebateAmountCentsPerGal)
+    const mode = defRebatePricingMode
     if (mode !== "flat" && mode !== "retail_minus") return ""
     if (mode === "retail_minus") {
       return `DEF retail minus $${(cents / 100).toFixed(2)}/gal`
@@ -205,13 +315,38 @@ function discountDisplayLabel(form: DealAnalyzerFormInput): string {
   return ""
 }
 
-function adjustedCoverage(
+function blendedDiscountLabel(form: DealAnalyzerFormInput): string {
+  const { tiers } = form
+  if (tiers.length === 1) {
+    const t0 = tiers[0]
+    return discountDisplayLabelForTier(t0, t0.programType, t0.defRebatePricingMode)
+  }
+  const parts = tiers
+    .map((t) => discountDisplayLabelForTier(t, t.programType, t.defRebatePricingMode))
+    .filter(Boolean)
+  if (parts.length === 0) return `Blended deal (${tiers.length} tiers)`
+  const joined = parts.slice(0, 2).join(" · ")
+  return tiers.length > 2 ? `${joined} · …` : joined
+}
+
+export function adjustedCoverageForTier(
   baseCoverage: number,
-  form: DealAnalyzerFormInput
+  tier: DealPricingTier
 ): number {
   let c = baseCoverage
-  if (form.stateRestriction === "specific" && form.selectedStates.length > 0) {
-    const penalty = (50 - form.selectedStates.length) / 50
+  const maxSlots = 50
+  if (
+    tier.locationCoverage === "specific_states" &&
+    tier.selectedStates.length > 0
+  ) {
+    const penalty = (maxSlots - tier.selectedStates.length) / maxSlots
+    c *= 1 - penalty * 0.3
+  } else if (
+    tier.locationCoverage === "specific_sites" &&
+    tier.selectedLocationKeys.length > 0
+  ) {
+    const n = Math.min(tier.selectedLocationKeys.length, maxSlots)
+    const penalty = (maxSlots - n) / maxSlots
     c *= 1 - penalty * 0.3
   }
   return Math.max(0, Math.min(1, c))
@@ -269,11 +404,23 @@ export function buildInsights(params: {
 }): DealInsight[] {
   const list: DealInsight[] = []
   const types = new Set<DealInsightType>()
+  const { tiers } = params.form
   if (
-    params.form.stateRestriction === "specific" &&
-    params.form.selectedStates.length > 0
+    tiers.some(
+      (t) =>
+        t.locationCoverage === "specific_states" && t.selectedStates.length > 0
+    )
   ) {
     types.add("state_restriction")
+  }
+  if (
+    tiers.some(
+      (t) =>
+        t.locationCoverage === "specific_sites" &&
+        t.selectedLocationKeys.length > 0
+    )
+  ) {
+    types.add("site_restriction")
   }
   if (params.coverage < 0.85) {
     types.add("coverage_gap")
@@ -285,6 +432,7 @@ export function buildInsights(params: {
   }
   const order: DealInsightType[] = [
     "state_restriction",
+    "site_restriction",
     "coverage_gap",
     "strong_coverage",
     "optimization",
@@ -301,48 +449,87 @@ export function computeDealAnalysis(params: {
   filteredTxnsForOptimization: FuelTransaction[]
 }): DealAnalyzerResults | null {
   const { form, baseline } = params
+  const { tiers } = form
+
   if (
     !form.network ||
-    form.programType === "" ||
-    form.stateRestriction === "" ||
+    tiers.length === 0 ||
     baseline.transactions === 0 ||
     baseline.totalSpend <= 0
   ) {
     return null
   }
-  if (
-    (form.programType === "discount" || form.programType === "rebate") &&
-    form.discountStructure === ""
-  ) {
-    return null
-  }
-  if (
-    form.programType === "def_rebate" &&
-    form.defRebatePricingMode !== "flat" &&
-    form.defRebatePricingMode !== "retail_minus"
-  ) {
-    return null
+
+  for (const tier of tiers) {
+    if (tier.locationCoverage === "") return null
+    if (tier.programType === "") return null
+    if (
+      (tier.programType === "discount" || tier.programType === "rebate") &&
+      tier.discountStructure === ""
+    ) {
+      return null
+    }
+    if (
+      tier.programType === "def_rebate" &&
+      tier.defRebatePricingMode !== "flat" &&
+      tier.defRebatePricingMode !== "retail_minus"
+    ) {
+      return null
+    }
   }
 
   const network = form.network as DealFuelNetwork
   const baseCov = NETWORK_COVERAGE[network] ?? NETWORK_COVERAGE.other
-  const coverage = adjustedCoverage(baseCov, form)
-  const discountFrac = fractionalDiscountFromForm(form, baseline.avgPricePerGallon)
-  const effectiveDiscount = discountFrac * coverage
 
-  const projectedSpend =
-    Math.round(baseline.totalSpend * (1 - effectiveDiscount) * 100) / 100
+  const txns = filterTransactionsByDealTiers(
+    params.filteredTxnsForOptimization,
+    tiers
+  )
+  if (txns.length === 0) return null
+
+  let projectedSpend = 0
+  let sumCoverage = 0
+  const tierTxnCount = new Map<number, number>()
+  const tierBaselineSpend = new Map<number, number>()
+
+  for (const t of txns) {
+    const tier = resolveTierForTransaction(t, tiers)
+    const eff =
+      tier == null
+        ? 0
+        : fractionalDiscountFromTier(
+            tier,
+            tier.programType,
+            tier.defRebatePricingMode,
+            baseline.avgPricePerGallon
+          ) * adjustedCoverageForTier(baseCov, tier)
+
+    projectedSpend += t.totalCost * (1 - eff)
+
+    if (tier != null) {
+      const idx = tiers.indexOf(tier)
+      if (idx >= 0) {
+        sumCoverage += adjustedCoverageForTier(baseCov, tier)
+        tierTxnCount.set(idx, (tierTxnCount.get(idx) ?? 0) + 1)
+        tierBaselineSpend.set(idx, (tierBaselineSpend.get(idx) ?? 0) + t.totalCost)
+      }
+    }
+  }
+
+  projectedSpend = Math.round(projectedSpend * 100) / 100
   const savings = Math.round((baseline.totalSpend - projectedSpend) * 100) / 100
   const savingsPercent =
     baseline.totalSpend > 0
       ? Math.round((savings / baseline.totalSpend) * 1000) / 10
       : 0
 
+  const avgCoverage =
+    txns.length > 0 ? sumCoverage / txns.length : 0
   const matched = Math.min(
-    baseline.transactions,
-    Math.round(coverage * baseline.transactions)
+    txns.length,
+    Math.round(avgCoverage * txns.length)
   )
-  const noCoverage = baseline.transactions - matched
+  const noCoverage = txns.length - matched
 
   const proposedAvg =
     baseline.totalGallons > 0
@@ -356,7 +543,7 @@ export function computeDealAnalysis(params: {
   const showOptimized = savings > 0 && additionalSavings > 100
 
   const optTx = optimizationStatsFromTransactions(
-    filterTransactionsByDealProgram(params.filteredTxnsForOptimization, form.programType)
+    filterTransactionsByDealTiers(params.filteredTxnsForOptimization, tiers)
   )
 
   let optimized: DealAnalyzerResults["optimized"] = null
@@ -385,10 +572,23 @@ export function computeDealAnalysis(params: {
 
   const insights = buildInsights({
     form,
-    coverage,
+    coverage: avgCoverage,
     savings,
     additionalSavings,
   })
+
+  const tierBreakdown =
+    tiers.length > 0 && baseline.totalSpend > 0
+      ? tiers.map((_, tierIndex) => ({
+          tierIndex,
+          transactionCount: tierTxnCount.get(tierIndex) ?? 0,
+          spendShare:
+            Math.round(
+              ((tierBaselineSpend.get(tierIndex) ?? 0) / baseline.totalSpend) *
+                1000
+            ) / 1000,
+        }))
+      : undefined
 
   return {
     baseline,
@@ -396,11 +596,12 @@ export function computeDealAnalysis(params: {
       totalSpend: projectedSpend,
       savings,
       savingsPercent,
-      coverage,
+      coverage: avgCoverage,
       matched,
       noCoverage,
       avgPricePerGallon: proposedAvg,
-      discountLabel: discountDisplayLabel(form),
+      discountLabel: blendedDiscountLabel(form),
+      tierBreakdown,
     },
     optimized,
     verdict,
@@ -568,10 +769,10 @@ export function buildLocationComparisonRows(
 export function summarizePeriod(
   txns: FuelTransaction[],
   period: DealAnalyzerPeriod,
-  programType: DealProgramType | "",
+  tiers: DealPricingTier[],
   anchor: Date = new Date()
 ): DealBaselineStats {
   const range = resolvePeriodRange(period, anchor)
   const slice = filterTransactionsInRange(txns, range)
-  return aggregateBaseline(slice, programType)
+  return aggregateBaselineForDealTiers(slice, tiers)
 }

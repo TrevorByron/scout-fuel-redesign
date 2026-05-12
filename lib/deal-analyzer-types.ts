@@ -9,7 +9,13 @@ export type DefRebatePricingMode = "flat" | "retail_minus"
 
 export type DealDiscountStructure = "retail_minus" | "cost_plus" | "best_of"
 
-export type DealStateRestriction = "all" | "specific"
+/**
+ * Where a tier applies geographically (single choice per tier).
+ */
+export type DealLocationCoverage =
+  | "all_locations"
+  | "specific_states"
+  | "specific_sites"
 
 /** Values match Select items / coverage map keys after normalization. */
 export type DealFuelNetwork =
@@ -22,22 +28,27 @@ export type DealFuelNetwork =
   | "roadranger"
   | "other"
 
-export interface DealAnalyzerFormInput {
-  dealName: string
-  network: DealFuelNetwork | ""
-  /** Empty until the user picks a program type (new analyses). */
+/** One geographic + pricing slice of a multi-tier chain offer (no network — uses root `network`). */
+export interface DealPricingTier {
+  /** Per tier: discount, rebate, or DEF-only rebate. */
   programType: DealProgramType | ""
-  /** Empty until the user picks a strategy (discount / rebate). */
+  /** When `programType === "def_rebate"`, how ¢/gal is interpreted. */
+  defRebatePricingMode?: DefRebatePricingMode | ""
   discountStructure: DealDiscountStructure | ""
   discountAmountCentsPerGal: string
   costPlusAmountPerGal: string
   rebateAmountCentsPerGal: string
   defRebateAmountCentsPerGal: string
-  /** Empty until the user picks DEF pricing mode; omitted on older saves means flat. */
-  defRebatePricingMode?: DefRebatePricingMode | ""
-  /** Empty until the user picks coverage scope. */
-  stateRestriction: DealStateRestriction | ""
+  locationCoverage: DealLocationCoverage | ""
   selectedStates: string[]
+  selectedLocationKeys: string[]
+}
+
+export interface DealAnalyzerFormInput {
+  dealName: string
+  network: DealFuelNetwork | ""
+  /** Ordered tiers; most specific matching coverage wins per transaction. */
+  tiers: DealPricingTier[]
 }
 
 export interface DealBaselineStats {
@@ -46,6 +57,14 @@ export interface DealBaselineStats {
   totalGallons: number
   avgPricePerGallon: number
   uniqueTrucks: number
+}
+
+/** Per-tier resolution stats for blended analyses. */
+export interface DealTierResolutionBreakdown {
+  tierIndex: number
+  transactionCount: number
+  /** Share of baseline spend from transactions assigned to this tier (0–1). */
+  spendShare: number
 }
 
 export interface DealProposedStats {
@@ -57,6 +76,8 @@ export interface DealProposedStats {
   noCoverage: number
   avgPricePerGallon: number
   discountLabel: string
+  /** Present when multiple tiers or useful for single-tier parity. */
+  tierBreakdown?: DealTierResolutionBreakdown[]
 }
 
 export interface DealOptimizedStats {
@@ -78,6 +99,7 @@ export interface DealVerdict {
 
 export type DealInsightType =
   | "state_restriction"
+  | "site_restriction"
   | "coverage_gap"
   | "strong_coverage"
   | "optimization"
@@ -111,7 +133,7 @@ export interface DealLocationMetricCard {
   emptyReason?: string
 }
 
-/** One row = one distinct chain+city from the filtered transaction slice. */
+/** One row = one distinct chain + city from the filtered transaction slice. */
 export interface DealLocationComparisonRow {
   locationKey: string
   stationBrand: string

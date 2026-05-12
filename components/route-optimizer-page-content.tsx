@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { driverDisplayName, loadDriverContacts } from "@/lib/driver-contact-store"
 import { trucks, drivers, mockRouteStops, mockRouteSummary } from "@/lib/mock-data"
 import { useTrips } from "@/lib/trips-context"
 import type { TripPlanStop, TripPlanSummary, LngLat } from "@/lib/trips"
@@ -111,6 +112,7 @@ export function RouteOptimizerPageContent() {
   const sidebarRef = React.useRef<HTMLElement>(null)
   const formContentRef = React.useRef<HTMLDivElement>(null)
   const touchSheetScroll = useTouchSheetScrollEnabled()
+  const driverContacts = React.useMemo(() => loadDriverContacts(drivers), [])
 
   React.useEffect(() => {
     const el = sidebarRef.current
@@ -266,7 +268,10 @@ export function RouteOptimizerPageContent() {
     const start = tripStart?.toISOString?.() ?? ""
     const end = tripEnd?.toISOString?.() ?? ""
     if (!start || !end || !planSummary) return
-    const driverName = drivers.find((d) => d.driverId === driverId)?.driverName
+    const fleetDriver = drivers.find((d) => d.driverId === driverId)
+    const driverName = fleetDriver
+      ? driverDisplayName(fleetDriver.driverName, driverContacts[driverId])
+      : undefined
     const updates = {
       name: `${origin} → ${destination}`,
       origin,
@@ -744,7 +749,7 @@ export function RouteOptimizerPageContent() {
                       <SelectContent>
                         {drivers.map((d) => (
                           <SelectItem key={d.driverId} value={d.driverId}>
-                            {d.driverName}
+                            {driverDisplayName(d.driverName, driverContacts[d.driverId])}
                           </SelectItem>
                         ))}
                       </SelectContent>

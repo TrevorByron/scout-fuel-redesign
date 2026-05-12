@@ -15,7 +15,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { loadDriverContacts } from "@/lib/driver-contact-store"
+import { driverDisplayName, loadDriverContacts } from "@/lib/driver-contact-store"
 import { drivers } from "@/lib/mock-data"
 import {
   buildDefaultDriverTripMessage,
@@ -60,9 +60,15 @@ export function SendToDriverDialog({
   React.useEffect(() => {
     if (!open || !trip) return
     setChannel("sms")
-    setMessageBody(buildDefaultDriverTripMessage(trip))
+    const assignId = trip.driverId?.trim() ?? ""
+    const fleetDriver = assignId ? drivers.find((d) => d.driverId === assignId) : undefined
+    const salutation =
+      fleetDriver && assignId
+        ? driverDisplayName(fleetDriver.driverName, contacts[assignId]).trim()
+        : undefined
+    setMessageBody(buildDefaultDriverTripMessage(trip, salutation))
     setEmailSubject(buildDefaultEmailSubject(trip))
-  }, [open, trip?.id, trip])
+  }, [open, trip?.id, trip, contacts])
 
   const destination = channel === "sms" ? phone : email
   const hasDestination = Boolean(destination)
@@ -72,7 +78,11 @@ export function SendToDriverDialog({
 
   const handleSend = () => {
     if (!trip || !canSend) return
-    const who = trip.driverName?.trim()
+    const assignId = trip.driverId?.trim() ?? ""
+    const fleetDriver = assignId ? drivers.find((d) => d.driverId === assignId) : undefined
+    const who = fleetDriver
+      ? driverDisplayName(fleetDriver.driverName, contacts[assignId]).trim()
+      : trip.driverName?.trim()
     const successMessage =
       channel === "sms"
         ? who

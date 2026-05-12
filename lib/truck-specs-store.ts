@@ -5,6 +5,10 @@ import type { Truck } from "@/lib/mock-data"
 export type TruckSpecRow = {
   truckNumber: string
   fuelCapacityGal: string
+  make: string
+  model: string
+  /** Miles per gallon, e.g. "6.8" */
+  mpg: string
 }
 
 export type TruckSpecsState = Record<string, TruckSpecRow>
@@ -16,10 +20,67 @@ const CAPACITY_PRESETS_GAL = [
   450, 400, 500, 350, 425, 300, 475, 380, 420, 440, 360, 390, 410, 430, 460, 320,
 ]
 
+const MAKE_MODEL_PRESETS: ReadonlyArray<{ make: string; model: string }> = [
+  { make: "Freightliner", model: "Cascadia" },
+  { make: "Peterbilt", model: "579" },
+  { make: "Kenworth", model: "T680" },
+  { make: "Volvo", model: "VNL 860" },
+  { make: "International", model: "LT Series" },
+  { make: "Mack", model: "Anthem" },
+  { make: "Western Star", model: "49X" },
+  { make: "Freightliner", model: "M2 112" },
+  { make: "Peterbilt", model: "389" },
+  { make: "Kenworth", model: "W990" },
+  { make: "Volvo", model: "VNR" },
+  { make: "International", model: "RH Series" },
+  { make: "Mack", model: "Granite" },
+  { make: "Freightliner", model: "108SD" },
+  { make: "Western Star", model: "5700XE" },
+  { make: "Kenworth", model: "T880" },
+]
+
+const MPG_MIN = 4
+const MPG_MAX = 25
+
+/** Persisted rows may omit make/model/mpg (older clients). */
 function isTruckSpecRow(value: unknown): value is TruckSpecRow {
   if (!value || typeof value !== "object") return false
   const r = value as Record<string, unknown>
   return typeof r.truckNumber === "string" && typeof r.fuelCapacityGal === "string"
+}
+
+function truckSortedIndex(trucks: Truck[], truckId: string): number {
+  const sorted = [...trucks].sort((a, b) => a.id.localeCompare(b.id))
+  const i = sorted.findIndex((t) => t.id === truckId)
+  return i >= 0 ? i : 0
+}
+
+export function defaultMakeModelForTruck(trucks: Truck[], truckId: string): { make: string; model: string } {
+  const i = truckSortedIndex(trucks, truckId)
+  return MAKE_MODEL_PRESETS[i % MAKE_MODEL_PRESETS.length]!
+}
+
+export function defaultMpgStringForTruck(truck: Truck): string {
+  return truck.avgMpg.toFixed(1)
+}
+
+export function defaultTruckSpecRowForTruck(trucks: Truck[], truck: Truck): TruckSpecRow {
+  const mm = defaultMakeModelForTruck(trucks, truck.id)
+  return {
+    truckNumber: truck.id,
+    fuelCapacityGal: defaultFuelCapacityGalForTruck(trucks, truck.id),
+    make: mm.make,
+    model: mm.model,
+    mpg: defaultMpgStringForTruck(truck),
+  }
+}
+
+/** Normalize user-entered MPG on blur. */
+export function normalizeMpgString(raw: string, fallback: string): string {
+  const n = Number.parseFloat(raw.trim())
+  if (!Number.isFinite(n)) return fallback
+  const clamped = Math.min(MPG_MAX, Math.max(MPG_MIN, n))
+  return clamped.toFixed(1)
 }
 
 function isTruckSpecsState(value: unknown): value is TruckSpecsState {
@@ -54,7 +115,18 @@ export function mergeTruckSpecsWithDefaults(
       typeof s?.truckNumber === "string" && s.truckNumber.trim().length > 0
         ? s.truckNumber.trim()
         : t.id
-    out[t.id] = { truckNumber: num, fuelCapacityGal: cap }
+    const preset = MAKE_MODEL_PRESETS[i % MAKE_MODEL_PRESETS.length]!
+    const make =
+      typeof s?.make === "string" && s.make.trim().length > 0 ? s.make.trim() : preset.make
+    const model =
+      typeof s?.model === "string" && s.model.trim().length > 0 ? s.model.trim() : preset.model
+    const defaultMpg = defaultMpgStringForTruck(t)
+    const mpgRaw = typeof s?.mpg === "string" ? s.mpg.trim() : ""
+    const mpg =
+      mpgRaw.length > 0 && Number.isFinite(Number.parseFloat(mpgRaw))
+        ? normalizeMpgString(mpgRaw, defaultMpg)
+        : defaultMpg
+    out[t.id] = { truckNumber: num, fuelCapacityGal: cap, make, model, mpg }
   }
   return out
 }
