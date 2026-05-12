@@ -294,7 +294,7 @@ function rolePopupTitle(role: LocationMapPointRole): string {
     case "proposed":
       return "Modeled proposed deal"
     case "optimized":
-      return "Optimized tier (illustrative)"
+      return "Optimized stop (illustrative)"
     default:
       return ""
   }
@@ -516,7 +516,7 @@ export function DealAnalyzerLocationComparisonSection({
           />
           {showOptimizedColumn ? (
             <MapLayerFilterCard
-              label="Optimized tier"
+              label="Optimized stops"
               pinCount={layerPinCounts.optimized}
               selected={layerFilters.optimized}
               swatchColor={mapPaint.success}
@@ -597,7 +597,7 @@ function DetailsPopup({
               <LocationMetricCardView variant="optimized" card={row.optimized} />
             ) : (
               <p className="text-muted-foreground text-xs">
-                No optimized tier for this run.
+                No optimized stop for this run.
               </p>
             )}
           </div>

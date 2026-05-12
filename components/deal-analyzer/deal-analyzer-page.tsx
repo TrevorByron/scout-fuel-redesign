@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ChevronLeft, LineChart, Upload, Zap } from "lucide-react"
+import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 import { getFuelTransactions } from "@/lib/mock-data"
 import { getAllLocationKeys } from "@/lib/location-utils"
 import type {
@@ -67,7 +68,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { BalanceScaleIcon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, BalanceScaleIcon } from "@hugeicons/core-free-icons"
 import { DateRangePresetTabs } from "@/components/date-range-preset-tabs"
 import { useDealAnalyzerCompactLayout } from "@/hooks/use-deal-analyzer-compact-layout"
 import { cn } from "@/lib/utils"
@@ -102,6 +103,63 @@ function normalizeLoadedDealConfig(c: DealAnalyzerFormInput): DealAnalyzerFormIn
 
 function defaultForm(): DealAnalyzerFormInput {
   return defaultDealAnalyzerForm()
+}
+
+/**
+ * One-line "Coverage, Pricing" recap of a tier, shown in the collapsed
+ * accordion header so the user can scan their tier stack without expanding
+ * each card. Both halves degrade independently when values are missing.
+ */
+function summarizeTier(tier: DealPricingTier): string {
+  const parts: string[] = []
+
+  if (tier.locationCoverage === "all_locations") {
+    parts.push("All States")
+  } else if (tier.locationCoverage === "specific_states") {
+    const n = tier.selectedStates.length
+    parts.push(n === 0 ? "Specific states" : `${n} state${n === 1 ? "" : "s"}`)
+  } else if (tier.locationCoverage === "specific_sites") {
+    const n = tier.selectedLocationKeys.length
+    parts.push(
+      n === 0 ? "Specific locations" : `${n} location${n === 1 ? "" : "s"}`
+    )
+  }
+
+  if (tier.programType === "discount" || tier.programType === "rebate") {
+    const isRebate = tier.programType === "rebate"
+    const struct = tier.discountStructure
+    if (struct === "retail_minus") {
+      const cpg = Number.parseFloat(tier.discountAmountCentsPerGal || "0")
+      const dollars = (cpg / 100).toFixed(2)
+      parts.push(
+        isRebate ? `$${dollars}/gal rebate` : `Retail minus $${dollars}/gal`
+      )
+    } else if (struct === "cost_plus") {
+      const amt = Number.parseFloat(tier.costPlusAmountPerGal || "0").toFixed(2)
+      parts.push(
+        isRebate
+          ? `Rack plus $${amt}/gal rebate`
+          : `Rack price plus $${amt}/gal`
+      )
+    } else if (struct === "best_of") {
+      parts.push(isRebate ? "Best of retail/cost rebate" : "Best of retail/cost")
+    } else {
+      parts.push(isRebate ? "Rebate" : "Discount")
+    }
+  } else if (tier.programType === "def_rebate") {
+    const mode = tier.defRebatePricingMode
+    const cpg = Number.parseFloat(tier.defRebateAmountCentsPerGal || "0")
+    const dollars = (cpg / 100).toFixed(2)
+    if (mode === "flat") {
+      parts.push(`DEF rebate $${dollars}/gal`)
+    } else if (mode === "retail_minus") {
+      parts.push(`DEF retail minus $${dollars}/gal`)
+    } else {
+      parts.push("DEF rebate")
+    }
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "Not configured"
 }
 
 /** Wraps each tier so enter animation can replay after remove/add (CSS won't re-fire otherwise). */
@@ -197,6 +255,21 @@ export function DealAnalyzerPage() {
   const tierCardRefs = React.useRef<(HTMLDivElement | null)[]>([])
   const [enteringTierIndex, setEnteringTierIndex] = React.useState<number | null>(null)
   const [tierAnimEpoch, setTierAnimEpoch] = React.useState(0)
+  // Stable per-tier UI IDs (not persisted) so we can drive the accordion by ID
+  // rather than index. New tiers always get a fresh ID so removing+re-adding
+  // doesn't accidentally reuse an old expanded state.
+  const tierIdCounterRef = React.useRef(0)
+  const mintTierId = React.useCallback(() => {
+    tierIdCounterRef.current += 1
+    return `tier-${tierIdCounterRef.current}`
+  }, [])
+  const [tierIds, setTierIds] = React.useState<string[]>(() =>
+    Array.from({ length: 1 }, () => {
+      tierIdCounterRef.current += 1
+      return `tier-${tierIdCounterRef.current}`
+    })
+  )
+  const [expandedTierIds, setExpandedTierIds] = React.useState<string[]>([])
   const [mobileDealStep, setMobileDealStep] =
     React.useState<MobileDealStep>("details")
   const prevIsMobileRef = React.useRef<boolean | undefined>(undefined)
@@ -221,6 +294,11 @@ export function DealAnalyzerPage() {
     if (!entry) return
     const normalizedForm = normalizeLoadedDealConfig(entry.dealConfig)
     setForm(normalizedForm)
+    const freshTierIds = normalizedForm.tiers.map(() => mintTierId())
+    setTierIds(freshTierIds)
+    // Default: first tier expanded when there are multiple tiers in the saved
+    // analysis. Single-tier saves don't render an accordion at all.
+    setExpandedTierIds(freshTierIds.length > 1 ? [freshTierIds[0]] : [])
     setResults(entry.results)
     const period = normalizeDealAnalyzerPeriod(entry.periodUsed)
     setLockedPeriod(period)
@@ -228,7 +306,7 @@ export function DealAnalyzerPage() {
     setShowResults(true)
     setAnalysisError(null)
     setLastCalculatedFormSignature(JSON.stringify(normalizedForm))
-  }, [savedId])
+  }, [savedId, mintTierId])
 
   React.useEffect(() => {
     if (!savedId || !isCompactLayout) return
@@ -364,7 +442,7 @@ export function DealAnalyzerPage() {
         setShowResults(false)
         setMobileDealStep("details")
         setAnalysisError(
-          "No purchases in this period match your tier program types. Pick another window or adjust tiers."
+          "No purchases in this period match your rule program types. Pick another window or adjust rules."
         )
         return
       }
@@ -466,6 +544,10 @@ export function DealAnalyzerPage() {
       newIndex = f.tiers.length
       return { ...f, tiers: [...f.tiers, defaultPricingTier()] }
     })
+    const newTierId = mintTierId()
+    setTierIds((ids) => [...ids, newTierId])
+    // Adding a tier always collapses every other tier and opens the new one.
+    setExpandedTierIds([newTierId])
     if (newIndex >= 0) {
       setTierAnimEpoch((e) => e + 1)
       setEnteringTierIndex(newIndex)
@@ -474,10 +556,22 @@ export function DealAnalyzerPage() {
 
   function removeTier(index: number) {
     setEnteringTierIndex(null)
+    const removedId = tierIds[index]
+    const remainingIds = tierIds.filter((_, i) => i !== index)
     setForm((f) => ({
       ...f,
       tiers: f.tiers.filter((_, i) => i !== index),
     }))
+    setTierIds(remainingIds)
+    setExpandedTierIds((open) => {
+      const filtered = removedId ? open.filter((id) => id !== removedId) : open
+      // Keep at least one tier visible when we still have an accordion
+      // (more than one tier remaining).
+      if (filtered.length === 0 && remainingIds.length > 1) {
+        return [remainingIds[0]]
+      }
+      return filtered
+    })
   }
 
   const showMobileResultsPane = showResults && mobileDealStep === "results"
@@ -568,33 +662,111 @@ export function DealAnalyzerPage() {
               <Separator className="bg-border/70" aria-hidden />
 
               <div className="flex flex-col gap-3">
-                {form.tiers.map((tier, i) => {
-                  const motionOk =
-                    typeof window === "undefined" ||
-                    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                  const isEntering = enteringTierIndex === i && motionOk
-                  return (
-                    <DealAnalyzerTierEnterShell
-                      key={`tier-${i}`}
-                      shellRef={(el) => {
-                        tierCardRefs.current[i] = el
-                      }}
-                      isEntering={isEntering}
-                      motionOk={motionOk}
-                      animEpoch={tierAnimEpoch}
-                    >
-                      <DealAnalyzerTierFields
-                        tierIndex={i}
-                        tier={tier}
-                        showTierChrome={form.tiers.length > 1}
-                        locationOptions={locationSelectOptions}
-                        onPatch={(p) => patchTier(i, p)}
-                        onRemove={form.tiers.length > 1 ? () => removeTier(i) : undefined}
-                        canRemove={form.tiers.length > 1}
-                      />
-                    </DealAnalyzerTierEnterShell>
-                  )
-                })}
+                {form.tiers.length > 1 ? (
+                  <AccordionPrimitive.Root
+                    value={expandedTierIds}
+                    onValueChange={(v) => setExpandedTierIds(v as string[])}
+                    multiple={false}
+                    className="flex flex-col gap-3"
+                  >
+                    {form.tiers.map((tier, i) => {
+                      const motionOk =
+                        typeof window === "undefined" ||
+                        !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                      const isEntering = enteringTierIndex === i && motionOk
+                      const tierId = tierIds[i] ?? `tier-fallback-${i}`
+                      return (
+                        <DealAnalyzerTierEnterShell
+                          key={tierId}
+                          shellRef={(el) => {
+                            tierCardRefs.current[i] = el
+                          }}
+                          isEntering={isEntering}
+                          motionOk={motionOk}
+                          animEpoch={tierAnimEpoch}
+                        >
+                          <AccordionPrimitive.Item
+                            value={tierId}
+                            className="overflow-hidden rounded-lg border border-border bg-muted/20"
+                          >
+                            <div className="flex items-center justify-between gap-2 px-3 py-2">
+                              <AccordionPrimitive.Header className="flex min-w-0 flex-1">
+                                <AccordionPrimitive.Trigger
+                                  className="group/tier-trigger flex min-h-9 min-w-0 flex-1 items-center justify-between gap-2 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                                  aria-label={`Toggle Rule ${i + 1} details`}
+                                >
+                                  <div className="flex min-w-0 flex-col">
+                                    <span className="text-sm font-semibold text-foreground">
+                                      Rule {i + 1}
+                                    </span>
+                                    <span className="truncate text-xs leading-snug text-muted-foreground group-aria-expanded/tier-trigger:hidden">
+                                      {summarizeTier(tier)}
+                                    </span>
+                                  </div>
+                                  <HugeiconsIcon
+                                    icon={ArrowDown01Icon}
+                                    strokeWidth={2}
+                                    className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-aria-expanded/tier-trigger:rotate-180"
+                                    aria-hidden
+                                  />
+                                </AccordionPrimitive.Trigger>
+                              </AccordionPrimitive.Header>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="min-h-9 shrink-0 text-destructive hover:text-destructive"
+                                onClick={() => removeTier(i)}
+                              >
+                                Remove rule
+                              </Button>
+                            </div>
+                            <AccordionPrimitive.Panel className="overflow-hidden data-open:animate-accordion-down data-closed:animate-accordion-up">
+                              <div className="h-(--accordion-panel-height) px-3 pb-3 data-ending-style:h-0 data-starting-style:h-0">
+                                <DealAnalyzerTierFields
+                                  tierIndex={i}
+                                  tier={tier}
+                                  showTierChrome={false}
+                                  locationOptions={locationSelectOptions}
+                                  onPatch={(p) => patchTier(i, p)}
+                                  canRemove={false}
+                                />
+                              </div>
+                            </AccordionPrimitive.Panel>
+                          </AccordionPrimitive.Item>
+                        </DealAnalyzerTierEnterShell>
+                      )
+                    })}
+                  </AccordionPrimitive.Root>
+                ) : (
+                  form.tiers.map((tier, i) => {
+                    const motionOk =
+                      typeof window === "undefined" ||
+                      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                    const isEntering = enteringTierIndex === i && motionOk
+                    const tierId = tierIds[i] ?? `tier-fallback-${i}`
+                    return (
+                      <DealAnalyzerTierEnterShell
+                        key={tierId}
+                        shellRef={(el) => {
+                          tierCardRefs.current[i] = el
+                        }}
+                        isEntering={isEntering}
+                        motionOk={motionOk}
+                        animEpoch={tierAnimEpoch}
+                      >
+                        <DealAnalyzerTierFields
+                          tierIndex={i}
+                          tier={tier}
+                          showTierChrome={false}
+                          locationOptions={locationSelectOptions}
+                          onPatch={(p) => patchTier(i, p)}
+                          canRemove={false}
+                        />
+                      </DealAnalyzerTierEnterShell>
+                    )
+                  })
+                )}
                 <Separator className="bg-border/70" aria-hidden />
                 <Button
                   type="button"
@@ -603,7 +775,7 @@ export function DealAnalyzerPage() {
                   disabled={enteringTierIndex !== null}
                   onClick={addTier}
                 >
-                  {form.tiers.length > 1 ? "Add deal tier" : "Add another rule"}
+                  Add another rule
                 </Button>
               </div>
 

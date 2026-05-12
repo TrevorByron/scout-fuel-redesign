@@ -364,9 +364,9 @@ export function DealAnalyzerResultsView({
             <>
               <Separator />
               <section className="rounded-lg border border-border bg-muted/20 p-4">
-                <h4 className="text-sm font-semibold">Tier resolution</h4>
+                <h4 className="text-sm font-semibold">Rule resolution</h4>
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Baseline transactions mapped to the most specific matching tier (blended
+                  Baseline transactions mapped to the most specific matching rule (blended
                   model).
                 </p>
                 <ul className="mt-3 space-y-2 text-xs">
@@ -379,7 +379,7 @@ export function DealAnalyzerResultsView({
                           className="flex min-h-9 items-center justify-between gap-2"
                         >
                           <span className="min-w-0 truncate font-medium text-foreground">
-                            Tier {b.tierIndex + 1}
+                            Rule {b.tierIndex + 1}
                           </span>
                           <span className="shrink-0 tabular-nums text-muted-foreground">
                             {b.transactionCount.toLocaleString()} txns ·{" "}
@@ -528,7 +528,7 @@ function InsightRow({
       <Alert className="border-primary/30 bg-primary/5">
         <AlertTitle>State restriction</AlertTitle>
         <AlertDescription>
-          This deal includes state-specific tiers covering {sorted.length} state
+          This deal includes state-specific rules covering {sorted.length} state
           {sorted.length === 1 ? "" : "s"}
           {states ? `: ${states}` : ""}.
         </AlertDescription>
@@ -556,7 +556,7 @@ function InsightRow({
       <Alert className="border-primary/30 bg-primary/5">
         <AlertTitle>Specific locations</AlertTitle>
         <AlertDescription>
-          This deal includes location-specific tiers at {keyArr.length} site
+          This deal includes location-specific rules at {keyArr.length} site
           {keyArr.length === 1 ? "" : "s"}
           {labels ? `: ${labels}` : "."}
         </AlertDescription>

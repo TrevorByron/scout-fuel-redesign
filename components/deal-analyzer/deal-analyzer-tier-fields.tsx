@@ -76,7 +76,7 @@ function RadioChoiceCard({
 export interface DealAnalyzerTierFieldsProps {
   tierIndex: number
   tier: DealPricingTier
-  /** Card + “Tier N” chrome only when the user has added a second tier. */
+  /** Card + “Rule N” chrome only when the user has added a second rule. */
   showTierChrome: boolean
   locationOptions: { key: string; display: string }[]
   onPatch: (patch: Partial<DealPricingTier>) => void
@@ -94,7 +94,7 @@ export function DealAnalyzerTierFields({
   canRemove,
 }: DealAnalyzerTierFieldsProps) {
   const id = (s: string) => `deal-tier-${tierIndex}-${s}`
-  const ariaScope = showTierChrome ? `Tier ${tierIndex + 1}` : "Deal"
+  const ariaScope = showTierChrome ? `Rule ${tierIndex + 1}` : "Deal"
   const programType = tier.programType
   const strategyProgram =
     programType === "discount" || programType === "rebate"
@@ -115,7 +115,7 @@ export function DealAnalyzerTierFields({
       {showTierChrome ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-foreground">
-            Tier {tierIndex + 1}
+            Rule {tierIndex + 1}
           </h3>
           {canRemove && onRemove ? (
             <Button
@@ -125,7 +125,7 @@ export function DealAnalyzerTierFields({
               className="min-h-9 text-destructive hover:text-destructive"
               onClick={onRemove}
             >
-              Remove tier
+              Remove rule
             </Button>
           ) : null}
         </div>
@@ -266,7 +266,7 @@ export function DealAnalyzerTierFields({
           >
             <span className="font-medium">Discount</span>
             <span className="text-muted-foreground text-xs font-normal">
-              ¢/gal off
+              Off invoice
             </span>
           </RadioChoiceCard>
           <RadioChoiceCard
