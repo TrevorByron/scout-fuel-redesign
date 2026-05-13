@@ -29,6 +29,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -62,8 +63,12 @@ import {
 } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TEAM_ROLES, type TeamRole, TeamRoleLabel } from "@/components/team-role"
+import { useTeamMembers } from "@/components/team-members-context"
 import { inviteEmailPreviewShellStyle } from "@/lib/email/team-invite-html"
-import { useOptionalWorkspaceSettings } from "@/lib/workspace-settings-context"
+import { loadProfile, type UserProfile } from "@/lib/profile-store"
+import { isPricingAccessGatedRole, isWorkspaceAdminByEmail } from "@/lib/team-access"
+import type { TeamMember } from "@/lib/team-members-store"
+import { useWorkspaceSettings } from "@/lib/workspace-settings-context"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -73,19 +78,6 @@ import {
   MoreVerticalCircle01Icon,
   UserAdd01Icon,
 } from "@hugeicons/core-free-icons"
-
-type MemberStatus = "pending" | "active"
-
-type TeamMember = {
-  id: string
-  name: string
-  email: string
-  role: TeamRole
-  status: MemberStatus
-  invitedAt: string
-  /** Included in the invitation email for pending invites. */
-  inviteNote?: string
-}
 
 const inviteSchema = z.object({
   role: z.enum(TEAM_ROLES),
@@ -101,6 +93,14 @@ const CURRENT_USER = {
   name: "Trevor Borden",
   email: "admin@scoutfuel.com",
 } as const
+
+const DEFAULT_PROFILE_FOR_TEAM: UserProfile = {
+  name: CURRENT_USER.name,
+  email: CURRENT_USER.email,
+  phone: "",
+  title: "",
+  avatar: "/avatars/shadcn.jpg",
+}
 
 /** Commas, semicolons, newlines, or whitespace (e.g. space) between addresses. */
 const INVITE_EMAIL_SPLIT = /[,\n;\s]+/g
@@ -209,7 +209,19 @@ export type TeamSettingsPanelProps = {
 }
 
 export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps) {
-  const workspace = useOptionalWorkspaceSettings()
+  const workspace = useWorkspaceSettings()
+  const { members, setMembers } = useTeamMembers()
+  const [profileEmail, setProfileEmail] = React.useState(() => DEFAULT_PROFILE_FOR_TEAM.email)
+
+  React.useEffect(() => {
+    setProfileEmail(loadProfile(DEFAULT_PROFILE_FOR_TEAM).email)
+  }, [])
+
+  React.useEffect(() => {
+    const bump = () => setProfileEmail(loadProfile(DEFAULT_PROFILE_FOR_TEAM).email)
+    window.addEventListener("scoutfuel:profile-updated", bump)
+    return () => window.removeEventListener("scoutfuel:profile-updated", bump)
+  }, [])
   const [activeTab, setActiveTab] = React.useState("invite")
   const [inviteEmailTags, setInviteEmailTags] = React.useState<string[]>([])
   const [inviteEmailDraft, setInviteEmailDraft] = React.useState("")
@@ -229,45 +241,23 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
     params.set("role", inviteRole)
     const note = inviteNote.trim()
     if (note) params.set("note", note.slice(0, 500))
-    const org = workspace?.activeOrg?.name?.trim()
+    const org = workspace.activeOrg?.name?.trim()
     if (org) params.set("orgDisplayName", org)
     params.set("inviterName", CURRENT_USER.name)
     params.set("inviterEmail", CURRENT_USER.email)
     return `/api/invites/preview?${params.toString()}`
-  }, [inviteRole, inviteNote, workspace?.activeOrg?.name])
+  }, [inviteRole, inviteNote, workspace.activeOrg?.name])
 
   const [removeCandidate, setRemoveCandidate] = React.useState<TeamMember | null>(null)
-
-  const [members, setMembers] = React.useState<TeamMember[]>([
-    {
-      id: "tm_1",
-      name: "Fleet Admin",
-      email: "admin@scoutfuel.com",
-      role: "Admin",
-      status: "active",
-      invitedAt: "2026-04-22T10:00:00.000Z",
-    },
-    {
-      id: "tm_2",
-      name: "Dispatch Lead",
-      email: "dispatch@scoutfuel.com",
-      role: "Dispatcher",
-      status: "active",
-      invitedAt: "2026-04-23T10:00:00.000Z",
-    },
-    {
-      id: "tm_3",
-      name: "Pending User",
-      email: "newdriver@scoutfuel.com",
-      role: "Driver",
-      status: "pending",
-      invitedAt: "2026-04-28T10:00:00.000Z",
-    },
-  ])
 
   const memberEmailsLower = React.useMemo(
     () => new Set(members.map((m) => m.email.toLowerCase())),
     [members]
+  )
+
+  const teamTableAdmin = React.useMemo(
+    () => isWorkspaceAdminByEmail(members, profileEmail),
+    [members, profileEmail]
   )
 
   const prevVisibleRef = React.useRef(visible)
@@ -348,7 +338,7 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
           emails: normalizedBatch,
           role: parsed.data.role,
           note: noteTrimmed,
-          orgDisplayName: workspace?.activeOrg?.name,
+          orgDisplayName: workspace.activeOrg?.name,
           inviterName: CURRENT_USER.name,
           inviterEmail: CURRENT_USER.email,
         }),
@@ -385,6 +375,9 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
             role: parsed.data.role,
             status: "pending" as const,
             invitedAt: new Date().toISOString(),
+            ...(isPricingAccessGatedRole(parsed.data.role)
+              ? { fuelFinderAccess: false as const }
+              : {}),
             ...(noteTrimmed ? { inviteNote: noteTrimmed } : {}),
           })),
           ...current,
@@ -436,9 +429,34 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
 
   function handleRoleChange(memberId: string, role: TeamRole) {
     setMembers((current) =>
-      current.map((member) => (member.id === memberId ? { ...member, role } : member))
+      current.map((member) => {
+        if (member.id !== memberId) return member
+        const next: TeamMember = { ...member, role }
+        if (role === "Admin" || !isPricingAccessGatedRole(role)) {
+          const cleaned: TeamMember = { ...next }
+          delete cleaned.fuelFinderAccess
+          return cleaned
+        }
+        const keepFlag =
+          isPricingAccessGatedRole(member.role) && member.fuelFinderAccess === true
+        return {
+          ...next,
+          fuelFinderAccess: keepFlag,
+        }
+      })
     )
     toast.success("Changes saved")
+  }
+
+  function handleMemberPricingAccess(memberId: string, allowed: boolean) {
+    setMembers((current) =>
+      current.map((m) =>
+        m.id === memberId && isPricingAccessGatedRole(m.role)
+          ? { ...m, fuelFinderAccess: allowed }
+          : m
+      )
+    )
+    toast.success(allowed ? "Pricing access enabled" : "Pricing access removed")
   }
 
   async function handleResendInvite(memberId: string) {
@@ -454,7 +472,7 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
           emails: [member.email.toLowerCase()],
           role: member.role,
           note: member.inviteNote?.trim() ?? "",
-          orgDisplayName: workspace?.activeOrg?.name,
+          orgDisplayName: workspace.activeOrg?.name,
           inviterName: CURRENT_USER.name,
           inviterEmail: CURRENT_USER.email,
         }),
@@ -726,23 +744,25 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
             <div className="space-y-1">
               <h3 className="text-sm font-medium text-foreground">Manage Team Members</h3>
               <p className="text-muted-foreground text-xs">
-                Review invites and update permissions.
+                Review invites and update permissions. For each active Driver or Dispatcher, turn
+                Pricing (Fuel Finder) on or off individually. Admins always have access.
               </p>
             </div>
-              <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name / Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="w-0 min-w-11 p-2 text-right">
-                  <span className="sr-only">Row actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id} className="group">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name / Email</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-center">Pricing access</TableHead>
+                  <TableHead className="w-0 min-w-11 p-2 text-right">
+                    <span className="sr-only">Row actions</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.id} className="group">
                   <TableCell>
                     <div className="flex min-w-[220px] flex-col gap-1">
                       <span className="font-medium">{member.name}</span>
@@ -805,6 +825,27 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
                       </SelectContent>
                     </Select>
                   </TableCell>
+                  <TableCell className="text-center align-middle">
+                    {isPricingAccessGatedRole(member.role) ? (
+                      <Checkbox
+                        id={`pricing-access-${member.id}`}
+                        className="mx-auto"
+                        checked={member.fuelFinderAccess === true}
+                        disabled={member.status !== "active" || !teamTableAdmin}
+                        onCheckedChange={(c) => {
+                          if (!teamTableAdmin) return
+                          handleMemberPricingAccess(member.id, c === true)
+                        }}
+                        aria-label={
+                          member.status === "active"
+                            ? `Allow Fuel Finder for ${member.name}`
+                            : `Fuel Finder for ${member.name} (active after invite)`
+                        }
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="p-2 text-right align-middle">
                     <DropdownMenu>
                       <Tooltip>
@@ -842,10 +883,10 @@ export function TeamSettingsPanel({ className, visible }: TeamSettingsPanelProps
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-              </Table>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
       </Tabs>

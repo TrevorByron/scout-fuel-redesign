@@ -4,6 +4,7 @@ import { DealAnalyzerHeaderNavProvider } from "@/components/deal-analyzer/deal-a
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TripsProvider } from "@/lib/trips-context"
+import { TeamMembersProvider } from "@/components/team-members-context"
 import { WorkspaceSettingsProvider } from "@/lib/workspace-settings-context"
 
 export default function DashboardLayout({
@@ -14,7 +15,8 @@ export default function DashboardLayout({
   return (
     <TripsProvider>
       <WorkspaceSettingsProvider>
-        <SidebarProvider
+        <TeamMembersProvider>
+          <SidebarProvider
           style={
             {
               "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -35,7 +37,8 @@ export default function DashboardLayout({
               </SidebarInset>
             </DealAnalyzerHeaderNavProvider>
           </AppSettingsProvider>
-        </SidebarProvider>
+          </SidebarProvider>
+        </TeamMembersProvider>
       </WorkspaceSettingsProvider>
     </TripsProvider>
   )

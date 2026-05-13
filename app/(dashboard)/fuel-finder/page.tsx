@@ -1,7 +1,5 @@
-"use client"
-
-import { PricingSummaryUber } from "@/components/pricing-summary-uber"
+import { FuelFinderPanel } from "@/components/fuel-finder-panel"
 
 export default function FuelFinderPage() {
-  return <PricingSummaryUber />
+  return <FuelFinderPanel />
 }

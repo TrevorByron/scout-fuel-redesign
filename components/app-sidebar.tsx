@@ -8,6 +8,9 @@ import { NavMain } from "@/components/nav-main"
 import { PilotRebateSidebarProgress } from "@/components/pilot-rebate-sidebar-progress"
 import { NavUser } from "@/components/nav-user"
 import { OrgSwitcher } from "@/components/org-switcher"
+import { useTeamMembers } from "@/components/team-members-context"
+import { loadProfile, type UserProfile } from "@/lib/profile-store"
+import { currentUserCanAccessFuelFinder } from "@/lib/team-access"
 import { useWorkspaceSettings } from "@/lib/workspace-settings-context"
 import {
   Sidebar,
@@ -54,27 +57,57 @@ const data = {
   ] as NavMainItem[],
 }
 
+const defaultProfileForNav: UserProfile = {
+  name: data.user.name,
+  email: data.user.email,
+  phone: "",
+  title: "",
+  avatar: data.user.avatar,
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const { setSettingsOpen } = useAppSettings()
   const { organizations, activeOrgId, setActiveOrgId } = useWorkspaceSettings()
+  const { members } = useTeamMembers()
+  const [profileEpoch, setProfileEpoch] = React.useState(0)
+
+  React.useEffect(() => {
+    const bump = () => setProfileEpoch((n) => n + 1)
+    window.addEventListener("focus", bump)
+    window.addEventListener("scoutfuel:profile-updated", bump)
+    return () => {
+      window.removeEventListener("focus", bump)
+      window.removeEventListener("scoutfuel:profile-updated", bump)
+    }
+  }, [])
+
   const navMainWithActive = React.useMemo(
-    () =>
-      data.navMain.map((item) => {
-        const isActive =
-          item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
-        const itemsWithActive =
-          item.items?.map((sub) => ({
-            ...sub,
-            isActive: pathname === sub.url,
-          }))
-        return {
-          ...item,
-          isActive,
-          items: itemsWithActive ?? item.items,
-        }
-      }),
-    [pathname]
+    () => {
+      void profileEpoch
+      const email = loadProfile(defaultProfileForNav).email
+      const canFuelFinder = currentUserCanAccessFuelFinder({
+        profileEmail: email,
+        members,
+      })
+      return data.navMain
+        .filter((item) => (item.url === "/fuel-finder" ? canFuelFinder : true))
+        .map((item) => {
+          const isActive =
+            item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
+          const itemsWithActive =
+            item.items?.map((sub) => ({
+              ...sub,
+              isActive: pathname === sub.url,
+            }))
+          return {
+            ...item,
+            isActive,
+            items: itemsWithActive ?? item.items,
+          }
+        })
+    },
+    [pathname, members, profileEpoch]
   )
   return (
     <Sidebar collapsible="icon" {...props}>

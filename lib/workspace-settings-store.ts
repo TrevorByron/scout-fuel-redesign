@@ -4,6 +4,7 @@ import { WORKSPACE_SEEDS } from "@/lib/workspace-seeds"
 
 export type LogoHolderBackground = "light" | "dark"
 
+/** Per-org workspace overrides (branding). */
 export type OrgBrandingOverride = {
   displayName?: string
   logoDataUrl?: string

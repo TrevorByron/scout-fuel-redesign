@@ -65,6 +65,7 @@ export function NavUser({
   function handleProfileSave(nextProfile: UserProfile) {
     setProfile(nextProfile)
     saveProfile(nextProfile)
+    window.dispatchEvent(new Event("scoutfuel:profile-updated"))
   }
 
   return (
