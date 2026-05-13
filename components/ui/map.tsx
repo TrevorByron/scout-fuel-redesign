@@ -1317,6 +1317,19 @@ type MapClusterLayerProps<
     coordinates: [number, number],
     pointCount: number
   ) => void;
+  /**
+   * When set, baseline pins (`role === "baseline"`) use three circle radii from
+   * gallons on `gallonsProperty`: &lt;100 → lowPx, 100–500 → mediumPx, &gt;500 → highPx.
+   * Other roles use `defaultPointRadius`.
+   */
+  baselineVolumeRadius?: {
+    gallonsProperty: string;
+    lowPx: number;
+    mediumPx: number;
+    highPx: number;
+  };
+  /** Unclustered radius when `baselineVolumeRadius` is unset, or for non-baseline roles (default: 8). */
+  defaultPointRadius?: number;
 };
 
 function MapClusterLayer<
@@ -1331,6 +1344,8 @@ function MapClusterLayer<
   pointColor = "#3b82f6",
   pointColorProperty,
   pointColorStep,
+  baselineVolumeRadius,
+  defaultPointRadius = 8,
   onPointClick,
   onClusterClick,
 }: MapClusterLayerProps<P>) {
@@ -1361,12 +1376,40 @@ function MapClusterLayer<
     return pointColor;
   }, [pointColorProperty, pointColor, pointColorStep]);
 
+  const circleRadiusExpression = useMemo((): number | unknown[] => {
+    if (!baselineVolumeRadius) return defaultPointRadius;
+    const { gallonsProperty, lowPx, mediumPx, highPx } =
+      baselineVolumeRadius;
+    const input = [
+      "coalesce",
+      ["to-number", ["get", gallonsProperty]],
+      0,
+    ] as unknown[];
+    const step = [
+      "step",
+      input,
+      lowPx,
+      100,
+      mediumPx,
+      501,
+      highPx,
+    ] as unknown[];
+    return [
+      "case",
+      ["==", ["get", "role"], "baseline"],
+      step,
+      defaultPointRadius,
+    ];
+  }, [baselineVolumeRadius, defaultPointRadius]);
+
   const stylePropsRef = useRef({
     clusterColors,
     clusterThresholds,
     pointColor,
     pointColorProperty,
     pointColorStep,
+    baselineVolumeRadius,
+    defaultPointRadius,
   });
 
   // Add source and layers on mount
@@ -1439,7 +1482,8 @@ function MapClusterLayer<
       ...(cluster ? { filter: ["!", ["has", "point_count"]] } : {}),
       paint: {
         "circle-color": circleColorExpression as MapLibreGL.ExpressionSpecification,
-        "circle-radius": 8,
+        "circle-radius":
+          circleRadiusExpression as MapLibreGL.ExpressionSpecification,
         "circle-stroke-width": 2,
         "circle-stroke-color": "#fff",
       },
@@ -1529,6 +1573,17 @@ function MapClusterLayer<
             : pointColor;
         map.setPaintProperty(unclusteredLayerId, "circle-color", nextExpr);
       }
+
+      const radiusChanged =
+        prev.baselineVolumeRadius !== baselineVolumeRadius ||
+        prev.defaultPointRadius !== defaultPointRadius;
+      if (radiusChanged) {
+        map.setPaintProperty(
+          unclusteredLayerId,
+          "circle-radius",
+          circleRadiusExpression as MapLibreGL.ExpressionSpecification
+        );
+      }
     }
 
     stylePropsRef.current = {
@@ -1537,6 +1592,8 @@ function MapClusterLayer<
       pointColor,
       pointColorProperty,
       pointColorStep,
+      baselineVolumeRadius,
+      defaultPointRadius,
     };
   }, [
     isLoaded,
@@ -1549,6 +1606,9 @@ function MapClusterLayer<
     pointColor,
     pointColorProperty,
     pointColorStep,
+    baselineVolumeRadius,
+    defaultPointRadius,
+    circleRadiusExpression,
   ]);
 
   // Handle click events

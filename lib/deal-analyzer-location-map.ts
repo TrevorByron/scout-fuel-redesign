@@ -20,6 +20,8 @@ export type LocationMapPointProps = {
   color: string
   role: LocationMapPointRole
   locationKey: string
+  /** Baseline pins only: gallons for volume-tier map sizing (see MapClusterLayer `baselineVolumeRadius`). */
+  baselineGallons?: number
 }
 
 export type LocationComparisonMapModel = {
@@ -123,6 +125,12 @@ export function buildLocationComparisonMapModel(
 
     const [blLng, blLat] = baseline
 
+    const baselineGallons =
+      row.current.totalGallons != null &&
+      Number.isFinite(row.current.totalGallons) ?
+        row.current.totalGallons
+      : 0
+
     features.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: [blLng, blLat] },
@@ -130,6 +138,7 @@ export function buildLocationComparisonMapModel(
         color: mapPaint.laneBaseline,
         role: "baseline",
         locationKey: row.locationKey,
+        baselineGallons,
       },
     })
 

@@ -44,6 +44,14 @@ const DEAL_COMPARISON_LABELS: ComparisonCardLabels = {
   savingsFooter: "Modeled savings",
 }
 
+/** Baseline pin sizes: &lt;100 gal / 100–500 / &gt;500 (MapClusterLayer step). */
+const DEAL_MAP_BASELINE_VOLUME_RADIUS = {
+  gallonsProperty: "baselineGallons",
+  lowPx: 5,
+  mediumPx: 8,
+  highPx: 12,
+} as const
+
 /** One line "Chain · City, ST" for the optimized column (matches row subtitle shape). */
 function optimizedColumnHeadline(card: DealLocationMetricCard): string {
   const title = card.title || "—"
@@ -500,6 +508,7 @@ export function DealAnalyzerLocationComparisonSection({
             data={mapDisplayPoints}
             cluster={false}
             pointColorProperty="color"
+            baselineVolumeRadius={DEAL_MAP_BASELINE_VOLUME_RADIUS}
             onPointClick={(feature) => {
               const p = feature.properties
               if (!p || typeof p.locationKey !== "string") return
