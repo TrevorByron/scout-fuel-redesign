@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { AlertCircle, BarChart3, CheckCircle2, XCircle } from "lucide-react"
+import { AlertCircle, BarChart3, CheckCircle2, Info, XCircle } from "lucide-react"
 import type {
   DealAnalyzerFormInput,
   DealAnalyzerResults,
@@ -10,12 +10,16 @@ import type {
   DealLocationComparisonRow,
   DealVerdict,
 } from "@/lib/deal-analyzer-types"
-import { NETWORK_LABELS } from "@/lib/deal-analyzer-engine"
+import { dealPricingTooltipSummary, NETWORK_LABELS } from "@/lib/deal-analyzer-engine"
 import { getAllLocationKeys } from "@/lib/location-utils"
 import { DealAnalyzerLocationComparisonSection } from "@/components/deal-analyzer/deal-analyzer-location-comparison"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ChartUpIcon } from "@hugeicons/core-free-icons"
 import type { FuelTransaction } from "@/lib/mock-data"
@@ -35,6 +39,15 @@ function fmtUsdDetail(n: number): string {
     currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  }).format(n)
+}
+
+function fmtUsdPerGal3(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
   }).format(n)
 }
 
@@ -188,6 +201,20 @@ function MetricBlock({
   )
 }
 
+function PumpFeeMetricBlock({
+  weightedPumpFeePerGal,
+}: {
+  weightedPumpFeePerGal: number | null | undefined
+}) {
+  const display =
+    weightedPumpFeePerGal != null && !Number.isNaN(weightedPumpFeePerGal)
+      ? fmtUsdPerGal3(weightedPumpFeePerGal)
+      : "—"
+  return (
+    <MetricBlock label="WPF" value={display} emphasis="secondary" />
+  )
+}
+
 function normalizedOptimizedStats(
   optimized: NonNullable<DealAnalyzerResults["optimized"]>,
   baseline: DealBaselineStats
@@ -201,7 +228,16 @@ function normalizedOptimizedStats(
       ? Math.round((optimized.totalSpend / baseline.totalGallons) * 10000) /
         10000
       : 0)
-  return { totalSavingsVsBaseline, avgPricePerGallon }
+  const weightedPumpFeePerGal =
+    optimized.weightedPumpFeePerGal ??
+    (baseline.weightedPumpFeePerGal != null && baseline.avgPricePerGallon > 0
+      ? Math.round(
+          baseline.weightedPumpFeePerGal *
+            (avgPricePerGallon / baseline.avgPricePerGallon) *
+            10000
+        ) / 10000
+      : undefined)
+  return { totalSavingsVsBaseline, avgPricePerGallon, weightedPumpFeePerGal }
 }
 
 interface DealAnalyzerResultsViewProps {
@@ -326,8 +362,16 @@ export function DealAnalyzerResultsView({
             Baseline uses your fleet purchases in the selected period.
           </p>
         </header>
-        <div className="flex flex-col gap-4 pt-1">
-          <section className={cn("p-4", breakdownCardClass("neutral"))}>
+        <div
+          className={cn(
+            "flex flex-col gap-4 pt-1",
+            /* Named container `main` is on dashboard layout — row when the pane is wide enough */
+            "@[56rem]/main:flex-row @[56rem]/main:items-stretch @[56rem]/main:gap-3"
+          )}
+        >
+          <section
+            className={cn("p-4", breakdownCardClass("neutral"), "min-w-0 flex-1")}
+          >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium">Current (baseline)</span>
               <Badge variant="outline">Actual</Badge>
@@ -339,17 +383,56 @@ export function DealAnalyzerResultsView({
                 value={fmtUsdDetail(baseline.avgPricePerGallon)}
                 emphasis="secondary"
               />
+              <PumpFeeMetricBlock weightedPumpFeePerGal={baseline.weightedPumpFeePerGal} />
             </div>
           </section>
 
-          <section className={cn("p-4", verdictTierSectionShellClass(verdictTier))}>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium">With {networkLabel}</span>
+          <section
+            className={cn(
+              "p-4",
+              verdictTierSectionShellClass(verdictTier),
+              "min-w-0 flex-1"
+            )}
+          >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1 text-sm font-medium leading-none">
+                <span className="truncate">With {networkLabel}</span>
+                <Tooltip>
+                  <TooltipTrigger
+                    delay={0}
+                    render={
+                      <span
+                        tabIndex={0}
+                        aria-label="View proposed deal pricing details"
+                        className={cn(
+                          "inline-flex shrink-0 cursor-help items-center justify-center rounded-sm p-0.5 outline-none",
+                          "text-muted-foreground hover:text-foreground",
+                          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                        )}
+                      >
+                        <Info className="size-3.5" aria-hidden />
+                      </span>
+                    }
+                  />
+                  <TooltipContent
+                    side="left"
+                    className="max-w-[min(22rem,calc(100vw-2rem))] text-left text-xs leading-snug"
+                  >
+                    <div className="space-y-2 py-0.5">
+                      <p className="font-medium text-background">
+                        {proposed.discountLabel}
+                      </p>
+                      <p className="whitespace-pre-line border-t border-background/25 pt-2 text-background/90">
+                        {dealPricingTooltipSummary(form)}
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Badge variant={verdictTierProposedBadgeVariant(verdictTier)}>
                 Proposed
               </Badge>
             </div>
-            <p className="mb-4 text-xs text-muted-foreground">{proposed.discountLabel}</p>
             <div className="flex flex-col gap-4">
               <MetricBlock label="Total spend" value={fmtUsd(proposed.totalSpend)} />
               <MetricBlock
@@ -357,6 +440,7 @@ export function DealAnalyzerResultsView({
                 value={fmtUsdDetail(proposed.avgPricePerGallon)}
                 emphasis="secondary"
               />
+              <PumpFeeMetricBlock weightedPumpFeePerGal={proposed.weightedPumpFeePerGal} />
               <MetricBlock
                 label="Total savings"
                 value={formatSavingsUsd(proposed.savings)}
@@ -366,69 +450,68 @@ export function DealAnalyzerResultsView({
           </section>
 
           {optimized && optNorm && optimizedTone ? (
-            <>
-              <Separator />
-              <section
-                className={cn(
-                  "p-4",
-                  optimizedTone === "good"
-                    ? breakdownCardClass("good", "best")
-                    : breakdownCardClass(optimizedTone)
-                )}
-              >
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium">With smart routing</span>
-                  <Badge
-                    variant={
-                      optimizedTone === "good"
-                        ? "successFilled"
-                        : optimizedTone === "bad"
-                          ? "destructiveOutline"
-                          : "outline"
-                    }
-                  >
-                    Optimized
-                  </Badge>
-                </div>
-                <div className="flex flex-col gap-4">
-                  <MetricBlock
-                    label="Total spend"
-                    value={fmtUsd(optimized.totalSpend)}
-                  />
-                  <MetricBlock
-                    label="Average cost per gallon"
-                    value={fmtUsdDetail(optNorm.avgPricePerGallon)}
-                    emphasis="secondary"
-                  />
-                  <MetricBlock
-                    label="Total savings"
-                    value={formatSavingsUsd(optNorm.totalSavingsVsBaseline)}
-                    valueClassName={savingsValueClass(optimizedTone)}
-                  />
-                  <div
+            <section
+              className={cn(
+                "p-4",
+                optimizedTone === "good"
+                  ? breakdownCardClass("good", "best")
+                  : breakdownCardClass(optimizedTone),
+                "min-w-0 flex-1"
+              )}
+            >
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium">With smart routing</span>
+                <Badge
+                  variant={
+                    optimizedTone === "good"
+                      ? "successFilled"
+                      : optimizedTone === "bad"
+                        ? "destructiveOutline"
+                        : "outline"
+                  }
+                >
+                  Optimized
+                </Badge>
+              </div>
+              <div className="flex flex-col gap-4">
+                <MetricBlock
+                  label="Total spend"
+                  value={fmtUsd(optimized.totalSpend)}
+                />
+                <MetricBlock
+                  label="Average cost per gallon"
+                  value={fmtUsdDetail(optNorm.avgPricePerGallon)}
+                  emphasis="secondary"
+                />
+                <PumpFeeMetricBlock weightedPumpFeePerGal={optNorm.weightedPumpFeePerGal} />
+                <MetricBlock
+                  label="Total savings"
+                  value={formatSavingsUsd(optNorm.totalSavingsVsBaseline)}
+                  valueClassName={savingsValueClass(optimizedTone)}
+                />
+                <div
+                  className={cn(
+                    "rounded-md border px-3 py-2 text-sm",
+                    optimizedTone === "good"
+                      ? "border-[var(--success)]/45 bg-[var(--success)]/10"
+                      : "border-border bg-muted/40"
+                  )}
+                >
+                  <span
                     className={cn(
-                      "rounded-md border px-3 py-2 text-sm",
+                      "font-medium",
                       optimizedTone === "good"
-                        ? "border-[var(--success)]/45 bg-[var(--success)]/10"
-                        : "border-border bg-muted/40"
+                        ? "text-[var(--success)]"
+                        : optimizedTone === "bad"
+                          ? "text-destructive"
+                          : "text-foreground"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "font-medium",
-                        optimizedTone === "good"
-                          ? "text-[var(--success)]"
-                          : optimizedTone === "bad"
-                            ? "text-destructive"
-                            : "text-foreground"
-                      )}
-                    >
-                      Saves you an additional: {fmtUsd(optimized.additionalSavings)}
-                    </span>
-                  </div>
+                    Saves you an additional: {fmtUsd(optimized.additionalSavings)}
+                  </span>
                 </div>
-              </section>
-            </>
+              </div>
+            </section>
           ) : null}
         </div>
       </section>

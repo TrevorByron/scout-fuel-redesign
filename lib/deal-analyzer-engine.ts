@@ -137,20 +137,25 @@ export function aggregateBaseline(
   const list = filterTransactionsByDealProgram(txns, programType)
   let totalSpend = 0
   let totalGallons = 0
+  let sumPumpFeeGallons = 0
   const trucks = new Set<string>()
   for (const t of list) {
     totalSpend += t.totalCost
     totalGallons += t.gallons
+    sumPumpFeeGallons += (t.pumpFeePerGallon ?? 0) * t.gallons
     trucks.add(t.truckId)
   }
   const transactions = list.length
   const avgPricePerGallon =
     totalGallons > 0 ? Math.round((totalSpend / totalGallons) * 10000) / 10000 : 0
+  const weightedPumpFeePerGal =
+    totalGallons > 0 ? roundMoney4(sumPumpFeeGallons / totalGallons) : 0
   return {
     transactions,
     totalSpend: Math.round(totalSpend * 100) / 100,
     totalGallons: Math.round(totalGallons * 100) / 100,
     avgPricePerGallon,
+    weightedPumpFeePerGal,
     uniqueTrucks: trucks.size,
   }
 }
@@ -162,20 +167,25 @@ export function aggregateBaselineForDealTiers(
   const list = filterTransactionsByDealTiers(txns, tiers)
   let totalSpend = 0
   let totalGallons = 0
+  let sumPumpFeeGallons = 0
   const trucks = new Set<string>()
   for (const t of list) {
     totalSpend += t.totalCost
     totalGallons += t.gallons
+    sumPumpFeeGallons += (t.pumpFeePerGallon ?? 0) * t.gallons
     trucks.add(t.truckId)
   }
   const transactions = list.length
   const avgPricePerGallon =
     totalGallons > 0 ? Math.round((totalSpend / totalGallons) * 10000) / 10000 : 0
+  const weightedPumpFeePerGal =
+    totalGallons > 0 ? roundMoney4(sumPumpFeeGallons / totalGallons) : 0
   return {
     transactions,
     totalSpend: Math.round(totalSpend * 100) / 100,
     totalGallons: Math.round(totalGallons * 100) / 100,
     avgPricePerGallon,
+    weightedPumpFeePerGal,
     uniqueTrucks: trucks.size,
   }
 }
@@ -327,6 +337,56 @@ function blendedDiscountLabel(form: DealAnalyzerFormInput): string {
   if (parts.length === 0) return `Blended deal (${allTiers.length} tiers)`
   const joined = parts.slice(0, 2).join(" · ")
   return allTiers.length > 2 ? `${joined} · …` : joined
+}
+
+function tierCoverageLabel(tier: DealPricingTier): string {
+  if (tier.locationCoverage === "specific_states" && tier.selectedStates.length > 0) {
+    const states = [...tier.selectedStates].map((s) => s.trim().toUpperCase()).sort()
+    const head = states.slice(0, 12).join(", ")
+    return states.length > 12 ? `${head}, +${states.length - 12} more` : head
+  }
+  if (
+    tier.locationCoverage === "specific_sites" &&
+    tier.selectedLocationKeys.length > 0
+  ) {
+    return `${tier.selectedLocationKeys.length} specific site${
+      tier.selectedLocationKeys.length === 1 ? "" : "s"
+    }`
+  }
+  return "All locations"
+}
+
+/** Multi-line copy for tooltips: deal name, each tier’s pricing label, and where it applies. */
+export function dealPricingTooltipSummary(form: DealAnalyzerFormInput): string {
+  const lines: string[] = []
+  const name = form.dealName.trim()
+  if (name) lines.push(name)
+
+  for (const b of form.brands) {
+    const net =
+      b.network !== ""
+        ? NETWORK_LABELS[b.network as DealFuelNetwork] ?? b.network
+        : "Program"
+    const multiBrand = form.brands.length > 1
+
+    for (let i = 0; i < b.tiers.length; i++) {
+      const t = b.tiers[i]
+      const price = discountDisplayLabelForTier(t, t.programType, t.defRebatePricingMode)
+      if (!price) continue
+      const where = tierCoverageLabel(t)
+
+      if (multiBrand) {
+        const tierPart = b.tiers.length > 1 ? ` · Tier ${i + 1}` : ""
+        lines.push(`${net}${tierPart}: ${price} · ${where}`)
+      } else if (b.tiers.length > 1) {
+        lines.push(`Tier ${i + 1}: ${price} · ${where}`)
+      } else {
+        lines.push(`${price} · ${where}`)
+      }
+    }
+  }
+
+  return lines.length > 0 ? lines.join("\n") : "No deal pricing entered"
 }
 
 export function adjustedCoverageForTier(
@@ -553,6 +613,12 @@ export function computeDealAnalysis(params: {
       ? Math.round((projectedSpend / baseline.totalGallons) * 10000) / 10000
       : 0
 
+  const basePumpFee = baseline.weightedPumpFeePerGal ?? 0
+  const baseAvgPpg = baseline.avgPricePerGallon
+  /** Modeled pump fee scales ~proportionally to all-in $/gal vs baseline (no per-txn counterfactual). */
+  const proposedWeightedPumpFeePerGal =
+    baseAvgPpg > 0 ? roundMoney4(basePumpFee * (proposedAvg / baseAvgPpg)) : 0
+
   const verdict = verdictFromSavingsPercent(savingsPercent)
 
   const additionalSavingsRaw = Math.abs(savings) * 0.35
@@ -573,10 +639,13 @@ export function computeDealAnalysis(params: {
       baseline.totalGallons > 0
         ? Math.round((optimizedSpend / baseline.totalGallons) * 10000) / 10000
         : 0
+    const optimizedWeightedPumpFeePerGal =
+      baseAvgPpg > 0 ? roundMoney4(basePumpFee * (optimizedAvgPpg / baseAvgPpg)) : 0
     optimized = {
       totalSpend: optimizedSpend,
       totalSavingsVsBaseline,
       avgPricePerGallon: optimizedAvgPpg,
+      weightedPumpFeePerGal: optimizedWeightedPumpFeePerGal,
       additionalSavings,
       opportunities:
         optTx.opportunities > 0
@@ -618,6 +687,7 @@ export function computeDealAnalysis(params: {
       noCoverage,
       avgPricePerGallon: proposedAvg,
       discountLabel: blendedDiscountLabel(form),
+      weightedPumpFeePerGal: proposedWeightedPumpFeePerGal,
       tierBreakdown,
     },
     optimized,

@@ -62,6 +62,8 @@ export interface DealBaselineStats {
   totalSpend: number
   totalGallons: number
   avgPricePerGallon: number
+  /** Gallon-weighted average of per-transaction pump fees ($/gal). */
+  weightedPumpFeePerGal?: number
   uniqueTrucks: number
 }
 
@@ -82,6 +84,8 @@ export interface DealProposedStats {
   noCoverage: number
   avgPricePerGallon: number
   discountLabel: string
+  /** Modeled vs baseline avg $/gal; scales from `baseline.weightedPumpFeePerGal`. */
+  weightedPumpFeePerGal?: number
   /** Present when multiple tiers or useful for single-tier parity. */
   tierBreakdown?: DealTierResolutionBreakdown[]
 }
@@ -92,6 +96,8 @@ export interface DealOptimizedStats {
   totalSavingsVsBaseline?: number
   /** Effective $/gal at baseline gallons; omitted on older saved runs (derived in UI). */
   avgPricePerGallon?: number
+  /** Modeled vs baseline avg $/gal; scales from `baseline.weightedPumpFeePerGal`. */
+  weightedPumpFeePerGal?: number
   additionalSavings: number
   opportunities: number
   avgDetourMiles: number

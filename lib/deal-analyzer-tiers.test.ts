@@ -23,6 +23,7 @@ function txn(over: Partial<FuelTransaction>): FuelTransaction {
     fuelType: "Diesel",
     gallons: 10,
     pricePerGallon: 3.5,
+    pumpFeePerGallon: 0,
     totalCost: 35,
     savedAmount: 0,
     variance: 0,

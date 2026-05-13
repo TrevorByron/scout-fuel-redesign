@@ -39,7 +39,7 @@ export function defaultPricingTier(): DealPricingTier {
     costPlusAmountPerGal: "",
     rebateAmountCentsPerGal: "",
     defRebateAmountCentsPerGal: "",
-    locationCoverage: "",
+    locationCoverage: "all_locations",
     selectedStates: [],
     selectedLocationKeys: [],
   }
@@ -145,6 +145,11 @@ function normalizeTierPartial(raw: unknown): DealPricingTier {
   if (Array.isArray(o.selectedStates)) t.selectedStates = o.selectedStates.map(String)
   if (Array.isArray(o.selectedLocationKeys))
     t.selectedLocationKeys = o.selectedLocationKeys.map(String)
+  if (t.locationCoverage === "") {
+    t.locationCoverage = "all_locations"
+    t.selectedStates = []
+    t.selectedLocationKeys = []
+  }
   return t
 }
 

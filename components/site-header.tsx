@@ -60,7 +60,7 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
         <h1 className="sr-only">Analyze deal</h1>
         <Breadcrumb className="min-w-0">
           <BreadcrumbList className="gap-1 text-muted-foreground sm:gap-1.5">
-            <BreadcrumbItem className="max-sm:max-w-[42vw]">
+            <BreadcrumbItem className="shrink">
               <BreadcrumbLink
                 render={<Link href="/deal-analyzer" />}
                 className={crumbLinkClass}
@@ -71,7 +71,7 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
             <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">
               <ChevronRight className="size-3.5 shrink-0" aria-hidden />
             </BreadcrumbSeparator>
-            <BreadcrumbItem className="min-w-0">
+            <BreadcrumbItem className="shrink-0">
               <BreadcrumbPage className={crumbCurrentClass}>
                 Analyze deal
               </BreadcrumbPage>
@@ -91,7 +91,7 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
       </h1>
       <Breadcrumb className="min-w-0">
         <BreadcrumbList className="gap-1 text-muted-foreground sm:gap-1.5">
-          <BreadcrumbItem className="min-w-0 max-sm:max-w-[28vw]">
+          <BreadcrumbItem className="shrink">
             <BreadcrumbLink
               render={<Link href="/deal-analyzer" />}
               className={crumbLinkClass}
@@ -102,7 +102,9 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
           <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">
             <ChevronRight className="size-3.5 shrink-0" aria-hidden />
           </BreadcrumbSeparator>
-          <BreadcrumbItem className="min-w-0 max-sm:max-w-[34vw]">
+          <BreadcrumbItem
+            className={step === "details" ? "shrink-0" : "shrink"}
+          >
             {step === "details" ? (
               <BreadcrumbPage className={crumbCurrentClass}>
                 Deal Details
@@ -123,7 +125,7 @@ function DealAnalyzerAnalyzeHeaderCrumb() {
               <BreadcrumbSeparator className="[&>svg]:size-3.5 [&>svg]:opacity-70">
                 <ChevronRight className="size-3.5 shrink-0" aria-hidden />
               </BreadcrumbSeparator>
-              <BreadcrumbItem className="min-w-0 max-sm:max-w-[28vw]">
+              <BreadcrumbItem className="shrink-0">
                 <BreadcrumbPage className={crumbCurrentClass}>Results</BreadcrumbPage>
               </BreadcrumbItem>
             </>

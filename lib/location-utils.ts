@@ -1,4 +1,5 @@
 import type { FuelTransaction, BetterOption } from "@/lib/mock-data"
+import type { DealFuelNetwork } from "@/lib/deal-analyzer-types"
 import { getFuelTransactions } from "@/lib/mock-data"
 
 const LOCATION_KEY_SEP = "\u001f"
@@ -11,6 +12,61 @@ export function getLocationDisplayName(stationBrand: string, city: string): stri
 /** Stable internal key for a location (stationBrand + city). */
 export function getLocationKey(stationBrand: string, city: string): string {
   return `${stationBrand}${LOCATION_KEY_SEP}${city}`
+}
+
+/** Normalize station brand for fuzzy network matching (case, apostrophes, spaces). */
+function normalizeStationBrandToken(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[''`]/g, "")
+    .replace(/\s+/g, "")
+}
+
+/**
+ * Transaction `stationBrand` strings that count as each deal fuel network.
+ * Used to filter location pickers so "RoadRanger + AL" only lists RoadRanger stops in AL.
+ */
+const FUEL_NETWORK_STATION_MATCHERS: Record<DealFuelNetwork, readonly string[]> = {
+  loves: ["Love's", "Loves"],
+  "pilot-flying-j": ["Pilot Flying J", "Flying J"],
+  "ta-petro": ["TA/Petro", "TA Petro"],
+  shell: ["Shell"],
+  chevron: ["Chevron"],
+  ambest: ["Ambest", "AM Best"],
+  roadranger: ["RoadRanger", "Road Ranger"],
+  other: [],
+}
+
+export function stationBrandMatchesFuelNetwork(
+  stationBrand: string,
+  network: DealFuelNetwork | ""
+): boolean {
+  if (!network || network === "other") return true
+  const b = normalizeStationBrandToken(stationBrand)
+  const matchers = FUEL_NETWORK_STATION_MATCHERS[network]
+  for (const m of matchers) {
+    const n = normalizeStationBrandToken(m)
+    if (b === n || b.includes(n) || n.includes(b)) return true
+  }
+  return false
+}
+
+/** Station brand segment from a location key (`stationBrand` + sep + `City, ST`). */
+export function getStationBrandFromLocationKey(key: string): string | null {
+  const i = key.indexOf(LOCATION_KEY_SEP)
+  if (i < 0) return null
+  return key.slice(0, i)
+}
+
+export function filterLocationKeysByFuelNetwork(
+  options: { key: string; display: string }[],
+  network: DealFuelNetwork | ""
+): { key: string; display: string }[] {
+  if (!network || network === "other") return options
+  return options.filter((o) => {
+    const brand = getStationBrandFromLocationKey(o.key)
+    return brand != null && stationBrandMatchesFuelNetwork(brand, network)
+  })
 }
 
 /** Parse location key into [stationBrand, city]. */
@@ -73,6 +129,35 @@ export function getLocationKeyFromDisplay(displayName: string): string | null {
 /** All location keys with display names (for iteration). */
 export function getAllLocationKeys(): { key: string; display: string }[] {
   return [...ALL_LOCATION_KEYS]
+}
+
+/** Normalize a state segment to a 2-letter code (matches deal-analyzer engine matching). */
+export function normalizeStateCode(raw: string): string {
+  const s = raw.trim().toUpperCase()
+  if (!s) return ""
+  return s.length <= 2 ? s : s.slice(0, 2)
+}
+
+/**
+ * Two-letter state code parsed from a deal location key (`stationBrand` + sep + `City, ST`), or null.
+ */
+export function getStateCodeFromLocationKey(key: string): string | null {
+  const i = key.indexOf(LOCATION_KEY_SEP)
+  if (i < 0) return null
+  const locationSegment = key.slice(i + 1)
+  const raw = getCityStateFromLocation(locationSegment).state
+  const code = normalizeStateCode(raw)
+  return code || null
+}
+
+/** Location rows whose parsed state equals the given 2-letter code. */
+export function filterLocationKeysByState(
+  options: { key: string; display: string }[],
+  stateCode: string
+): { key: string; display: string }[] {
+  const want = normalizeStateCode(stateCode)
+  if (!want) return []
+  return options.filter((o) => getStateCodeFromLocationKey(o.key) === want)
 }
 
 export type DateRange = { from: Date; to?: Date }

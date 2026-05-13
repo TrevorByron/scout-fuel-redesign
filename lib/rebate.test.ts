@@ -18,6 +18,7 @@ function txn(overrides: Partial<FuelTransaction> & Pick<FuelTransaction, "statio
     location: "Somewhere, TX",
     gallons: 1,
     pricePerGallon: 1,
+    pumpFeePerGallon: 0,
     savedAmount: 0,
     variance: 0,
     lat: 0,

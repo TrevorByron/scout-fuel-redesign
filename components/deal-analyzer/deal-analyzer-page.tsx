@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ChevronLeft, LineChart, Plus, Upload, Zap } from "lucide-react"
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 import { getFuelTransactions } from "@/lib/mock-data"
-import { getAllLocationKeys } from "@/lib/location-utils"
+import { getAllLocationKeys, getStateCodeFromLocationKey, normalizeStateCode } from "@/lib/location-utils"
 import type {
   DealAnalyzerFormInput,
   DealAnalyzerPeriod,
@@ -72,7 +72,11 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowDown01Icon, BalanceScaleIcon } from "@hugeicons/core-free-icons"
+import {
+  ArrowDown01Icon,
+  BalanceScaleIcon,
+  Delete02Icon,
+} from "@hugeicons/core-free-icons"
 import { DateRangePresetTabs } from "@/components/date-range-preset-tabs"
 import { useDealAnalyzerCompactLayout } from "@/hooks/use-deal-analyzer-compact-layout"
 import { cn } from "@/lib/utils"
@@ -117,16 +121,31 @@ function defaultForm(): DealAnalyzerFormInput {
 function summarizeTier(tier: DealPricingTier): string {
   const parts: string[] = []
 
-  if (tier.locationCoverage === "all_locations") {
-    parts.push("All States")
+  if (tier.locationCoverage === "all_locations" || tier.locationCoverage === "") {
+    parts.push("All states")
   } else if (tier.locationCoverage === "specific_states") {
-    const n = tier.selectedStates.length
-    parts.push(n === 0 ? "Specific states" : `${n} state${n === 1 ? "" : "s"}`)
+    const first = tier.selectedStates[0]
+      ? normalizeStateCode(tier.selectedStates[0])
+      : ""
+    const extra =
+      tier.selectedStates.length > 1
+        ? ` (+${tier.selectedStates.length - 1} more)`
+        : ""
+    parts.push(first ? `${first} (statewide)${extra}` : "Statewide")
   } else if (tier.locationCoverage === "specific_sites") {
-    const n = tier.selectedLocationKeys.length
-    parts.push(
-      n === 0 ? "Specific locations" : `${n} location${n === 1 ? "" : "s"}`
-    )
+    const k = tier.selectedLocationKeys[0]
+    if (k) {
+      const st = getStateCodeFromLocationKey(k)
+      const catalog = getAllLocationKeys()
+      const label = catalog.find((o) => o.key === k)?.display ?? "Location"
+      const extra =
+        tier.selectedLocationKeys.length > 1
+          ? ` (+${tier.selectedLocationKeys.length - 1} more)`
+          : ""
+      parts.push(st ? `${st} · ${label}${extra}` : `${label}${extra}`)
+    } else {
+      parts.push("Specific location")
+    }
   }
 
   if (tier.programType === "discount" || tier.programType === "rebate") {
@@ -670,7 +689,7 @@ export function DealAnalyzerPage() {
                         Deal details
                       </h2>
                       <p className="text-muted-foreground mt-0.5 text-xs">
-                        Type as you hear the proposal.
+                        Add deal details below
                       </p>
                     </div>
                   </div>
@@ -822,15 +841,28 @@ export function DealAnalyzerPage() {
                                   />
                                 </AccordionPrimitive.Trigger>
                               </AccordionPrimitive.Header>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="min-h-9 shrink-0 text-destructive hover:text-destructive"
-                                onClick={() => removeTier(i)}
-                              >
-                                Remove rule
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="min-h-11 min-w-11 shrink-0 text-destructive hover:text-destructive"
+                                      aria-label="Remove rule"
+                                      onClick={() => removeTier(i)}
+                                    >
+                                      <HugeiconsIcon
+                                        icon={Delete02Icon}
+                                        strokeWidth={2}
+                                        className="size-4"
+                                        aria-hidden
+                                      />
+                                    </Button>
+                                  }
+                                />
+                                <TooltipContent side="bottom">Remove rule</TooltipContent>
+                              </Tooltip>
                             </div>
                             <AccordionPrimitive.Panel className="overflow-hidden data-open:animate-accordion-down data-closed:animate-accordion-up">
                               <div className="h-(--accordion-panel-height) px-3 pb-3 data-ending-style:h-0 data-starting-style:h-0">
@@ -838,6 +870,7 @@ export function DealAnalyzerPage() {
                                   tierIndex={i}
                                   tier={tier}
                                   showTierChrome={false}
+                                  fuelNetwork={activeBrand.network}
                                   locationOptions={locationSelectOptions}
                                   onPatch={(p) => patchTier(safeBrandIndex, i, p)}
                                   canRemove={false}
@@ -870,6 +903,7 @@ export function DealAnalyzerPage() {
                           tierIndex={i}
                           tier={tier}
                           showTierChrome={false}
+                          fuelNetwork={activeBrand.network}
                           locationOptions={locationSelectOptions}
                           onPatch={(p) => patchTier(safeBrandIndex, i, p)}
                           canRemove={false}

@@ -239,6 +239,8 @@ export interface FuelTransaction {
   fuelType: FuelType
   gallons: number
   pricePerGallon: number
+  /** Card/network pump-side fee modeled in $/gal (not program discount). */
+  pumpFeePerGallon: number
   totalCost: number
   savedAmount: number
   variance: number
@@ -609,6 +611,8 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
       const fuelType = k < FUEL_TYPES.length ? FUEL_TYPES[k] : FUEL_TYPE_SEQUENCE[i % 10]
       const gallons = Math.round((80 + (i % 121)) * 10) / 10
       const pricePerGallon = Math.round((380 + (i % 100)) * 100) / 10000
+      /** Deterministic ~$0.02–$0.081/gal so fleet weighted average varies by volume mix. */
+      const pumpFeePerGallon = Math.round((20 + (i % 61)) * 100) / 100000
       const totalCost = Math.round(gallons * pricePerGallon * 100) / 100
       const savingsPerGallon =
         fuelType === "Diesel" ? 0.12 + (i % 5) * 0.01
@@ -670,6 +674,7 @@ function buildFuelTransactions(asOfDate: Date): FuelTransaction[] {
         fuelType,
         gallons,
         pricePerGallon,
+        pumpFeePerGallon,
         totalCost,
         savedAmount,
         variance,

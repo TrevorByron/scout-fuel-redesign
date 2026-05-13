@@ -136,6 +136,7 @@ function buildPrototypeStopRefuels(
     }
 
     const totalCost = Math.round(gallons * pricePerGallon * 100) / 100
+    const pumpFeePerGallon = Math.round((35 + (i * 7) % 45) * 100) / 100000
 
     const row: FuelTransaction = {
       id: `txn-${idPrefix}-${trip.id}-${i + 1}`,
@@ -147,6 +148,7 @@ function buildPrototypeStopRefuels(
       fuelType: "Diesel" as FuelType,
       gallons,
       pricePerGallon,
+      pumpFeePerGallon,
       totalCost,
       savedAmount: Math.round(totalCost * 0.04 * 100) / 100,
       variance: isBad ? -12 : 0,
