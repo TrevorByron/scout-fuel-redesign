@@ -4,9 +4,9 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowRight, FileText, Trash2 } from "lucide-react"
+import { AlertCircle, ArrowRight, CheckCircle2, FileText, Trash2, XCircle } from "lucide-react"
 import { deleteDealAnalysis, listSavedDealAnalyses } from "@/lib/deal-analyzer-storage"
-import type { SavedDealAnalysis } from "@/lib/deal-analyzer-types"
+import type { DealVerdict, SavedDealAnalysis } from "@/lib/deal-analyzer-types"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -23,6 +23,120 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { BalanceScaleIcon } from "@hugeicons/core-free-icons"
+
+type VerdictTier = DealVerdict["tier"]
+
+function fmtUsd(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n)
+}
+
+function fmtPct(n: number): string {
+  return `${n.toFixed(1)}%`
+}
+
+/** Matches deal-analyzer-results-view hero shell (list-row variant). */
+function verdictTierRowShellClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "border-[var(--success)]/35 bg-[var(--success)]/5"
+    case "marginal":
+      return "border-[var(--warning)]/40 bg-[var(--warning)]/10"
+    case "bad":
+      return "border-destructive/35 bg-destructive/10"
+    default:
+      return "border-border bg-muted/20"
+  }
+}
+
+function verdictTierIconShellClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "bg-[var(--success)]/15 text-[var(--success)]"
+    case "marginal":
+      return "bg-[var(--warning)]/15 text-[var(--warning)]"
+    case "bad":
+      return "bg-destructive/15 text-destructive"
+    default:
+      return "bg-muted text-muted-foreground"
+  }
+}
+
+function verdictTierHeadlineClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "text-[var(--success)]"
+    case "marginal":
+      return "text-[var(--warning)]"
+    case "bad":
+      return "text-destructive"
+    default:
+      return "text-foreground"
+  }
+}
+
+function SavedAnalysisLinkBody({ item }: { item: SavedDealAnalysis }) {
+  const results = item.results
+  const verdict = results?.verdict
+  const proposed = results?.proposed
+  const tier = verdict?.tier ?? "good"
+  const hasMetrics = Boolean(verdict && proposed && typeof proposed.savings === "number")
+
+  return (
+    <>
+      {verdict ? (
+        <div
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-full",
+            verdictTierIconShellClass(tier)
+          )}
+          aria-hidden
+        >
+          {tier === "bad" ? (
+            <XCircle className="size-5" />
+          ) : tier === "marginal" ? (
+            <AlertCircle className="size-5" />
+          ) : (
+            <CheckCircle2 className="size-5" />
+          )}
+        </div>
+      ) : null}
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="truncate font-medium text-foreground text-sm">{item.name}</p>
+        {hasMetrics && verdict && proposed ? (
+          <>
+            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+              {verdict.subtitle}
+            </p>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-0.5">
+              <span
+                className={cn(
+                  "text-lg font-bold tabular-nums tracking-tight",
+                  verdictTierHeadlineClass(tier)
+                )}
+              >
+                {proposed.savings >= 0 ? "−" : "+"}
+                {fmtUsd(Math.abs(proposed.savings))}
+              </span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                ({fmtPct(proposed.savingsPercent)} vs baseline)
+              </span>
+            </div>
+          </>
+        ) : null}
+        <p className="text-muted-foreground text-xs pt-0.5">
+          {format(new Date(item.date), "MMM d, yyyy · h:mm a")}
+        </p>
+      </div>
+    </>
+  )
+}
 
 export function DealAnalyzerHub() {
   const pathname = usePathname()
@@ -87,39 +201,58 @@ export function DealAnalyzerHub() {
               </div>
             </CardHeader>
             <CardContent className="min-h-0 flex-1 pt-0">
-              <ul className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-border bg-muted/10 p-2">
-                {saved.map((item) => (
-                  <li key={item.id} className="flex items-center gap-0.5">
-                    <Link
+              <ul className="max-h-[min(24rem,55vh)] space-y-1.5 overflow-y-auto rounded-lg border border-border bg-muted/10 p-2">
+                {saved.map((item) => {
+                  const tier = item.results?.verdict?.tier ?? "good"
+                  const hasResults = Boolean(item.results?.verdict && item.results?.proposed)
+                  return (
+                    <li key={item.id} className="flex items-stretch gap-0.5">
+                      <Link
                       href={`/deal-analyzer/analyze?saved=${encodeURIComponent(item.id)}`}
-                      className="flex min-h-11 min-w-0 flex-1 flex-col gap-0.5 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-muted/80"
+                      className={cn(
+                        "flex min-w-0 flex-1 rounded-md border px-3 py-2.5 text-left transition-colors",
+                        hasResults
+                          ? cn(
+                              "items-start gap-3",
+                              verdictTierRowShellClass(tier),
+                              "hover:brightness-[0.99]"
+                            )
+                          : "min-h-11 flex-col gap-0.5 border-transparent hover:bg-muted/80"
+                      )}
                     >
-                      <span className="truncate font-medium text-foreground text-sm">
-                        {item.name}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        {format(new Date(item.date), "MMM d, yyyy · h:mm a")}
-                      </span>
-                    </Link>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-lg"
-                            className="min-h-11 min-w-11 shrink-0 text-muted-foreground hover:text-destructive"
-                            aria-label={`Delete saved analysis, ${item.name}`}
-                            onClick={() => setDeleteTarget(item)}
-                          >
-                            <Trash2 className="size-4" aria-hidden />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent side="left">Delete saved analysis</TooltipContent>
-                    </Tooltip>
-                  </li>
-                ))}
+                      {hasResults ? (
+                        <SavedAnalysisLinkBody item={item} />
+                      ) : (
+                        <>
+                          <span className="truncate font-medium text-foreground text-sm">
+                            {item.name}
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            {format(new Date(item.date), "MMM d, yyyy · h:mm a")}
+                          </span>
+                        </>
+                      )}
+                      </Link>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-lg"
+                              className="min-h-11 min-w-11 shrink-0 self-center text-muted-foreground hover:text-destructive"
+                              aria-label={`Delete saved analysis, ${item.name}`}
+                              onClick={() => setDeleteTarget(item)}
+                            >
+                              <Trash2 className="size-4" aria-hidden />
+                            </Button>
+                          }
+                        />
+                        <TooltipContent side="left">Delete saved analysis</TooltipContent>
+                      </Tooltip>
+                    </li>
+                  )
+                })}
               </ul>
             </CardContent>
           </Card>
