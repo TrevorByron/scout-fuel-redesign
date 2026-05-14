@@ -41,7 +41,7 @@ export type DriverFillUpsBlockProps = {
 }
 
 /**
- * Map + transactions table with row ↔ map selection. Used on driver profile and My Performance.
+ * Map + transactions table with row ↔ map selection. Used on driver profile and My Dashboard.
  */
 export function DriverFillUpsBlock({
   transactions,

@@ -493,12 +493,16 @@ export function DashboardDefault({ variant = "fleet", driverName }: DashboardDef
             variant === "myPerformance" ? "What is stop efficiency?" : undefined
           }
           efficiencyTooltipText={variant === "myPerformance" ? STOP_EFFICIENCY_TOOLTIP : undefined}
-          improvementData={{
-            drivers: gaugeImprovementDrivers,
-            locations: gaugeImprovementLocations,
-          }}
-          periodLabel={periodLabel}
-          hasRoomForImprovement={fleetScoreProps.efficiencyRate < 90}
+          {...(variant === "myPerformance"
+            ? {}
+            : {
+                improvementData: {
+                  drivers: gaugeImprovementDrivers,
+                  locations: gaugeImprovementLocations,
+                },
+                periodLabel,
+                hasRoomForImprovement: fleetScoreProps.efficiencyRate < 90,
+              })}
         />
         <Card size="sm" className="py-2">
           <CardHeader className="pb-0">
@@ -770,24 +774,28 @@ export function DashboardDefault({ variant = "fleet", driverName }: DashboardDef
         data-dashboard-main-grid
         className="grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2"
       >
-        {variant === "myPerformance" && driverName ? (
+        {variant === "myPerformance" ? (
         <div className="flex min-h-0 min-w-0 flex-col gap-4">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="text-lg font-semibold tracking-tight">Transactions &amp; fill-up locations</h2>
-            <p className="text-muted-foreground text-xs">
-              Same period as the date filters at the top of the page.
-            </p>
-          </div>
-          <DriverFillUpsBlock
-            transactions={filteredByDateTransactions}
-            tableDescription={
-              <>
-                Your transactions in the selected date range. Click a row to highlight it on the map.
-              </>
-            }
-          />
+          {driverName ? (
+            <>
+              <div className="flex min-w-0 flex-col gap-1">
+                <h2 className="text-lg font-semibold tracking-tight">Transactions &amp; fill-up locations</h2>
+                <p className="text-muted-foreground text-xs">
+                  Same period as the date filters at the top of the page.
+                </p>
+              </div>
+              <DriverFillUpsBlock
+                transactions={filteredByDateTransactions}
+                tableDescription={
+                  <>
+                    Your transactions in the selected date range. Click a row to highlight it on the map.
+                  </>
+                }
+              />
+            </>
+          ) : null}
         </div>
-        ) : variant === "myPerformance" ? null : (
+        ) : (
         <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">
           <Tabs
             value={attentionTab}
