@@ -4,14 +4,11 @@ import * as React from "react"
 import Link from "next/link"
 import { type DateRange } from "react-day-picker"
 import {
-  fleetScoreCardMock,
   getFuelTransactions,
   fuelPriceHistory,
   type FuelPricePoint,
-  type FuelTransaction,
 } from "@/lib/mock-data"
 import {
-  getComparisonPeriod,
   getThisMonthRange,
   getThisWeekRange,
   getYesterdayRange,
@@ -19,12 +16,18 @@ import {
   rangeMatches,
   type PeriodTabValue,
 } from "@/lib/date-range-presets"
-import { getFleetGrade } from "@/lib/fuelScore"
+import {
+  buildChainChartData,
+  computeDashboardKpis,
+  computeFleetScoreProps,
+  isTransactionInDateRange,
+} from "@/lib/dashboard-metrics"
 import { driverNameToSlug, getDriversNeedingAttention } from "@/lib/driver-utils"
 import { getLocationListStats, locationToSlug } from "@/lib/location-utils"
 import { DateRangePresetTabs, DATE_RANGE_PRESET_BAR_PADDING } from "@/components/date-range-preset-tabs"
 import { OptimizationGaugeCard } from "@/components/optimization-gauge-card"
 import { ImprovementAttentionDrawer } from "@/components/improvement-attention-drawer"
+import { DriverFillUpsBlock } from "@/components/driver-fill-ups-block"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -271,45 +274,6 @@ function FuelPriceTrendsCard() {
   )
 }
 
-const CHAIN_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-]
-const TOP_CHAINS = 5
-
-function brandKey(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, "")
-}
-
-function buildChainData(transactions: FuelTransaction[]) {
-  const map = new Map<string, number>()
-  for (const t of transactions) {
-    map.set(t.stationBrand, (map.get(t.stationBrand) ?? 0) + t.gallons)
-  }
-  const sorted = [...map.entries()].sort((a, b) => b[1] - a[1])
-  const top = sorted.slice(0, TOP_CHAINS)
-  const otherGallons = sorted.slice(TOP_CHAINS).reduce((s, [, v]) => s + v, 0)
-  const data = [
-    ...top.map(([brand, gallons], i) => ({
-      brand: brandKey(brand),
-      label: brand,
-      gallons: Math.round(gallons),
-      fill: CHAIN_COLORS[i] ?? CHAIN_COLORS[CHAIN_COLORS.length - 1],
-    })),
-    ...(otherGallons > 0
-      ? [{ brand: "other", label: "Other", gallons: Math.round(otherGallons), fill: "var(--muted-foreground)" }]
-      : []),
-  ]
-  const config: ChartConfig = {
-    gallons: { label: "Gallons" },
-    ...Object.fromEntries(data.map((d) => [d.brand, { label: d.label, color: d.fill }])),
-  }
-  return { data, config, total: data.reduce((s, d) => s + d.gallons, 0) }
-}
-
 const PRESETS = [
   { label: "Last 7 days", days: 7 },
   { label: "Last 30 days", days: 30 },
@@ -331,36 +295,33 @@ function formatRangeLabel(range: DateRange | undefined): string {
   return `${fmt(range.from)} – ${fmt(range.to)}`
 }
 
-function isInDateRange(t: FuelTransaction, range: DateRange | undefined): boolean {
-  if (!range?.from) return true
-  const tDate = new Date(t.dateTime).getTime()
-  if (tDate < range.from.getTime()) return false
-  const toEnd = range.to ? range.to.getTime() + 86400000 : range.from.getTime() + 86400000
-  if (tDate > toEnd) return false
-  return true
+export type DashboardVariant = "fleet" | "myPerformance"
+
+export type DashboardDefaultProps = {
+  variant?: DashboardVariant
+  /** Required when variant is myPerformance; must match mock `driverName` on transactions. */
+  driverName?: string
 }
 
-/** Amount overpaid: could have gotten same fuel for less. Uses betterOption.potentialSavings when available (better location on route), else |variance|. */
-function getOverpaidAmount(t: FuelTransaction): number {
-  if (t.betterOption?.potentialSavings != null && t.betterOption.potentialSavings > 0) {
-    return t.betterOption.potentialSavings
-  }
-  if (t.variance < 0) return Math.abs(t.variance)
-  return 0
-}
+const STOP_EFFICIENCY_TOOLTIP =
+  "Stop efficiency is the percentage of your fill-ups at optimized in-network locations—the best price for your route. A higher score means more of your stops captured the best available price."
 
-export function DashboardDefault() {
+export function DashboardDefault({ variant = "fleet", driverName }: DashboardDefaultProps = {}) {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
     () => getThisWeekRange()
   )
   /** Track which period tab is selected so clicks update UI immediately; null = derive from dateRange (e.g. after calendar pick). */
-  const [periodTab, setPeriodTab] = React.useState<PeriodTabValue | null>("week")
+  const [, setPeriodTab] = React.useState<PeriodTabValue | null>("week")
   const [missedSavingsDrawerOpen, setMissedSavingsDrawerOpen] = React.useState(false)
   const [attentionTab, setAttentionTab] = React.useState<"drivers" | "locations">("drivers")
 
-  const filteredByDateTransactions = React.useMemo(() => {
-    return getFuelTransactions().filter((t) => isInDateRange(t, dateRange))
-  }, [dateRange])
+  const transactionsForMetrics = React.useMemo(() => {
+    const byDate = getFuelTransactions().filter((t) => isTransactionInDateRange(t, dateRange))
+    if (variant === "myPerformance" && driverName) {
+      return byDate.filter((t) => t.driverName === driverName)
+    }
+    return byDate
+  }, [dateRange, variant, driverName])
 
   /** Drivers needing attention = below 60% efficiency in period (same definition as Driver Insights). Top 5 by missed savings. */
   const driversInNeedOfAttention = React.useMemo(() => {
@@ -373,6 +334,15 @@ export function DashboardDefault() {
       to: range.to ?? range.from ?? week.to,
     }).slice(0, 5)
   }, [dateRange])
+
+  const gaugeImprovementDrivers = React.useMemo(() => {
+    if (variant === "myPerformance" && driverName) {
+      return driversInNeedOfAttention.filter((d) => d.driverName === driverName)
+    }
+    return driversInNeedOfAttention
+  }, [variant, driverName, driversInNeedOfAttention])
+
+  const filteredByDateTransactions = transactionsForMetrics
 
   /** Locations that need attention in the selected period. Top 5 by missed savings. */
   const locationsInNeedOfAttention = React.useMemo(() => {
@@ -415,125 +385,31 @@ export function DashboardDefault() {
           ? "this month"
           : "this period"
 
-  const kpis = React.useMemo(() => {
-    const byType = (type: "Diesel" | "Reefer" | "DEF") =>
-      filteredByDateTransactions.filter((t) => t.fuelType === type)
-
-    const avgCost = (txns: FuelTransaction[]) =>
-      txns.length ? txns.reduce((s, t) => s + t.pricePerGallon, 0) / txns.length : 0
-
-    const avgSavingsPerGal = (txns: FuelTransaction[]) =>
-      txns.length
-        ? txns.reduce((s, t) => s + t.savedAmount / t.gallons, 0) / txns.length
-        : 0
-
-    const dieselTxns = byType("Diesel")
-    const reeferTxns = byType("Reefer")
-    const defTxns = byType("DEF")
-
-    return {
-      totalGallons: filteredByDateTransactions.reduce((s, t) => s + t.gallons, 0),
-      gallonsByType: {
-        Diesel: dieselTxns.reduce((s, t) => s + t.gallons, 0),
-        Reefer: reeferTxns.reduce((s, t) => s + t.gallons, 0),
-        DEF: defTxns.reduce((s, t) => s + t.gallons, 0),
-      },
-      avgCostAll: avgCost(filteredByDateTransactions),
-      avgCostByType: {
-        Diesel: avgCost(dieselTxns),
-        Reefer: avgCost(reeferTxns),
-        DEF: avgCost(defTxns),
-      },
-      avgSavingsAll: avgSavingsPerGal(filteredByDateTransactions),
-      avgSavingsByType: {
-        Diesel: avgSavingsPerGal(dieselTxns),
-        Reefer: avgSavingsPerGal(reeferTxns),
-        DEF: avgSavingsPerGal(defTxns),
-      },
-      totalSavings: filteredByDateTransactions.reduce((s, t) => s + t.savedAmount, 0),
-      savingsByType: {
-        Diesel: dieselTxns.reduce((s, t) => s + t.savedAmount, 0),
-        Reefer: reeferTxns.reduce((s, t) => s + t.savedAmount, 0),
-        DEF: defTxns.reduce((s, t) => s + t.savedAmount, 0),
-      },
-      totalSpent: filteredByDateTransactions.reduce((s, t) => s + t.totalCost, 0),
-      spentByType: {
-        Diesel: dieselTxns.reduce((s, t) => s + t.totalCost, 0),
-        Reefer: reeferTxns.reduce((s, t) => s + t.totalCost, 0),
-        DEF: defTxns.reduce((s, t) => s + t.totalCost, 0),
-      },
-    }
-  }, [filteredByDateTransactions])
-
-  const chainChartData = React.useMemo(
-    () => buildChainData(filteredByDateTransactions),
+  const kpis = React.useMemo(
+    () => computeDashboardKpis(filteredByDateTransactions),
     [filteredByDateTransactions]
   )
 
-  const fleetScoreProps = React.useMemo(() => {
-    const total = filteredByDateTransactions.length
-    // Optimization score: TBD formula to include in-network vs out-of-network AND better location on route within tank range
-    const inNetworkCount = filteredByDateTransactions.filter((t) => t.inNetwork).length
-    const efficiencyRate =
-      total > 0 ? Math.round((inNetworkCount / total) * 100) : 0
-    const fullGrade = getFleetGrade(efficiencyRate)
-    const gradeMatch = fullGrade.match(/^([A-F])([+-])?$/)
-    const grade = gradeMatch ? gradeMatch[1] : "F"
-    const gradeSuffix = gradeMatch?.[2]
+  const chainChartData = React.useMemo(
+    () => buildChainChartData(filteredByDateTransactions),
+    [filteredByDateTransactions]
+  )
 
-    /** Missed savings = overpaid $ on out-of-network fill-ups only (matches Drivers page). High efficiency => small missed $ */
-    const overpaidTxns = filteredByDateTransactions.filter(
-      (t) => !t.inNetwork && getOverpaidAmount(t) > 0
-    )
-    const rawSum = overpaidTxns.reduce((sum, t) => sum + getOverpaidAmount(t), 0)
-    const overpaidFillUpCount = overpaidTxns.length
-    const overpaidDriverCount = new Set(overpaidTxns.map((t) => t.driverName)).size
-    /** When there are overpaid fill-ups, always show at least $1 so we never show "No missed savings" with "Across N fill-ups". */
-    const missedSavings = overpaidFillUpCount > 0 ? Math.max(1, Math.round(rawSum)) : Math.round(rawSum)
+  const fleetScoreProps = React.useMemo(
+    () =>
+      computeFleetScoreProps(filteredByDateTransactions, dateRange, {
+        driverName: variant === "myPerformance" ? driverName : undefined,
+      }),
+    [filteredByDateTransactions, dateRange, variant, driverName]
+  )
 
-    const comparison = getComparisonPeriod(dateRange)
-    const prevOverpaid = comparison
-      ? Math.round(
-          getFuelTransactions()
-            .filter((t) => isInDateRange(t, comparison.range))
-            .filter((t) => !t.inNetwork && getOverpaidAmount(t) > 0)
-            .reduce((sum, t) => sum + getOverpaidAmount(t), 0)
-        )
-      : 0
-    const trendLabel = comparison ? `from ${comparison.label}` : "from last month"
-    const missedSavingsTrend = comparison ? missedSavings - prevOverpaid : Math.round(missedSavings * -0.12)
+  const gaugeImprovementLocations =
+    variant === "myPerformance" ? ([] as typeof locationsInNeedOfAttention) : locationsInNeedOfAttention
 
-    const prevPeriodTxns = comparison
-      ? getFuelTransactions().filter((t) => isInDateRange(t, comparison.range))
-      : []
-    const prevInNetwork = prevPeriodTxns.filter((t) => t.inNetwork).length
-    const prevEfficiencyRate =
-      prevPeriodTxns.length > 0 ? Math.round((prevInNetwork / prevPeriodTxns.length) * 100) : efficiencyRate
-    const optimizationTrend = comparison ? efficiencyRate - prevEfficiencyRate : undefined
-
-    const trendData = [...fleetScoreCardMock.trendData]
-    if (trendData.length > 0) trendData[trendData.length - 1] = { ...trendData[trendData.length - 1]!, value: efficiencyRate }
-
-    return {
-      grade,
-      gradeSuffix,
-      weekDate: fleetScoreCardMock.weekDate,
-      efficiencyRate,
-      totalTransactions: total,
-      previousGrade: fleetScoreCardMock.previousGrade,
-      targetGrade: fleetScoreCardMock.targetGrade,
-      targetDate: fleetScoreCardMock.targetDate,
-      missedSavings,
-      overpaidFillUpCount,
-      overpaidDriverCount,
-      missedSavingsTrend,
-      trendLabel,
-      optimizationTrend,
-      targetEfficiencyPercent: 80,
-      additionalSavingsAtTarget: 8200,
-      trendData,
-    }
-  }, [filteredByDateTransactions, dateRange])
+  const viewerFirstName =
+    variant === "myPerformance" && driverName
+      ? (driverName.split(/\s+/)[0] ?? driverName)
+      : "Pete"
 
   return (
     <div className={cn("flex flex-col gap-4 py-4 md:gap-6 md:py-6", DATE_RANGE_PRESET_BAR_PADDING)}>
@@ -541,10 +417,12 @@ export function DashboardDefault() {
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">
         <div>
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
-            {getGreeting()}, Pete
+            {getGreeting()}, {viewerFirstName}
           </h2>
           <p className="text-muted-foreground text-xs mt-0.5">
-            View fleet activity, fuel spend, and price trends at a glance.
+            {variant === "myPerformance"
+              ? "Your fuel spend, stops, and savings for the selected period."
+              : "View fleet activity, fuel spend, and price trends at a glance."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -610,9 +488,14 @@ export function DashboardDefault() {
           value={fleetScoreProps.efficiencyRate}
           trendFromLastMonth={fleetScoreProps.optimizationTrend}
           trendLabel={fleetScoreProps.trendLabel}
+          cardTitle={variant === "myPerformance" ? "Stop efficiency" : undefined}
+          efficiencyInfoAriaLabel={
+            variant === "myPerformance" ? "What is stop efficiency?" : undefined
+          }
+          efficiencyTooltipText={variant === "myPerformance" ? STOP_EFFICIENCY_TOOLTIP : undefined}
           improvementData={{
-            drivers: driversInNeedOfAttention,
-            locations: locationsInNeedOfAttention,
+            drivers: gaugeImprovementDrivers,
+            locations: gaugeImprovementLocations,
           }}
           periodLabel={periodLabel}
           hasRoomForImprovement={fleetScoreProps.efficiencyRate < 90}
@@ -667,7 +550,9 @@ export function DashboardDefault() {
               </p>
             )}
             <p className="text-center text-xs font-normal text-muted-foreground">
-              Across {fleetScoreProps.overpaidFillUpCount} fill-up{fleetScoreProps.overpaidFillUpCount === 1 ? "" : "s"} from {fleetScoreProps.overpaidDriverCount} driver{fleetScoreProps.overpaidDriverCount === 1 ? "" : "s"}
+              {variant === "myPerformance"
+                ? `Across ${fleetScoreProps.overpaidFillUpCount} of your fill-up${fleetScoreProps.overpaidFillUpCount === 1 ? "" : "s"}`
+                : `Across ${fleetScoreProps.overpaidFillUpCount} fill-up${fleetScoreProps.overpaidFillUpCount === 1 ? "" : "s"} from ${fleetScoreProps.overpaidDriverCount} driver${fleetScoreProps.overpaidDriverCount === 1 ? "" : "s"}`}
             </p>
             {(() => {
               const totalPotential = kpis.totalSavings + fleetScoreProps.missedSavings
@@ -699,7 +584,7 @@ export function DashboardDefault() {
             })()}
           </CardContent>
           {(fleetScoreProps.missedSavings > 0 || fleetScoreProps.overpaidFillUpCount > 0) &&
-            (driversInNeedOfAttention.length > 0 || locationsInNeedOfAttention.length > 0) && (
+            (gaugeImprovementDrivers.length > 0 || gaugeImprovementLocations.length > 0) && (
             <CardFooter className="pt-0">
               <Button
                 variant="outline"
@@ -712,8 +597,8 @@ export function DashboardDefault() {
               <ImprovementAttentionDrawer
                 open={missedSavingsDrawerOpen}
                 onOpenChange={setMissedSavingsDrawerOpen}
-                drivers={driversInNeedOfAttention}
-                locations={locationsInNeedOfAttention}
+                drivers={gaugeImprovementDrivers}
+                locations={gaugeImprovementLocations}
                 periodLabel={periodLabel}
                 source="missedSavings"
               />
@@ -885,7 +770,24 @@ export function DashboardDefault() {
         data-dashboard-main-grid
         className="grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2"
       >
-        {/* Drivers + Locations: shadcn Tabs (TabsDemo-style) */}
+        {variant === "myPerformance" && driverName ? (
+        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">Transactions &amp; fill-up locations</h2>
+            <p className="text-muted-foreground text-xs">
+              Same period as the date filters at the top of the page.
+            </p>
+          </div>
+          <DriverFillUpsBlock
+            transactions={filteredByDateTransactions}
+            tableDescription={
+              <>
+                Your transactions in the selected date range. Click a row to highlight it on the map.
+              </>
+            }
+          />
+        </div>
+        ) : variant === "myPerformance" ? null : (
         <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">
           <Tabs
             value={attentionTab}
@@ -1010,6 +912,7 @@ export function DashboardDefault() {
             </CardContent>
           </Tabs>
         </Card>
+        )}
 
         {/* Gallons by chain */}
         <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">

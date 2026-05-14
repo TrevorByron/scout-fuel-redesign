@@ -17,7 +17,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "Dashboard",
+  "/my-performance": "My Performance",
   "/alerts": "Alerts",
   "/budget": "Budget",
   "/drivers/": "Driver",

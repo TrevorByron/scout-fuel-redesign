@@ -12,17 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Map as MapView, MapMarker, MarkerContent, MarkerLabel, MapRoute, useMap } from "@/components/ui/map"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
@@ -328,7 +323,7 @@ export function BetterOptionDetails({
   )
 }
 
-const TABLE_COLUMN_COUNT = 10
+const TABLE_COLUMN_COUNT = 9
 
 function TransactionRow({
   t,
@@ -336,7 +331,6 @@ function TransactionRow({
   hideDriverColumn,
   selectedTransactionId,
   onSelectTransaction,
-  onBetterOptionClick,
 }: {
   t: FuelTransaction
   /** When true, render an empty first cell (for alignment in grouped view). */
@@ -344,16 +338,11 @@ function TransactionRow({
   hideDriverColumn?: boolean
   selectedTransactionId?: string | null
   onSelectTransaction?: (t: FuelTransaction | null) => void
-  onBetterOptionClick?: (t: FuelTransaction) => void
 }) {
   const hasBetterOption =
     !!t.betterOption && (t.betterOption.potentialSavings ?? 0) > 0
   const isSelected = selectedTransactionId != null && selectedTransactionId === t.id
   const handleRowClick = () => {
-    if (hasBetterOption && onBetterOptionClick) {
-      onBetterOptionClick(t)
-      return
-    }
     if (onSelectTransaction) {
       onSelectTransaction(isSelected ? null : t)
     }
@@ -364,74 +353,98 @@ function TransactionRow({
       className={cn(
         hasBetterOption && "bg-destructive/10",
         isSelected && "bg-primary/10 ring-1 ring-primary/30",
-        (onSelectTransaction || (hasBetterOption && onBetterOptionClick)) && "cursor-pointer"
+        onSelectTransaction && "cursor-pointer"
       )}
-      onClick={(hasBetterOption && onBetterOptionClick) || onSelectTransaction ? handleRowClick : undefined}
+      onClick={onSelectTransaction ? handleRowClick : undefined}
     >
       {leadingCell ? <TableCell className="w-0" /> : null}
       <TableCell className="whitespace-nowrap">{formatDate(t.dateTime)}</TableCell>
       {!hideDriverColumn ? <TableCell>{t.driverName}</TableCell> : null}
-      <TableCell>{t.truckId}</TableCell>
       <TableCell>{t.location}</TableCell>
       <TableCell>{t.stationBrand}</TableCell>
       <TableCell className="text-right">{t.gallons}</TableCell>
       <TableCell className="text-right">${t.pricePerGallon.toFixed(2)}</TableCell>
       <TableCell className="text-right">${t.totalCost.toFixed(2)}</TableCell>
-      <TableCell>
+      <TableCell className="align-middle">
+        <div className="flex min-h-8 items-center justify-start">
         {t.inNetwork ? (
           <Badge
             variant="secondary"
             className="gap-1 border-chart-2/30 bg-chart-2/10 text-chart-2 text-[var(--text-2xs)]"
           >
             <HugeiconsIcon icon={CheckmarkCircle01Icon} strokeWidth={2} className="size-3" />
-            In Network
+            Optimized
           </Badge>
         ) : hasBetterOption ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className="cursor-pointer border-0 bg-transparent p-0 outline-none [&>span]:cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
+          <Popover>
+            <PopoverTrigger
+              render={
+                <button
+                  type="button"
+                  className="inline-flex cursor-pointer items-center border-0 bg-transparent p-0 align-middle outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              }
             >
-              <Badge
-                variant="destructive"
-                className="cursor-pointer gap-1 text-[var(--text-2xs)]"
-                title="Optimized location available"
-              >
+              <Badge variant="destructive" className="gap-1 text-[var(--text-2xs)]">
                 <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3" />
-                Out of Network
+                Not optimal
               </Badge>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="bottom" className="w-auto p-0">
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              side="bottom"
+              className="w-auto max-w-[min(100vw-1rem,380px)] gap-0 p-0"
+            >
+              <PopoverTitle className="sr-only">Better fuel option</PopoverTitle>
+              <PopoverDescription className="sr-only">
+                Compare the actual purchase with a nearby optimized stop.
+              </PopoverDescription>
               <BetterOptionDetails option={t.betterOption!} transaction={t} />
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverContent>
+          </Popover>
         ) : (
           <Badge
             variant="secondary"
             className="gap-1 text-[var(--text-2xs)] border-muted-foreground/20 bg-muted text-muted-foreground"
           >
-            Out of Network
+            Not optimal
           </Badge>
         )}
+        </div>
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right align-middle">
+        <div className="flex min-h-8 items-center justify-end">
         {hasBetterOption ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className="cursor-pointer border-0 bg-transparent p-0 outline-none [&>span]:cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
+          <Popover>
+            <PopoverTrigger
+              render={
+                <button
+                  type="button"
+                  className="inline-flex cursor-pointer items-center border-0 bg-transparent p-0 align-middle outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              }
             >
               <Badge
                 variant="secondary"
-                className="cursor-pointer font-mono tabular-nums text-[var(--text-2xs)] border-destructive/30 bg-destructive/10 text-destructive"
+                className="font-mono tabular-nums text-[var(--text-2xs)] border-destructive/30 bg-destructive/10 text-destructive"
               >
                 ${(t.betterOption?.potentialSavings ?? 0).toFixed(2)}
               </Badge>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="bottom" className="w-auto p-0">
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="bottom"
+              className="w-auto max-w-[min(100vw-1rem,380px)] gap-0 p-0"
+            >
+              <PopoverTitle className="sr-only">Better fuel option</PopoverTitle>
+              <PopoverDescription className="sr-only">
+                Compare the actual purchase with a nearby optimized stop.
+              </PopoverDescription>
               <BetterOptionDetails option={t.betterOption!} transaction={t} />
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverContent>
+          </Popover>
         ) : (
           <Badge
             variant="secondary"
@@ -445,6 +458,7 @@ function TransactionRow({
             {t.variance >= 0 ? "+" : ""}${t.variance.toFixed(2)}
           </Badge>
         )}
+        </div>
       </TableCell>
     </TableRow>
   )
@@ -478,7 +492,6 @@ export function FuelTransactionTable({
   stationSort?: { column: StationSortColumn; direction: "asc" | "desc" }
 }) {
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set())
-  const [betterOptionTransaction, setBetterOptionTransaction] = React.useState<FuelTransaction | null>(null)
 
   const toggleGroup = React.useCallback((key: string) => {
     setExpandedGroups((prev) => {
@@ -508,13 +521,12 @@ export function FuelTransactionTable({
           {groupByStation ? <TableHead className="w-0"></TableHead> : null}
           <TableHead>Date/Time</TableHead>
           {!hideDriverColumn ? <TableHead>Driver</TableHead> : null}
-          <TableHead>Truck</TableHead>
           <TableHead>Location</TableHead>
           <TableHead>Station</TableHead>
           <TableHead className="text-right">Gallons</TableHead>
           <TableHead className="text-right">Price/Gal</TableHead>
           <TableHead className="text-right">Total</TableHead>
-          <TableHead>Network</TableHead>
+          <TableHead>Efficiency</TableHead>
           <TableHead className="text-right">Missed Savings</TableHead>
         </TableRow>
       </TableHeader>
@@ -569,9 +581,6 @@ export function FuelTransactionTable({
                       <TableCell></TableCell>
                       <TableCell></TableCell>
                       <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
                     </TableRow>
                     {isExpanded
                       ? group.transactions.map((t) => (
@@ -582,7 +591,6 @@ export function FuelTransactionTable({
                             hideDriverColumn={hideDriverColumn}
                             selectedTransactionId={selectedTransactionId}
                             onSelectTransaction={onSelectTransaction}
-                            onBetterOptionClick={setBetterOptionTransaction}
                           />
                         ))
                       : null}
@@ -609,34 +617,11 @@ export function FuelTransactionTable({
               hideDriverColumn={hideDriverColumn}
               selectedTransactionId={selectedTransactionId}
               onSelectTransaction={onSelectTransaction}
-              onBetterOptionClick={setBetterOptionTransaction}
             />
           ))
         )}
       </TableBody>
     </Table>
-    <Drawer
-      open={betterOptionTransaction != null}
-      onOpenChange={(open) => !open && setBetterOptionTransaction(null)}
-      direction="bottom"
-    >
-      <DrawerContent className="flex max-h-[85vh] min-h-0 flex-col overflow-hidden">
-        <DrawerHeader className="shrink-0 px-4">
-          <DrawerTitle>Better fuel option</DrawerTitle>
-          <DrawerDescription>
-            Compare the actual purchase with a nearby in-network option.
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-          {betterOptionTransaction?.betterOption && (
-            <BetterOptionDetails
-              option={betterOptionTransaction.betterOption}
-              transaction={betterOptionTransaction}
-            />
-          )}
-        </div>
-      </DrawerContent>
-    </Drawer>
     </>
   )
 }

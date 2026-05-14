@@ -84,7 +84,7 @@ export function getSeedTripPlans(): TripPlan[] {
       tripEnd: endStr,
       truckId: "T001",
       driverId: "D001",
-      driverName: "Mike Johnson",
+      driverName: "Trevor Borden",
       stops: [
         { station: "Pilot Flying J", location: "Phoenix, AZ", pricePerGallon: 3.72, refuelGallons: 120, distanceFromPrev: 0, eta: "08:00", fuelPct: 85, lat: 33.4484, lng: -112.074 },
         { station: "Love's", location: "Albuquerque, NM", pricePerGallon: 3.68, refuelGallons: 95, distanceFromPrev: 465, eta: "14:30", fuelPct: 78, lat: 35.0844, lng: -106.6504 },

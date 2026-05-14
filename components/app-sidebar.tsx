@@ -27,6 +27,7 @@ import {
   Location01Icon,
   ReceiptDollarIcon,
   UserGroupIcon,
+  UserIcon,
   Route01Icon,
   TruckDeliveryIcon,
   Search01Icon,
@@ -46,7 +47,8 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
-    { title: "Dashboard", url: "/", icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} /> },
+    { title: "Feet Performance", url: "/", icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} /> },
+    { title: "My Performance", url: "/my-performance", icon: <HugeiconsIcon icon={UserIcon} strokeWidth={2} /> },
     { title: "Optimizer", url: "/route-optimizer", icon: <HugeiconsIcon icon={Route01Icon} strokeWidth={2} /> },
     { title: "Trips", url: "/trips", icon: <HugeiconsIcon icon={TruckDeliveryIcon} strokeWidth={2} /> },
     { title: "Driver Insights", url: "/drivers", icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} /> },

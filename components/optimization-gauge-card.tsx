@@ -18,6 +18,9 @@ const GaugeComponent = dynamic(
   { ssr: false }
 )
 
+const DEFAULT_EFFICIENCY_TOOLTIP =
+  "Efficiency is the percentage of fill-ups at optimized locations—places that offer the best price for the route. A higher score means more drivers are fueling where they get the best price."
+
 export interface OptimizationGaugeCardProps {
   value: number
   /** Optional trend vs comparison period (e.g. 12.5 for "+12.5% from last month"). */
@@ -26,6 +29,12 @@ export interface OptimizationGaugeCardProps {
   trendLabel?: string
   /** Card size: "sm" reduces padding and gap. */
   size?: "default" | "sm"
+  /** Card heading; default "Fleet efficiency". */
+  cardTitle?: string
+  /** aria-label for the info button; should match the metric (fleet vs your stops). */
+  efficiencyInfoAriaLabel?: string
+  /** Tooltip body for the info button; defaults to fleet-wide copy. */
+  efficiencyTooltipText?: string
   /** Data for the "How to improve" drawer. When provided with hasRoomForImprovement, shows the button. */
   improvementData?: {
     drivers: DriverNeedingAttention[]
@@ -58,6 +67,9 @@ export function OptimizationGaugeCard({
   trendFromLastMonth,
   trendLabel = "from last month",
   size = "default",
+  cardTitle = "Fleet efficiency",
+  efficiencyInfoAriaLabel = "What is fleet efficiency?",
+  efficiencyTooltipText = DEFAULT_EFFICIENCY_TOOLTIP,
   improvementData,
   periodLabel = "period",
   hasRoomForImprovement = false,
@@ -76,21 +88,21 @@ export function OptimizationGaugeCard({
     <Card size={size} className={cn(isCompact && "gap-2 py-2")}>
       <CardHeader className={cn("pb-1", isCompact && "pb-0")}>
         <div className="flex items-center gap-1.5">
-          <CardTitle className="text-base">Fleet efficiency</CardTitle>
+          <CardTitle className="text-base">{cardTitle}</CardTitle>
           <Tooltip>
             <TooltipTrigger
               render={
                 <button
                   type="button"
                   className="inline-flex shrink-0 rounded text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="What is fleet efficiency?"
+                  aria-label={efficiencyInfoAriaLabel}
                 >
                   <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" strokeWidth={2} />
                 </button>
               }
             />
             <TooltipContent side="top" className="max-w-sm">
-              Efficiency is the percentage of fill-ups at optimized locations—places that offer the best price for the route. A higher score means more drivers are fueling where they get the best price.
+              {efficiencyTooltipText}
             </TooltipContent>
           </Tooltip>
         </div>

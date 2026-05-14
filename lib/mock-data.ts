@@ -312,7 +312,7 @@ export interface PricingSummaryRow {
 const NUM_FLEET_DRIVERS = 16
 
 const DRIVER_NAMES = [
-  "Mike Johnson",
+  "Trevor Borden",
   "Sarah Williams",
   "James Davis",
   "Maria Garcia",
@@ -849,7 +849,7 @@ export const fuelPriceHistory = generateFuelPriceHistory()
 export const driverLeaderboard: DriverPerformance[] = [
   {
     rank: 1,
-    driverName: "Mike Johnson",
+    driverName: "Trevor Borden",
     truckId: "T001",
     avgMpg: 7.2,
     fuelCostPerMile: 1.18,
@@ -965,7 +965,7 @@ export const fleetScoreCardMock = {
 export const driverDetails: Record<string, DriverDetail> = {
   D001: {
     driverId: "D001",
-    driverName: "Mike Johnson",
+    driverName: "Trevor Borden",
     truckId: "T001",
     monthlyTrend: [
       { month: "Jul", mpg: 6.9, costPerMile: 1.25 },

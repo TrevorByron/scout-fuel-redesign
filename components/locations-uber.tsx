@@ -19,6 +19,7 @@ import {
 } from "@/lib/location-utils"
 
 import { DateRangePresetTabs, DATE_RANGE_PRESET_BAR_PADDING } from "@/components/date-range-preset-tabs"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatStrip, StatStripItem, StatStripLabel, StatStripValue } from "@/components/stat-strip"
 import { Button } from "@/components/ui/button"
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Calendar01Icon } from "@hugeicons/core-free-icons"
+import { AlertCircleIcon, Calendar01Icon, CheckmarkCircle01Icon } from "@hugeicons/core-free-icons"
 import {
   Select,
   SelectContent,
@@ -743,16 +744,23 @@ export function LocationsUber() {
                           {loc.displayName}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <span
-                          className={
-                            loc.efficiencyPct === 100
-                              ? "font-medium text-green-600 dark:text-green-500"
-                              : "text-muted-foreground"
-                          }
-                        >
-                          {loc.efficiencyPct === 100 ? "Optimized" : "Not optimized"}
-                        </span>
+                      <TableCell className="text-right align-middle">
+                        <div className="flex min-h-8 items-center justify-end">
+                          {loc.efficiencyPct === 100 ? (
+                            <Badge
+                              variant="secondary"
+                              className="gap-1 border-chart-2/30 bg-chart-2/10 text-chart-2 text-[var(--text-2xs)]"
+                            >
+                              <HugeiconsIcon icon={CheckmarkCircle01Icon} strokeWidth={2} className="size-3" />
+                              Optimized
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="gap-1 text-[var(--text-2xs)]">
+                              <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3" />
+                              Not optimal
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {loc.totalGallons.toLocaleString("en-US", {

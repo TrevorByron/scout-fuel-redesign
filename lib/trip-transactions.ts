@@ -12,6 +12,7 @@ import {
   type FuelTransaction,
   type FuelType,
 } from "@/lib/mock-data"
+import { MY_PERFORMANCE_DRIVER_NAME } from "@/lib/my-performance-driver"
 
 const SEED_TRIP_PREFIX = "seed-trip-"
 
@@ -23,7 +24,7 @@ function driverNameForTrip(trip: TripPlan): string {
   return (
     trip.driverName ??
     (trip.truckId === "T001"
-      ? "Mike Johnson"
+      ? MY_PERFORMANCE_DRIVER_NAME
       : trip.truckId === "T002"
         ? "Sarah Williams"
         : trip.truckId === "T003"
@@ -105,7 +106,7 @@ function buildPrototypeStopRefuels(
     let lat = stop.lat
     let lng = stop.lng
     let stationBrand = stop.station
-    let location = stop.location
+    const location = stop.location
     let pricePerGallon = stop.pricePerGallon
     let inNetwork = true
     let betterOption: BetterOption | undefined

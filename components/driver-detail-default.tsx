@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useParams, notFound } from "next/navigation"
 import { type DateRange } from "react-day-picker"
@@ -37,7 +36,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { DateRangePresetTabs, DATE_RANGE_PRESET_BAR_PADDING } from "@/components/date-range-preset-tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -50,29 +49,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar01Icon } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
-
-const FuelTransactionTable = dynamic(
-  () =>
-    import("@/components/fuel-transaction-table").then((m) => ({
-      default: m.FuelTransactionTable,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">
-        Loading table…
-      </div>
-    ),
-  }
-)
-
-const DriverInsightsMap = dynamic(
-  () =>
-    import("@/components/driver-insights-map").then((m) => ({
-      default: m.DriverInsightsMap,
-    })),
-  { ssr: false }
-)
+import { DriverFillUpsBlock } from "@/components/driver-fill-ups-block"
 
 const PRESETS = [
   { label: "Last 7 days", days: 7 },
@@ -150,10 +127,6 @@ export function DriverDetailDefault() {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
     () => getThisWeekRange()
   )
-  const [selectedTransactionId, setSelectedTransactionId] = React.useState<
-    string | null
-  >(null)
-
   if (!driverName) {
     notFound()
   }
@@ -195,13 +168,6 @@ export function DriverDetailDefault() {
   const dateFilteredTransactions = React.useMemo(
     () => driverTransactions.filter((t) => isInDateRange(t, dateRange)),
     [driverTransactions, dateRange]
-  )
-
-  const handleSelectTransaction = React.useCallback(
-    (t: FuelTransaction | null) => {
-      setSelectedTransactionId(t?.id ?? null)
-    },
-    []
   )
 
   const activePreset =
@@ -437,37 +403,15 @@ export function DriverDetailDefault() {
         </div>
       </div>
 
-      {/* Map */}
-      <div className="relative h-[50vh] min-h-[400px] w-full overflow-visible rounded-lg border border-border">
-        <DriverInsightsMap
-          transactions={dateFilteredTransactions}
-          selectedTransactionId={selectedTransactionId}
-          onSelectTransaction={handleSelectTransaction}
-        />
-      </div>
-
-      {/* Transactions table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>
-            All transactions for this driver in the selected date range. Click a
-            row to highlight it on the map.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FuelTransactionTable
-            transactions={dateFilteredTransactions}
-            maxRows={100}
-            hideDriverColumn
-            emptyTitle="No transactions in this range"
-            emptyDescription="Change the date range to see transactions."
-            groupByStation={false}
-            selectedTransactionId={selectedTransactionId}
-            onSelectTransaction={handleSelectTransaction}
-          />
-        </CardContent>
-      </Card>
+      <DriverFillUpsBlock
+        transactions={dateFilteredTransactions}
+        tableDescription={
+          <>
+            All transactions for this driver in the selected date range. Click a row to highlight it on
+            the map.
+          </>
+        }
+      />
     </div>
   )
 }
