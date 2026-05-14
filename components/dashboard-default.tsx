@@ -769,10 +769,13 @@ export function DashboardDefault({ variant = "fleet", driverName }: DashboardDef
         </div>
       </div>
 
-      {/* Main grid: attention module + gallons — 2 cols at @[66rem]/main (matches Uber layout) */}
+      {/* Main grid: fleet = attention + gallons (2 cols at @[66rem]); My Dashboard = single full-width column */}
       <div
         data-dashboard-main-grid
-        className="grid grid-cols-1 gap-4 px-4 lg:px-6 @[66rem]/main:grid-cols-2"
+        className={cn(
+          "grid grid-cols-1 gap-4 px-4 lg:px-6",
+          variant !== "myPerformance" && "@[66rem]/main:grid-cols-2"
+        )}
       >
         {variant === "myPerformance" ? (
         <div className="flex min-h-0 min-w-0 flex-col gap-4">
@@ -922,7 +925,8 @@ export function DashboardDefault({ variant = "fleet", driverName }: DashboardDef
         </Card>
         )}
 
-        {/* Gallons by chain */}
+        {/* Gallons by chain — fleet dashboard only */}
+        {variant !== "myPerformance" ? (
         <Card variant="flat" className="flex min-h-0 min-w-0 flex-col">
           <CardHeader>
             <CardTitle>Gallons by Chain</CardTitle>
@@ -1002,6 +1006,7 @@ export function DashboardDefault({ variant = "fleet", driverName }: DashboardDef
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
       </div>
     </div>
