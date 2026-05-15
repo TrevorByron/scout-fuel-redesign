@@ -527,11 +527,11 @@ export function LocationsDefault() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px] lg:min-h-[max(20rem,40vh)]">
+          <div className="relative h-[40vh] min-h-[320px] w-full overflow-visible rounded-lg border border-border lg:h-full lg:min-h-0">
             <LocationInsightsMap locations={mapItems} />
           </div>
-          <Card className="flex flex-col min-h-0 lg:min-h-[40vh]">
+          <Card className="flex flex-col min-h-0 lg:h-full lg:min-h-0">
             <CardHeader className="shrink-0">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Network chains
