@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { format } from "date-fns"
-import { AlertCircle, ArrowRight, CheckCircle2, FileText, Trash2, XCircle } from "lucide-react"
+import { AlertCircle, ArrowRight, CheckCircle2, XCircle } from "lucide-react"
 import { deleteDealAnalysis, listSavedDealAnalyses } from "@/lib/deal-analyzer-storage"
 import type { DealVerdict, SavedDealAnalysis } from "@/lib/deal-analyzer-types"
 import { cn } from "@/lib/utils"
@@ -20,9 +20,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { BalanceScaleIcon } from "@hugeicons/core-free-icons"
+import { BalanceScaleIcon, Delete02Icon, MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons"
 
 type VerdictTier = DealVerdict["tier"]
 
@@ -38,18 +44,32 @@ function fmtPct(n: number): string {
   return `${n.toFixed(1)}%`
 }
 
-/** Matches deal-analyzer-results-view hero shell (list-row variant). */
-function verdictTierRowShellClass(tier: VerdictTier): string {
+/** Background-only tier tint for rows inside a bordered list (no outer cell border). */
+function verdictTierRowBgClass(tier: VerdictTier): string {
   switch (tier) {
     case "excellent":
     case "good":
-      return "border-[var(--success)]/35 bg-[var(--success)]/5"
+      return "bg-[var(--success)]/5"
     case "marginal":
-      return "border-[var(--warning)]/40 bg-[var(--warning)]/10"
+      return "bg-[var(--warning)]/10"
     case "bad":
-      return "border-destructive/35 bg-destructive/10"
+      return "bg-destructive/10"
     default:
-      return "border-border bg-muted/20"
+      return "bg-muted/20"
+  }
+}
+
+function verdictTierListAccentClass(tier: VerdictTier): string {
+  switch (tier) {
+    case "excellent":
+    case "good":
+      return "border-l-[var(--success)]"
+    case "marginal":
+      return "border-l-[var(--warning)]"
+    case "bad":
+      return "border-l-destructive"
+    default:
+      return "border-l-border"
   }
 }
 
@@ -156,108 +176,158 @@ export function DealAnalyzerHub() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex min-h-full w-full max-w-3xl -translate-y-[60px] flex-col justify-center gap-8 px-4 py-8 lg:px-6">
-        <header className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <HugeiconsIcon icon={BalanceScaleIcon} strokeWidth={2} className="size-8" />
+      {saved.length === 0 ? (
+        <div className="mx-auto flex min-h-full w-full max-w-3xl -translate-y-[60px] flex-col justify-center gap-8 px-4 py-8 lg:px-6">
+          <header className="flex flex-col items-center gap-3 text-center">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <HugeiconsIcon icon={BalanceScaleIcon} strokeWidth={2} className="size-8" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Fuel Deal Analyzer
+              </h1>
+              <p className="text-pretty text-sm text-muted-foreground sm:text-base">
+                Evaluate fuel proposals in real-time.
+              </p>
+              <p className="text-pretty text-xs text-muted-foreground sm:text-sm">
+                Capture deal details and compare them to your historic transaction
+                data and get instant analysis.
+              </p>
+            </div>
+            <Link
+              href="/deal-analyzer/analyze"
+              className={cn(
+                buttonVariants({
+                  variant: "default",
+                  size: "lg",
+                  className:
+                    "min-h-11 w-full max-w-md gap-2 [&_svg:not([class*='size-'])]:size-4",
+                })
+              )}
+            >
+              Analyze Deal
+              <ArrowRight className="size-4 shrink-0" aria-hidden />
+            </Link>
+          </header>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">
+            <div className="min-w-0 max-w-xl">
+              <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+                Fuel Deal Analyzer
+              </h2>
+              <p className="mt-0.5 text-muted-foreground text-xs">
+                Evaluate fuel proposals in real-time. Open a saved analysis or start
+                a new one.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/deal-analyzer/analyze"
+                className={cn(
+                  buttonVariants({
+                    variant: "default",
+                    size: "default",
+                    className:
+                      "min-h-11 gap-2 [&_svg:not([class*='size-'])]:size-4",
+                  })
+                )}
+              >
+                Analyze Deal
+                <ArrowRight className="size-4 shrink-0" aria-hidden />
+              </Link>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Fuel Deal Analyzer
-            </h1>
-            <p className="text-pretty text-sm text-muted-foreground sm:text-base">
-              Evaluate fuel proposals in real-time.
-            </p>
-            <p className="text-pretty text-xs text-muted-foreground sm:text-sm">
-              Type in the deal details as you hear them, compare them to your
-              historic transaction data and get instant analysis.
-            </p>
-          </div>
-          <Link
-            href="/deal-analyzer/analyze"
-            className={cn(
-              buttonVariants({
-                variant: "default",
-                size: "lg",
-                className:
-                  "min-h-11 w-full max-w-md gap-2 [&_svg:not([class*='size-'])]:size-4",
-              })
-            )}
-          >
-            Analyze Deal
-            <ArrowRight className="size-4 shrink-0" aria-hidden />
-          </Link>
-        </header>
 
-        {saved.length > 0 ? (
-          <Card className="flex flex-col shadow-md ring-1 ring-foreground/10">
-            <CardHeader className="gap-3 items-center justify-items-center text-center">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                <FileText className="size-6" strokeWidth={2} aria-hidden />
-              </div>
-              <div className="space-y-1">
-                <CardTitle className="text-base">Past Analyses</CardTitle>
-                <CardDescription>Review previous evaluations.</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 pt-0">
-              <ul className="max-h-[min(24rem,55vh)] space-y-1.5 overflow-y-auto rounded-lg border border-border bg-muted/10 p-2">
-                {saved.map((item) => {
-                  const tier = item.results?.verdict?.tier ?? "good"
-                  const hasResults = Boolean(item.results?.verdict && item.results?.proposed)
-                  return (
-                    <li key={item.id} className="flex items-stretch gap-0.5">
-                      <Link
-                      href={`/deal-analyzer/analyze?saved=${encodeURIComponent(item.id)}`}
-                      className={cn(
-                        "flex min-w-0 flex-1 rounded-md border px-3 py-2.5 text-left transition-colors",
-                        hasResults
-                          ? cn(
-                              "items-start gap-3",
-                              verdictTierRowShellClass(tier),
-                              "hover:brightness-[0.99]"
-                            )
-                          : "min-h-11 flex-col gap-0.5 border-transparent hover:bg-muted/80"
-                      )}
-                    >
-                      {hasResults ? (
-                        <SavedAnalysisLinkBody item={item} />
-                      ) : (
-                        <>
-                          <span className="truncate font-medium text-foreground text-sm">
-                            {item.name}
-                          </span>
-                          <span className="text-muted-foreground text-xs">
-                            {format(new Date(item.date), "MMM d, yyyy · h:mm a")}
-                          </span>
-                        </>
-                      )}
-                      </Link>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-lg"
-                              className="min-h-11 min-w-11 shrink-0 self-center text-muted-foreground hover:text-destructive"
-                              aria-label={`Delete saved analysis, ${item.name}`}
+          <div className="min-h-0 flex-1 px-4 lg:px-6">
+            <Card className="flex flex-col shadow-sm">
+              <CardHeader className="gap-1 pb-4 text-left">
+                <CardTitle className="text-base">Saved analyses</CardTitle>
+                <CardDescription>Review previous evaluations on this device.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                  {saved.map((item) => {
+                    const tier = item.results?.verdict?.tier ?? "good"
+                    const hasResults = Boolean(item.results?.verdict && item.results?.proposed)
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "flex min-h-11 items-center gap-1 pr-1 transition-colors sm:pr-2",
+                          hasResults
+                            ? cn(
+                                "border-l-[3px]",
+                                verdictTierRowBgClass(tier),
+                                verdictTierListAccentClass(tier),
+                                "hover:brightness-[0.99]"
+                              )
+                            : "border-l-[3px] border-l-transparent hover:bg-muted/40"
+                        )}
+                      >
+                        <Link
+                          href={`/deal-analyzer/analyze?saved=${encodeURIComponent(item.id)}`}
+                          className={cn(
+                            "flex min-w-0 flex-1 gap-3 px-3 py-3 text-left",
+                            hasResults
+                              ? "items-start"
+                              : "min-h-11 flex-col items-start justify-center gap-0.5"
+                          )}
+                        >
+                          {hasResults ? (
+                            <SavedAnalysisLinkBody item={item} />
+                          ) : (
+                            <>
+                              <span className="truncate font-medium text-foreground text-sm">
+                                {item.name}
+                              </span>
+                              <span className="text-muted-foreground text-xs">
+                                {format(new Date(item.date), "MMM d, yyyy · h:mm a")}
+                              </span>
+                            </>
+                          )}
+                        </Link>
+                        <DropdownMenu>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <DropdownMenuTrigger
+                                  render={
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-lg"
+                                      className="min-h-11 min-w-11 shrink-0 text-muted-foreground"
+                                      aria-label={`More actions for ${item.name}`}
+                                    />
+                                  }
+                                >
+                                  <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+                                </DropdownMenuTrigger>
+                              }
+                            />
+                            <TooltipContent side="left">More actions</TooltipContent>
+                          </Tooltip>
+                          <DropdownMenuContent align="end" side="bottom" className="w-44">
+                            <DropdownMenuItem
+                              variant="destructive"
                               onClick={() => setDeleteTarget(item)}
                             >
-                              <Trash2 className="size-4" aria-hidden />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent side="left">Delete saved analysis</TooltipContent>
-                      </Tooltip>
-                    </li>
-                  )
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        ) : null}
-      </div>
+                              <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       <AlertDialog
         open={deleteTarget !== null}
