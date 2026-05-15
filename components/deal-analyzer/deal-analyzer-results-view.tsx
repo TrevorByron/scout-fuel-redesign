@@ -306,13 +306,13 @@ export function DealAnalyzerResultsView({
   return (
     <div
       className={cn(
-        "animate-in fade-in-0 slide-in-from-bottom-2 flex flex-1 flex-col gap-4 overflow-visible duration-300",
+        "flex w-full min-w-0 flex-col gap-4 max-lg:overflow-visible lg:shrink-0 lg:overflow-visible",
         className
       )}
     >
       <div
         className={cn(
-          "flex min-h-[44px] gap-4 overflow-visible rounded-lg border-2 px-4 py-5 sm:items-center",
+          "flex shrink-0 gap-4 rounded-lg border-2 px-4 py-5 sm:items-center",
           verdictCardClass
         )}
       >
@@ -352,7 +352,7 @@ export function DealAnalyzerResultsView({
         </div>
       </div>
 
-      <section className="flex flex-col gap-4 overflow-visible">
+      <section className="flex shrink-0 flex-col gap-4 overflow-x-hidden">
         <header className="border-b border-border pb-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="size-4 text-muted-foreground" aria-hidden />
@@ -517,7 +517,7 @@ export function DealAnalyzerResultsView({
       </section>
 
       {insights.length > 0 ? (
-        <section className="flex flex-col gap-3 overflow-visible pt-2">
+        <section className="flex shrink-0 flex-col gap-3 overflow-x-hidden pt-2">
           <header className="border-b border-border pb-4">
             <h3 className="text-base font-semibold">Key insights</h3>
           </header>
@@ -537,16 +537,18 @@ export function DealAnalyzerResultsView({
       ) : null}
 
       {results && locationComparisonRows.length > 0 ? (
-        <DealAnalyzerLocationComparisonSection
-          rows={locationComparisonRows}
-          transactionSlice={analysisTransactionSlice}
-          verdictTier={verdictTier}
-          showOptimizedColumn={
-            optimized != null &&
-            proposed.avgPricePerGallon > 0 &&
-            optimized.avgPricePerGallon != null
-          }
-        />
+        <div className="shrink-0">
+          <DealAnalyzerLocationComparisonSection
+            rows={locationComparisonRows}
+            transactionSlice={analysisTransactionSlice}
+            verdictTier={verdictTier}
+            showOptimizedColumn={
+              optimized != null &&
+              proposed.avgPricePerGallon > 0 &&
+              optimized.avgPricePerGallon != null
+            }
+          />
+        </div>
       ) : null}
     </div>
   )

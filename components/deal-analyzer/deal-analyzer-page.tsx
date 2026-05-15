@@ -99,12 +99,6 @@ const DEAL_ANALYZER_PERIOD_PRESETS: {
   { value: "year", label: "Last Year" },
 ]
 
-/** Viewport height below header — same contract as `MapSheetLayout` aside shell. */
-const DEAL_ANALYZER_SHELL_STYLE: React.CSSProperties = {
-  height: "100%",
-  maxHeight: "calc(100dvh - var(--header-height, 3rem))",
-}
-
 function normalizeLoadedDealConfig(c: DealAnalyzerFormInput): DealAnalyzerFormInput {
   return normalizeDefRebateModeOnLoad(migrateDealConfigToCurrentShape(c))
 }
@@ -654,15 +648,19 @@ export function DealAnalyzerPage() {
   }
 
   const showMobileResultsPane = showResults && mobileDealStep === "results"
+  /** Compact results: one page scroll under the header (avoid nested max-h + clip). */
+  const mobileResultsDocumentScroll = isCompactLayout && showMobileResultsPane
 
   return (
     <>
       <div
         className={cn(
-          "flex min-h-0 flex-1 flex-col gap-4 overflow-visible px-4 py-4",
-          "lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0"
+          "flex w-full min-w-0 flex-col gap-4 overflow-x-hidden px-4 py-4",
+          mobileResultsDocumentScroll
+            ? "max-lg:h-auto max-lg:min-h-0 max-lg:flex-none"
+            : "min-h-0 flex-1",
+          "lg:h-full lg:max-h-[calc(100dvh-var(--header-height,3rem))] lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0"
         )}
-        style={DEAL_ANALYZER_SHELL_STYLE}
       >
         <aside
           className={cn(
@@ -991,16 +989,20 @@ export function DealAnalyzerPage() {
         <div
           ref={resultsRef}
           className={cn(
-            "flex min-h-0 min-w-0 w-full flex-1 flex-col gap-4",
-            "lg:min-h-0 lg:h-full lg:overflow-y-auto lg:overscroll-y-contain lg:[-webkit-overflow-scrolling:touch] lg:p-4 lg:pb-8",
+            "flex min-h-0 min-w-0 w-full flex-col gap-4",
+            mobileResultsDocumentScroll
+              ? "max-lg:flex-none max-lg:overflow-visible"
+              : "flex-1",
+            "lg:flex-1 lg:min-h-0 lg:h-full lg:overflow-y-auto lg:overscroll-y-contain lg:[-webkit-overflow-scrolling:touch] lg:p-4 lg:pb-8",
             (!showResults || mobileDealStep === "details") && "max-lg:hidden",
             showMobileResultsPane &&
+              !mobileResultsDocumentScroll &&
               "max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:overflow-y-auto max-lg:overscroll-y-contain max-lg:[-webkit-overflow-scrolling:touch]"
           )}
         >
           {showResults ? (
-            <section className="flex flex-col gap-3 overflow-visible border-b border-border pb-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+            <section className="flex min-w-0 shrink-0 flex-col gap-3 overflow-x-hidden border-b border-border pb-4">
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-start gap-1.5 sm:gap-2">
                   {showMobileResultsPane ? (
                     <Tooltip>
@@ -1038,7 +1040,7 @@ export function DealAnalyzerPage() {
                     className="h-9 min-h-9 max-sm:h-11 max-sm:min-h-11 shrink-0"
                     onClick={() => setDeleteSavedOpen(true)}
                   >
-                    Delete saved
+                    Delete
                   </Button>
                 ) : (
                   <div className="flex flex-wrap justify-end gap-2">
@@ -1102,6 +1104,9 @@ export function DealAnalyzerPage() {
             networkKey={form.brands.find((b) => b.network !== "")?.network ?? ""}
             locationComparisonRows={locationComparisonRows}
             analysisTransactionSlice={analysisTransactionSlice}
+            className={
+              mobileResultsDocumentScroll ? "max-lg:flex-none" : undefined
+            }
           />
         </div>
       </div>
